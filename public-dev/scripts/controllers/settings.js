@@ -1,7 +1,7 @@
 'use strict';
 
 angular.module('happyBoard', [])
-  .controller('SettingsCtrl', ['$scope', '$wix', function ($scope, $wix) {
+  .controller('SettingsCtrl', function ($scope, $wix) {
 
 //     var instance = api.getInstance();
 //     $scope.compId = $wix.Utils.getOrigCompId() || $wix.Utils.getCompId();
@@ -38,4 +38,4 @@ angular.module('happyBoard', [])
       console.log("key: ", key);
       console.log("value: ", value);
     });
-}]);
+});

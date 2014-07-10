@@ -1,0 +1,32 @@
+<div class="main-body" ng-controller="WidgetCtrl">
+    <div class="tool-panel">
+        <button class="tool-button icon-check" style="font-size: 38px">
+            <div class="tool-background hover-border"></div>
+        </button>
+        <button class="tool-button icon-eraser">
+            <div class="tool-background hover-border"></div>
+        </button>
+        <button class="tool-button icon-undo">
+            <div class="tool-background hover-border"></div>
+        </button>
+        <button class="tool-button icon-hand">
+            <div class="tool-background hover-border"></div>
+        </button>
+        <div class="zoom-buttons cf">
+            <button class="tool-button icon-plus">
+                <div class="tool-background"></div>
+            </button>
+            <button class="tool-button icon-minus last">
+                <div class="tool-background"></div>
+            </button>
+        </div>
+        <button class="tool-button icon-help">
+            <div class="tool-background hover-border"></div>
+        </button>
+    </div>
+    <div id="canvas"></div>
+    <script type="text/javascript">
+        var stamperDiv = document.getElementById('stamper');
+        Elm.embed(Elm.Stamper, stamperDiv);
+  </script>
+</div>

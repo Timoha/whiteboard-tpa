@@ -1,0 +1,133 @@
+<!doctype html>
+<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Happy Board</title>
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script type="text/javascript" src="//sslstatic.wix.com/services/js-sdk/1.31.0/js/Wix.js"></script>
+    <script type="text/javascript" src="http://elm-lang.org/elm-runtime.js"></script>
+    <script type="text/javascript" src="../build/Canvas.js"></script>
+    <!-- build:css({.tmp,app}) styles/app.css -->
+    <link rel="stylesheet" href="bower_components/normalize-css/normalize.css">
+    <link rel="stylesheet" href="styles/widget.css">
+    <link rel="stylesheet" href="styles/font-styles.css">
+    <!-- endbuild -->
+    <style wix-style>
+      .dropper {
+        border-color: {{style.borderColor color-3}};
+        color: {{style.bodyColor color-15}};
+        {{style.bodyFont Body-M}}
+      }
+
+      .dropping {
+        background-color: {{style.fillColor color-8}};
+        color: {{style.bodyColor color-15}};
+        {{style.bodyFont Body-M}}
+      }
+      .popup {
+        border-color: {{style.borderColor color-3}};
+        color: {{style.bodyColor color-15}};
+        {{style.bodyFont Body-M}}
+        background-color: {{style.fillColor color-1}};
+      }
+      .block {
+        border-color: {{style.borderColor color-3}};
+        color: {{style.bodyColor color-15}};
+        {{style.bodyFont Body-M}}
+        background-color: {{style.backgroundColor color-1}};
+      }
+
+      .block input {
+        background-color: {{style.backgroundColor color-1}};
+      }
+
+      .form-input-label {
+        color: {{style.bodyColor color-15}};
+        {{style.bodyFont Body-M}}
+      }
+
+      .form-input:focus + label {
+        color: {{style.bodyColor color-15}}
+      }
+
+      .block textarea {
+        background-color: {{style.backgroundColor color-1}};
+      }
+
+      .end-blocks {
+        background-color: {{style.fillColor color-8}};
+      }
+      .buttons {
+        background-color: {{style.buttonColor color-17}};
+        color: {{style.buttonTextColor color-25}};
+        {{style.buttonFont Body-M}}
+      }
+      .buttons[disabled] {
+        background-color: {{style.buttonColor color-17}};
+        color: {{style.buttonTextColor color-25}};
+      }
+      .title {
+        color: {{style.titleColor color-25}};
+        {{style.titleFont Heading-M}}
+      }
+      .description {
+        color: {{style.descriptionColor color-25}};
+        {{style.descriptionFont Body-M}}
+      }
+      .file-text {
+        border-color: {{style.borderColor color-3}};
+      }
+      .progress-text {
+        {{style.bodyFont Body-M}}
+        color: {{style.bodyColor color-15}};
+      }
+      .submit {
+        border-color: {{style.borderColor color-3}};
+      }
+    </style>
+  </head>
+  <body ng-app="happyBoard">
+    <!--[if lt IE 8]>
+        <p class="browsehappy">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade your browser</a> to improve your experience.</p>
+    <![endif]-->
+
+    <!-- build:js scripts/compat.js -->
+    <!--[if lt IE 9]>
+    <script src="bower_components/json3/lib/json3.min.js"></script>
+    <![endif]-->
+    <!-- endbuild -->
+
+    <!-- Add your site or application content here -->
+    <div ng-include="'views/index.html'"></div>
+
+    <!-- build:js scripts/plugins.js -->
+    <script src="bower_components/angular/angular.js"></script>
+    <!-- endbuild -->
+
+    <!-- build:js({.tmp,app}) scripts/index.js -->
+    <script src="scripts/app.js"></script>
+    <script src="scripts/services/wix.js"></script>
+    <script src="scripts/controllers/widget.js"></script>
+    <!-- endbuild -->
+
+    <!-- process:remove -->
+    <script>
+      var testMode = false;
+      var parent = window.parent;
+      try {
+        window.scenario = p && p.angular && p.angular.scenario;
+      } catch (e) {
+      }
+      if (testMode || window.scenario) {
+        document.write('<scri' + 'pt src="mock/wix.js"></scr' + 'ipt>');
+        document.write('<scr'+'ipt src="bower_components/angular-mocks/angular-mocks.js"></scr'+'ipt>');
+        document.write('<scri' + 'pt src="mock/api.js"></scr' + 'ipt>');
+        angular.module('happyBoard').requires.push('apiMock');
+      }
+    </script>
+    <!-- /process -->
+</body>
+</html>
