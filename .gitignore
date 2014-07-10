@@ -1,0 +1,8 @@
+build
+cache
+public
+Main.elm
+public-dev/bower_components/
+public-dev/node_modules/
+public-dev/.tmp/
+*.log

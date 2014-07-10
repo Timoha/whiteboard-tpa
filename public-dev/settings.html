@@ -1,0 +1,51 @@
+<!doctype html>
+<html class="no-js">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Happy Board Settings</title>
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width">
+    <script type="text/javascript" src="//sslstatic.wix.com/services/js-sdk/1.31.0/js/Wix.js"></script>
+    <!-- build:css({.tmp,app}) styles/settings.css -->
+    <link rel="stylesheet" href="styles/settings.css">
+    <link rel="stylesheet" href="bower_components/wix-ui-lib2/ui-lib.css">
+    <!-- endbuild -->
+  </head>
+  <body wix-ui ng-app="happyBoard">
+    <!--[if lt IE 9]>
+        <p class="browsehappy">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade your browser</a> to improve your experience.</p>
+    <![endif]-->
+    <!-- Add your site or application content here -->
+    <div ng-include="'views/settings.html'">Loading settings...</div>
+
+    <!-- build:js scripts/plugins.js -->
+    <script type="text/javascript" src="bower_components/jquery/dist/jquery.js"></script>
+    <script type="text/javascript" src="bower_components/angular/angular.js"></script>
+    <script type="text/javascript" src="bower_components/wix-ui-lib2/ui-lib.js"></script>
+    <!-- endbuild -->
+
+    <!-- build:js({.tmp,app}) scripts/settings.js -->
+    <script type="text/javascript" src="scripts/app.js"></script>
+    <script type="text/javascript" src="scripts/controllers/settings.js"></script>
+    <script type="text/javascript" src="scripts/services/wix.js"></script>
+
+    <!-- endbuild -->
+
+    <!-- process:remove -->
+    <script>
+      var testMode = false;
+      var parent = window.parent;
+      try {
+        window.scenario = p && p.angular && p.angular.scenario;
+      } catch (e) {}
+      if (testMode || window.scenario) {
+        document.write('<scri' + 'pt src="mock/wix.js"></scr' + 'ipt>');
+        document.write('<scr'+'ipt src="bower_components/angular-mocks/angular-mocks.js"></scr'+'ipt>');
+        document.write('<scri' + 'pt src="mock/api.js"></scr' + 'ipt>');
+        angular.module('happyBoard').requires.push('apiMock');
+      }
+    </script>
+    <!-- /process -->
+</body>
+</html>

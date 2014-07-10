@@ -1,0 +1,72 @@
+[ng-cloak].loading {
+  display: block !important;
+}
+.loading {
+  display: none;
+}
+
+.grid {
+  padding: 9px 0;
+}
+
+.thumbnail {
+  width: 50%;
+  float: left;
+  padding: 8px;
+  box-sizing: border-box;
+}
+
+.thumbnail:hover .wrapper {
+  background-color: #0099ff;
+}
+.thumbnail:hover .board-view {
+  display: block;
+}
+
+.thumbnail .wrapper {
+  background-color: #ddd;
+  padding: 8px;
+  box-sizing: border-box;
+}
+
+
+.board-shadow {
+  position: absolute;
+  left: 0;
+  color: white;
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+
+.board-name {
+  top: 0;
+  right: 0;
+  padding: 4px 8px;
+  font-weight: normal;
+  font-size: 14px;
+
+}
+
+.board-current {
+  bottom: 0;
+  padding: 4px 6px;
+  z-index: 2;
+}
+
+.board-view {
+  background-image: url(../images/eye.png);
+  background-position: center 30%;
+  background-repeat: no-repeat;
+  display: none;
+  top: 24px;
+  right: 0;
+  bottom: 0;
+}
+
+
+.board {
+  position: relative;
+  height: 150px;
+  background-color: white;
+
+}
