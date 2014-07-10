@@ -7,21 +7,21 @@ WiX.com App which allows visitors to leave drawings on the website.
 - On drawing start visitor name and email will be stored into WiX contacts
 - When "Start Drawing" is clicked, the board will be entered into Drawing Mode
 
-![viewing mode](https://github.com/andreywix/happy-board-tpa/blob/master/wireframes/animated/viewing-mode.gif)
+![viewing mode](https://github.com/andreywix/happy-board-tpa/raw/master/wireframes/animated/viewing-mode.gif)
 
 ### Drawing Mode:
 - Click onto "Checkmark" when done with the drawing
 - Can access Viewing Mode functionality by pressing "Hand"
 - People's names will be shown only in "Hand" mode
 
-![drawing mode](https://github.com/andreywix/happy-board-tpa/blob/master/wireframes/animated/drawing-mode.gif)
+![drawing mode](https://github.com/andreywix/happy-board-tpa/raw/master/wireframes/animated/drawing-mode.gif)
 
 ### Settings Panel:
 - Canvas background picture will be uploaded via Media Gallery
 - User can set a number of visitor's reports a particular drawing can get before it gets removed
 - "My boards" allows to create a fresh board on place of current widget or choose previous one, in which case all settings of that board will be set (might think about this more)
 
-![settings panel](https://github.com/andreywix/happy-board-tpa/blob/master/wireframes/animated/settings-panel.gif)
+![settings panel](https://github.com/andreywix/happy-board-tpa/raw/master/wireframes/animated/settings-panel.gif)
 - - -
 When clicked to view a board, a popup opens which allows:
 - manually removing unwanted drawings with eraser tool
@@ -29,4 +29,4 @@ When clicked to view a board, a popup opens which allows:
 - setting the board to the current widget
 - completely removing the board
 
-![board popup](https://github.com/andreywix/happy-board-tpa/blob/master/wireframes/animated/popup.gif)
+![board popup](https://github.com/andreywix/happy-board-tpa/raw/master/wireframes/animated/popup.gif)
