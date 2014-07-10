@@ -12,12 +12,15 @@ WiX.com App which allows visitors to leave drawings on the website.
 ### Drawing Mode:
 - Click onto "Checkmark" when done with the drawing
 - Can access Viewing Mode functionality by pressing "Hand"
+- People's names will be shown only in "Hand" mode
 
 ![drawing mode](http://i.imgur.com/5Gxgzrn.gif)
 
-
 ### Settings Panel:
-- - -
+- Canvas background picture will be uploaded via Media Gallery
+- User can set a number of visitor's reports a particular drawing can get before it gets removed
+- "My boards" allows to create a fresh board on place of current widget or choose previous one, in which case all settings of that board will be set (might think about this more)
+
 ![settings panel](http://i.imgur.com/TXqZVXg.gif)
 - - -
 When clicked to view a board, a popup opens which allows:
