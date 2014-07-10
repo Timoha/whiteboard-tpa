@@ -1,0 +1,83 @@
+.cf:before,
+.cf:after {
+    content: " ";
+    display: table;
+}
+
+.cf:after {
+    clear: both;
+}
+.cf {
+    *zoom: 1;
+}
+
+
+.main-body {
+	position: absolute;
+  top: 0; right: 0; bottom: 0; left: 0;
+  min-width: 600px;
+  min-height: 400px;
+}
+
+
+.tool-panel {
+  position: absolute;
+  top: 15%;
+  left: 0;
+  width: 68px;
+  z-index: 20;
+}
+
+
+.tool-button {
+  outline: none;
+  border: none;
+  background-color: #666;
+  width: 68px;
+  height: 55px;
+  position: relative;
+  color: #ccc;
+  font-size: 30px;
+  vertical-align: middle;
+  text-align: center;
+  line-height: 100%;
+  padding: 0;
+  z-index: 0;
+}
+
+
+.zoom-buttons .tool-button {
+  float: left;
+  border-top: 1px solid rgba(0, 0, 0, 0.3);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.3);
+  border-right: 1px solid rgba(0, 0, 0, 0.3);
+  width: 50%;
+  height: 34px;
+}
+
+.zoom-buttons .last {
+  border-right: none;
+}
+
+.tool-button .tool-background {
+  display: none;
+  position: absolute;
+  top: 0; right: 0; bottom: 0; left: 0;
+  z-index: -1;
+}
+
+
+.tool-button:active .tool-background {
+  display: block;
+  background-color: rgba(0, 0, 0, 0.3);
+}
+
+
+.tool-button:hover .hover-border {
+  display: block;
+  border-right: 5px solid red;
+}
+
+
+
+
