@@ -9,7 +9,7 @@ WiX.com App which allows visitors to leave drawings on the website.
 ![default](https://github.com/andreywix/whiteboard-tpa/raw/master/wireframes/default.png)
 
 #### When user clicks on one of the drawings
--Visitors can like or report a drawing which they clicked on
+- Visitors can like or report a drawing which they clicked on
 
 ![drawing click](https://github.com/andreywix/whiteboard-tpa/raw/master/wireframes/click-drawing.png)
 
@@ -34,6 +34,7 @@ WiX.com App which allows visitors to leave drawings on the website.
 
 #### When clicked on the "Hand"
 - "Drag Mode" will be activated and current location will be shown on the map
+
 ![map panel](https://github.com/andreywix/whiteboard-tpa/raw/master/wireframes/map-panel.png)
 
 
