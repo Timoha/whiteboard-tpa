@@ -42,7 +42,7 @@ WiX.com App which allows visitors to leave drawings on the website.
 
 #### General settings
 - User can set a number of visitor's reports a particular drawing can get before it gets removed
-- "+ Start New Board" creates an empty board in "My Boards" (see below) and sets it to current
+- "+ Start New Board" creates an empty board in "My Boards" ([see below](https://github.com/andreywix/whiteboard-tpa/blob/master/README.md#my-boards)) and sets it to current
 
 ![general settings](https://github.com/andreywix/whiteboard-tpa/raw/master/wireframes/general-settings.png)
 
