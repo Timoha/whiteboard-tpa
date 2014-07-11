@@ -109,7 +109,7 @@
                 </button>
             </li>
             <li>
-                <button id="color-tool" class="tool-button active tab-open" style="font-size: 38px">
+                <button id="color-tool" class="tool-button active" style="font-size: 38px">
                     <div id="brush-background" style="border-radius: 14px">
                         <div id="brush" style="background-color: rgba(123, 123, 123, 0.5); width: 8px; height: 8px; border-radius: 8px"></div>
                     </div>
@@ -124,7 +124,7 @@
 
             </li>
             <li>
-                <button class="tool-button icon-eraser">
+                <button id="eraser-tool" class="tool-button icon-eraser">
                     <div class="tool-background style-border"></div>
                 </button>
             </li>
@@ -134,9 +134,15 @@
                 </button>
             </li>
             <li>
-                <button class="tool-button icon-hand active">
+                <button id="drag-tool" class="tool-button icon-hand">
                     <div class="tool-background style-border"></div>
                 </button>
+                <div id="color-tab" class="tool-tab style-border">
+                    <div class="wrapper" style="height: 180px;">
+
+                    </div>
+                    <div class="tool-background"></div>
+                </div>
             </li>
             <li class="zoom-buttons cf">
                 <button class="tool-button icon-plus">
@@ -147,7 +153,7 @@
                 </button>
             </li>
             <li>
-                <button class="tool-button icon-help">
+                <button id="help-tool" class="tool-button icon-help">
                     <div class="tool-background style-border"></div>
                 </button>
             </li>
@@ -157,11 +163,12 @@
 
     <!-- build:js scripts/plugins.js -->
     <script src="bower_components/angular/angular.js"></script>
-    <script src="bower_components/jquery/angular.js"></script>
+    <script src="bower_components/jquery/jquery.js"></script>
     <!-- endbuild -->
 
     <!-- build:js({.tmp,app}) scripts/index.js -->
     <script src="scripts/app.js"></script>
+    <script src="scripts/tool-panel.js"></script>
     <script src="scripts/services/wix.js"></script>
     <script src="scripts/controllers/widget.js"></script>
     <!-- endbuild -->
@@ -178,7 +185,7 @@
         document.write('<scri' + 'pt src="mock/wix.js"></scr' + 'ipt>');
         document.write('<scr'+'ipt src="bower_components/angular-mocks/angular-mocks.js"></scr'+'ipt>');
         document.write('<scri' + 'pt src="mock/api.js"></scr' + 'ipt>');
-        angular.module('happyBoard').requires.push('apiMock');
+        angular.module('whiteboard').requires.push('apiMock');
       }
     </script>
     <!-- /process -->

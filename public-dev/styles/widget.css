@@ -90,8 +90,12 @@ ul, ol, li {
   z-index: -1;
 }
 
-.tab-open .tool-background {
+.tab-open .tool-button .tool-background {
   border: none !important;
+}
+
+.tab-open .tool-tab {
+  display: block;
 }
 
 .active .tool-background {
@@ -109,9 +113,9 @@ ul, ol, li {
 
 
 .tool-tab {
+  display: none;
   top: 0;
   left: 68px;
-  display: block;
   position: absolute;
   width: 230px;
   padding: 5px;
