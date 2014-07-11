@@ -1,19 +1,19 @@
 @charset "UTF-8";
 
 @font-face {
-  font-family: "happy-board-font";
-  src:url("fonts/happy-board-font.eot");
-  src:url("fonts/happy-board-font.eot?#iefix") format("embedded-opentype"),
-    url("fonts/happy-board-font.woff") format("woff"),
-    url("fonts/happy-board-font.ttf") format("truetype"),
-    url("fonts/happy-board-font.svg#happy-board-font") format("svg");
+  font-family: "whiteboard-font";
+  src:url("fonts/whiteboard-font.eot");
+  src:url("fonts/whiteboard-font.eot?#iefix") format("embedded-opentype"),
+    url("fonts/whiteboard-font.woff") format("woff"),
+    url("fonts/whiteboard-font.ttf") format("truetype"),
+    url("fonts/whiteboard-font.svg#whiteboard-font") format("svg");
   font-weight: normal;
   font-style: normal;
 
 }
 
 [data-icon]:before {
-  font-family: "happy-board-font" !important;
+  font-family: "whiteboard-font" !important;
   content: attr(data-icon);
   font-style: normal !important;
   font-weight: normal !important;
@@ -27,7 +27,7 @@
 
 [class^="icon-"]:before,
 [class*=" icon-"]:before {
-  font-family: "happy-board-font" !important;
+  font-family: "whiteboard-font" !important;
   font-style: normal !important;
   font-weight: normal !important;
   font-variant: normal !important;
@@ -46,9 +46,6 @@
 }
 .icon-minus:before {
   content: "d";
-}
-.icon-check:before {
-  content: "e";
 }
 .icon-help:before {
   content: "f";
@@ -70,4 +67,7 @@
 }
 .icon-eraser:before {
   content: "k";
+}
+.icon-check:before {
+  content: "e";
 }
