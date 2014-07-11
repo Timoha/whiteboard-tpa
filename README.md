@@ -1,4 +1,4 @@
-# Wightboard
+# Whiteboard
 WiX.com App which allows visitors to leave drawings on the website.
 
 ### Viewing Mode:
