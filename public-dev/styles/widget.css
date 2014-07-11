@@ -7,8 +7,31 @@
 .cf:after {
     clear: both;
 }
+
 .cf {
     *zoom: 1;
+}
+
+
+ul, ol, li {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+}
+
+#canvas {
+  height: 100%;
+}
+
+
+#brush-background {
+  background-color: white;
+  display: table;
+  margin: 0 auto;
+}
+
+#brush {
+  margin: 3px;
 }
 
 
@@ -22,20 +45,20 @@
 
 .tool-panel {
   position: absolute;
-  top: 15%;
+  top: 10%;
   left: 0;
-  width: 68px;
   z-index: 20;
 }
 
 
+.tool-panel li {
+  position: relative;
+}
+
 .tool-button {
-  outline: none;
-  border: none;
-  background-color: #666;
   width: 68px;
   height: 55px;
-  position: relative;
+  background-color: #666;
   color: #ccc;
   font-size: 30px;
   vertical-align: middle;
@@ -43,41 +66,64 @@
   line-height: 100%;
   padding: 0;
   z-index: 0;
+  outline: none;
+  border: none;
+  position: relative;
 }
 
 
 .zoom-buttons .tool-button {
-  float: left;
-  border-top: 1px solid rgba(0, 0, 0, 0.3);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.3);
-  border-right: 1px solid rgba(0, 0, 0, 0.3);
   width: 50%;
   height: 34px;
+  float: left;
+  border: 1px solid rgba(0, 0, 0, 0.3);
+  border-left: none;
 }
 
 .zoom-buttons .last {
   border-right: none;
 }
 
-.tool-button .tool-background {
-  display: none;
+.tool-background {
   position: absolute;
   top: 0; right: 0; bottom: 0; left: 0;
   z-index: -1;
 }
 
+.tab-open .tool-background {
+  border: none !important;
+}
 
-.tool-button:active .tool-background {
-  display: block;
+.active .tool-background {
+  border-right: 5px solid red;
   background-color: rgba(0, 0, 0, 0.3);
 }
 
+.tool-button:active .tool-background {
+  background-color: rgba(0, 0, 0, 0.3);
+}
 
-.tool-button:hover .hover-border {
-  display: block;
-  border-right: 5px solid red;
+.tool-button:hover .style-border {
+    border-right: 5px solid red;
 }
 
 
+.tool-tab {
+  top: 0;
+  left: 68px;
+  display: block;
+  position: absolute;
+  width: 230px;
+  padding: 5px;
+  background-color: #666;
+}
 
+.tool-tab .wrapper {
+  position: relative;
+}
 
+.tool-tab .tool-background {
+  background-color: rgba(0, 0, 0, 0.3);
+  border-right: 5px solid red;
+  z-index: 0;
+}

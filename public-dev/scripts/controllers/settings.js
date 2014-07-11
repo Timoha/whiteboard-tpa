@@ -1,6 +1,6 @@
 'use strict';
 
-angular.module('happyBoard', [])
+angular.module('whiteboard', [])
   .controller('SettingsCtrl', function ($scope, $wix) {
 
 //     var instance = api.getInstance();

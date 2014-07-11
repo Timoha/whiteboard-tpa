@@ -1,6 +1,6 @@
 'use strict';
 
-angular.module('happyBoard')
+angular.module('whiteboard')
   .controller('WidgetCtrl', function ($scope, $wix) {
 
     $scope.settings = {};

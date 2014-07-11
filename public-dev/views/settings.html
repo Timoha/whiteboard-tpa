@@ -26,8 +26,8 @@
                         <div wix-model="numReports" wix-ctrl="Spinner" wix-options="{value: 5, minValue: 2, maxValue:15 }"></div>
                         <span class="uilib-text" style="margin-left: 4px">complaints.</span>
 			        </li>
-                     <li wix-label="Use Existing Board">
-                        <button class="uilib-btn btn-black-text btn-small">Choose out of 5 boards</button>
+                    <li wix-label="New Board">
+                        <button class="uilib-btn btn-black-text btn-small"><strong>+</strong> Start New Board</button>
                     </li>
 		        </ul>
 
@@ -58,7 +58,13 @@
                         </div>
 			        </li>
                     <li wix-label="Background Color">
-		        		<div wix-param="canvasColor" wix-ctrl="ColorPickerWithOpacity" wix-options="{startWithColor: 'color-15', startWithOpacity:100}"></div>
+		        		<div wix-model="canvasColor" wix-ctrl="ColorPickerWithOpacity" wix-options="{startWithColor: 'color-15', startWithOpacity:100}"></div>
+		        	</li>
+                    <li wix-label="Border Color">
+		        		<div wix-model="borderColor" wix-ctrl="ColorPickerWithOpacity" wix-options="{startWithColor: 'color-15', startWithOpacity:100}"></div>
+		        	</li>
+                    <li wix-label="Border Width">
+                        <div  wix-model="borderWidth" wix-ctrl="Slider" wix-options="{maxValue:10, preLabel: '0', postLabel: '10', toolTip: true}"></div>
 		        	</li>
 			        <li wix-label="Background Picture">
                         <button class="uilib-btn btn-small">Upload Picture</button>
