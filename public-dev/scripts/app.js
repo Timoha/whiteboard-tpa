@@ -1,3 +1,3 @@
 'use strict';
 
-angular.module('happyBoard', []);
+angular.module('whiteboard', []);

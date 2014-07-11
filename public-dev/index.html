@@ -4,7 +4,7 @@
   <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>Happy Board</title>
+    <title>Whiteboard</title>
     <meta name="description" content="">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <script type="text/javascript" src="//sslstatic.wix.com/services/js-sdk/1.31.0/js/Wix.js"></script>
@@ -89,7 +89,7 @@
       }
     </style>
   </head>
-  <body ng-app="happyBoard">
+  <body ng-app="whiteboard">
     <!--[if lt IE 8]>
         <p class="browsehappy">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade your browser</a> to improve your experience.</p>
     <![endif]-->
@@ -101,10 +101,63 @@
     <!-- endbuild -->
 
     <!-- Add your site or application content here -->
-    <div ng-include="'views/index.html'"></div>
+    <div class="main-body" ng-controller="WidgetCtrl">
+        <ul class="tool-panel">
+            <li>
+                <button class="tool-button icon-check" style="font-size: 38px">
+                    <div class="tool-background style-border"></div>
+                </button>
+            </li>
+            <li>
+                <button id="color-tool" class="tool-button active tab-open" style="font-size: 38px">
+                    <div id="brush-background" style="border-radius: 14px">
+                        <div id="brush" style="background-color: rgba(123, 123, 123, 0.5); width: 8px; height: 8px; border-radius: 8px"></div>
+                    </div>
+                    <div class="tool-background style-border"></div>
+                </button>
+                <div id="color-tab" class="tool-tab style-border">
+                    <div class="wrapper" style="height: 180px;">
+
+                    </div>
+                    <div class="tool-background"></div>
+                </div>
+
+            </li>
+            <li>
+                <button class="tool-button icon-eraser">
+                    <div class="tool-background style-border"></div>
+                </button>
+            </li>
+            <li>
+                <button class="tool-button icon-undo">
+                    <div class="tool-background style-border"></div>
+                </button>
+            </li>
+            <li>
+                <button class="tool-button icon-hand active">
+                    <div class="tool-background style-border"></div>
+                </button>
+            </li>
+            <li class="zoom-buttons cf">
+                <button class="tool-button icon-plus">
+                    <div class="tool-background"></div>
+                </button>
+                <button class="tool-button icon-minus last">
+                    <div class="tool-background"></div>
+                </button>
+            </li>
+            <li>
+                <button class="tool-button icon-help">
+                    <div class="tool-background style-border"></div>
+                </button>
+            </li>
+        </ul>
+        <div id="canvas"></div>
+    </div>
 
     <!-- build:js scripts/plugins.js -->
     <script src="bower_components/angular/angular.js"></script>
+    <script src="bower_components/jquery/angular.js"></script>
     <!-- endbuild -->
 
     <!-- build:js({.tmp,app}) scripts/index.js -->
@@ -130,4 +183,8 @@
     </script>
     <!-- /process -->
 </body>
+    <script type="text/javascript">
+        var canvas = document.getElementById('canvas');
+        Elm.embed(Elm.Canvas, canvas);
+    </script>
 </html>
