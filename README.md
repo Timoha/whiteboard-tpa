@@ -4,17 +4,19 @@ WiX.com App which allows visitors to leave drawings on the website.
 ### Viewing Mode:
 
 #### Default state (first thing that visitors see)
-All drawings are real-time. Painter's name is showing where he/she is currently drawing
+- All drawings are real-time. Painter's name is showing where he/she is currently drawing
+
 ![default](https://github.com/andreywix/whiteboard-tpa/raw/master/wireframes/default.png)
 
 #### When user clicks on one of the drawings
-Visitors can like or report a drawing which they clicked on
+-Visitors can like or report a drawing which they clicked on
 
 ![drawing click](https://github.com/andreywix/whiteboard-tpa/raw/master/wireframes/click-drawing.png)
 
 #### When user clicks on "Brush" to start drawing
 - Once user clicks on "Start Drawing", a Drawing Mode will be activated
 - Visitor's name and email will be stored into WiX contacts
+
 ![start drawing](https://github.com/andreywix/whiteboard-tpa/raw/master/wireframes/start-drawing-panel.png)
 
 ### Drawing Mode:
@@ -26,12 +28,12 @@ Visitors can like or report a drawing which they clicked on
 ![default](https://github.com/andreywix/whiteboard-tpa/raw/master/wireframes/selected.png)
 
 #### When clicked on "Brush Dot" color panel opens
-The dot will change accordingly once the visitor changes Radius/Color/Opacity
+- The dot will change accordingly once the visitor changes Radius/Color/Opacity
 
 ![color panel](https://github.com/andreywix/whiteboard-tpa/raw/master/wireframes/animated/color-panel.gif)
 
 #### When clicked on the "Hand"
-"Drag Mode" will be activated and current location will be shown on the map
+- "Drag Mode" will be activated and current location will be shown on the map
 ![map panel](https://github.com/andreywix/whiteboard-tpa/raw/master/wireframes/map-panel.png)
 
 
@@ -53,7 +55,7 @@ The dot will change accordingly once the visitor changes Radius/Color/Opacity
 ![tool panel settings](https://github.com/andreywix/whiteboard-tpa/raw/master/wireframes/panel-settings.png)
 
 #### My Boards
-Allows to view all boards and create a fresh board or choose another one on place of current widget. All settings of that board will be set to currrent (might think about this more)
+- Allows to view all boards and create a fresh board or choose another one on place of current widget. All settings of that board will be set to currrent (might think about this more)
 
 ![my boards](https://github.com/andreywix/whiteboard-tpa/raw/master/wireframes/boards-settings.png)
 
