@@ -24,4 +24,6 @@ $(document).ready(function() {
   });
 
 
+  $('#colors').initColors('#brush');
+
 });

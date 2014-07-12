@@ -1,0 +1,34 @@
+.sliders {
+  padding: 0 10px 5px;
+}
+
+.sliders .slider {
+  color: #ccc;
+  padding: 4px 2px;
+
+}
+
+.sliders input {
+  margin-top: 2px;
+  float: right;
+}
+
+.sliders span {
+  font-size: 15px;
+  float: left;
+}
+
+
+.simplecolorpicker {
+  display: block;
+}
+
+.simplecolorpicker .color {
+  cursor: pointer;
+  cursor: hand;
+  display: block;
+  outline: none;
+  float: left;
+  width: 33.33333333%;
+  height: 45px;
+}
