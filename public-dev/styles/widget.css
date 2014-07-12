@@ -123,7 +123,9 @@ ul, ol, li {
 }
 
 .tool-tab .wrapper {
+  z-index: 2;
   position: relative;
+  margin-right: 5px;
 }
 
 .tool-tab .tool-background {
