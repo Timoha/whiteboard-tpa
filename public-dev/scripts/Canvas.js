@@ -60,7 +60,7 @@ Elm.Canvas.make = function (_elm) {
                                  ,_0: Basics.toFloat(_v4._0)
                                  ,_1: Basics.toFloat(0 - _v4._1)};}
                        _E.Case($moduleName,
-                       "on line 36, column 24 to 45");
+                       "on line 37, column 24 to 45");
                     }();
                  };
                  var strokeOrDot = function (path) {
@@ -78,7 +78,7 @@ Elm.Canvas.make = function (_elm) {
                             $float,
                             path.points));}
                        _E.Case($moduleName,
-                       "between lines 38 and 41");
+                       "between lines 39 and 42");
                     }();
                  };
                  var forms = A2(List.map,
@@ -94,19 +94,20 @@ Elm.Canvas.make = function (_elm) {
                  Graphics.Collage.group(forms))]));
               }();}
          _E.Case($moduleName,
-         "between lines 36 and 42");
+         "between lines 37 and 43");
       }();
    });
    var add1 = F2(function (t,d) {
       return function () {
+         var id = Basics.abs(t.id);
          var vs = A3(Dict.getOrElse,
          {_: {}
          ,brush: t.brush
          ,points: _L.fromArray([])},
-         t.id,
+         id,
          d);
          return A3(Dict.insert,
-         t.id,
+         id,
          _U.replace([["points"
                      ,{ctor: "::"
                       ,_0: {ctor: "_Tuple2"
@@ -173,9 +174,7 @@ Elm.Canvas.make = function (_elm) {
    scene,
    Window.dimensions),
    A2(Signal._op["<~"],
-   function ($) {
-      return List.reverse(Dict.values($));
-   },
+   Dict.values,
    A3(Signal.foldp,
    addN,
    Dict.empty,

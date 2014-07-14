@@ -6,7 +6,7 @@ import Window
 
 
 main = scene <~ Window.dimensions
-              ~ (reverse . Dict.values <~ foldp addN Dict.empty
+              ~ (Dict.values <~ foldp addN Dict.empty
                  (applyBrush <~ Touch.touches ~ (portToBrush <~ newBrush)))
 
 
@@ -28,8 +28,9 @@ addN : [Brushed Touch.Touch] -> Dict.Dict Int Stroke -> Dict.Dict Int Stroke
 addN ts dict = foldl add1 dict ts
 
 add1 : Brushed Touch.Touch -> Dict.Dict Int Stroke -> Dict.Dict Int Stroke
-add1 t d = let vs = Dict.getOrElse {brush = t.brush, points = []} t.id d
-           in  Dict.insert t.id {vs | points <- (t.x, t.y) :: vs.points} d
+add1 t d = let id = (abs t.id)
+               vs = Dict.getOrElse {brush = t.brush, points = []} id d
+           in  Dict.insert id {vs | points <- (t.x, t.y) :: vs.points} d
 
 scene : (Int,Int) -> [Stroke] -> Element
 scene (w,h) paths =

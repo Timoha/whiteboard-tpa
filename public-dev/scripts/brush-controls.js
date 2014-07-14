@@ -45,7 +45,7 @@
 
 
   $.initSliders = function ($brush) {
-    $('[data-rangeslider]').rangeslider({
+    $('#opacity, #radius').rangeslider({
 
             // Deactivate the feature detection
       polyfill: false,

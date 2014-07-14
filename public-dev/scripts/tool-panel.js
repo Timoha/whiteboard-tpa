@@ -40,10 +40,6 @@ function Brush(size, r, g, b, a) {
 
 $(document).ready(function() {
 
-
-
-
-
   var defaultBrush = new Brush(8, 255, 147, 30, 1);
 
   var canvas = Elm.embed(Elm.Canvas, document.getElementById('canvas'), {newBrush: defaultBrush});
@@ -57,7 +53,7 @@ $(document).ready(function() {
   });
 
   // close tab if clicked anywhere outside it
-  $(document).mousedown(function (e) {
+  $(document).on('mousedown touchstart', function (e) {
     var activeTool = $('.tab-open');
 
     if (!activeTool.is(e.target)
@@ -77,6 +73,6 @@ $(document).ready(function() {
 
   $('#brush').on('brush_change', function (event, data) {
     canvas.ports.newBrush.send(data);
-  })
+  });
 
 });
