@@ -38,7 +38,7 @@ WiX.com App which allows visitors to leave drawings on the website.
 ![map panel](https://github.com/andreywix/whiteboard-tpa/raw/master/wireframes/map-panel.png)
 
 
-### Settings Panel:
+### Settings Panel - [View live demo](http://andreywix.github.io/whiteboard-tpa/public-dev/settings.html):
 
 #### General settings
 - User can set a number of visitor's reports a particular drawing can get before it gets removed
