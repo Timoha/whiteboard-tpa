@@ -90,7 +90,7 @@
       }
     </style>
 </head>
-<body ng-app="whiteboard">
+<body>
     <!--[if lt IE 8]>
         <p class="browsehappy">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade your browser</a> to improve your experience.</p>
     <![endif]-->
@@ -102,7 +102,7 @@
     <!-- endbuild -->
 
     <!-- Add your site or application content here -->
-    <div class="main-body" ng-controller="WidgetCtrl">
+    <div class="main-body">
         <ul class="tool-panel">
             <li>
                 <button class="tool-button icon-check" style="font-size: 38px">
@@ -120,12 +120,12 @@
                     <div class="wrapper">
                         <div class="sliders cf">
                             <div class="slider cf">
-                                <span>Radius:</span>
-                                <input id="radius" min="4" max="25" value="8" type="range" data-rangeslider />
+                                <div class="label">Radius</div>
+                                <input id="radius" min="2" max="35" value="8" type="range" data-rangeslider>
                             </div>
                             <div class="slider cf">
-                                <span>Opacity:</span>
-                                <input id="opacity" min="0" max="100" value="100" type="range" data-rangeslider />
+                                <div class="label">Opacity</div>
+                                <input id="opacity" min="0" max="100" value="100" type="range" data-rangeslider>
                             </div>
                         </div>
                         <select id="colors" class="cf" name="colorpicker"></select>
@@ -172,19 +172,21 @@
         <div id="canvas"></div>
     </div>
 
-    <!-- build:js scripts/plugins.js -->
-    <script src="bower_components/angular/angular.js"></script>
+
+
+
+</body>
+<!-- build:js scripts/plugins.js -->
     <script src="bower_components/jquery/jquery.js"></script>
     <script src="bower_components/rangeslider.js/dist/rangeslider.js"></script>
     <script src="bower_components/jquery-simplecolorpicker/jquery.simplecolorpicker.js"></script>
     <!-- endbuild -->
-
     <!-- build:js({.tmp,app}) scripts/index.js -->
-    <script src="scripts/app.js"></script>
+<!--     <script src="scripts/app.js"></script> -->
     <script src="scripts/brush-controls.js"></script>
     <script src="scripts/tool-panel.js"></script>
-    <script src="scripts/services/wix.js"></script>
-    <script src="scripts/controllers/widget.js"></script>
+<!--     <script src="scripts/services/wix.js"></script> -->
+<!--     <script src="scripts/controllers/widget.js"></script> -->
     <!-- endbuild -->
 
     <!-- process:remove -->
@@ -203,9 +205,4 @@
       }
     </script>
     <!-- /process -->
-</body>
-    <script type="text/javascript">
-        var canvas = document.getElementById('canvas');
-        Elm.embed(Elm.Canvas, canvas);
-    </script>
 </html>

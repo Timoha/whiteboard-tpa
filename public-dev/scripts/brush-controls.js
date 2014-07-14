@@ -1,68 +1,88 @@
-(function (document, $) {
+(function ($) {
   'use strict';
 
   var colors = [
-    {rgb: '255, 147, 30',  name: "orange"},
-    {rgb: '237, 28, 36',   name: "red"},
-    {rgb: '255, 123, 172', name: "pink" },
-    {rgb: '41, 171, 226',  name: "blue"},
-    {rgb: '46, 49, 146',   name: "dark blue"},
-    {rgb: '102, 45, 145',  name: "purple"},
-    {rgb: '252, 238, 33',  name: "yellow"},
-    {rgb: '140, 198, 63',  name: "green"},
-    {rgb: '0, 104, 55',    name: "dark green"},
-    {rgb: '255, 255, 255', name: "white"},
-    {rgb: '117, 76, 36',   name: "brown"},
-    {rgb: '0, 0, 0',       name: "black"}
+    {red: '255', green: '147', blue: '30',  name: "orange"},
+    {red: '237', green: '28', blue: '36',   name: "red"},
+    {red: '255', green: '123', blue: '172', name: "pink" },
+    {red: '41', green: '171', blue: '226',  name: "blue"},
+    {red: '46', green: '49', blue: '146',   name: "dark blue"},
+    {red: '102', green: '45', blue: '145',  name: "purple"},
+    {red: '252', green: '238', blue: '33',  name: "yellow"},
+    {red: '140', green: '198', blue: '63',  name: "green"},
+    {red: '0', green: '104', blue: '55',    name: "dark green"},
+    {red: '255', green: '255', blue: '255', name: "white"},
+    {red: '117', green: '76', blue: '36',   name: "brown"},
+    {red: '0', green: '0', blue: '0',       name: "black"}
   ];
 
 
-
+  var currBrush;
 
   $.constructColor = function (color) {
-    var rgba = "rgb(" + color.rgb + ")";
+    color.rgb = [color.red, color.green, color.blue].join(',');
+    var rgb = "rgb(" + color.rgb + ")";
     return $( "<option>", {
-      value: rgba,
+      value: rgb,
       text: color.name,
-      class: "color"
     });
   };
 
 
   $.initColorPicker = function ($colorPicker, $brush) {
+    var newColor = $colorPicker.val();
+    $brush.css('background-color', newColor);
+    currBrush.fromRGBColorString(newColor);
 
-    $brush.css('background-color', $colorPicker.val());
     $colorPicker.simplecolorpicker({theme: 'cf'}).on('change', function() {
-      $brush.css('background-color', $colorPicker.val());
+      newColor = $colorPicker.val();
+      $brush.css('background-color', newColor);
+      currBrush.fromRGBColorString(newColor);
+      $brush.trigger('brush_change', [currBrush]);
     });
   };
 
 
 
   $.initSliders = function ($brush) {
+    $('[data-rangeslider]').rangeslider({
+
+            // Deactivate the feature detection
+      polyfill: false,
+      rangeClass: 'rangeslider',
+      fillClass: 'rangeslider-fill',
+      handleClass: 'rangeslider-handle',
+      onSlideEnd: function(position, value) {
+        $brush.trigger('brush_change', [currBrush]);
+      }
+    });
+
+
     var value = 0;
     var pxValue = '';
     $('#radius').on('change',  function (e) {
       value = Number(e.target.value);
-      pxValue = value + "px";
+      pxValue = value + 'px';
       $brush.css({'width': pxValue, 'height': pxValue, 'border-radius': pxValue});
-      pxValue = (value + 6) + "px";
+      pxValue = (value + 6) + 'px';
       $brush.parent().css({'width': pxValue, 'height': pxValue, 'border-radius': pxValue})
-
+      currBrush.setSize(value);
     });
 
     var opacity = 1;
     $('#opacity').on('change',  function (e) {
       opacity = Number(e.target.value) / 100;
       $brush.css({'opacity': opacity});
+      currBrush.setA(opacity);
     });
 
   };
 
 
-  $.fn.initColors = function (brushSelector) {
+  $.fn.initColorPanel = function (brushSelector, defaultBrush) {
     var $colorPicker = this;
     var $brush = $(brushSelector);
+    currBrush = defaultBrush;
 
     $colorPicker.each(function () {
       colors.map(function (color) {
@@ -78,4 +98,4 @@
     return;
   };
 
-}(document, jQuery ));
+}( jQuery ));

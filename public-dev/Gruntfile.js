@@ -237,6 +237,17 @@ module.exports = function (grunt) {
       }
     },
 
+
+//     cssmin: {
+//       minify: {
+//         expand: true,
+//         cwd: '<%= yeoman.app %>/styles/',
+//         src: ['*.css', '!*.min.css'],
+//         dest: '<%= yeoman.dist %>/styles/',
+//         ext: '.min.css'
+//       }
+//     },
+
     // Copies remaining files to places other tasks can use
     copy: {
       dist: {
@@ -337,7 +348,7 @@ module.exports = function (grunt) {
   });
 
   grunt.registerTask('build', [
-    'clean:dist',
+//     'clean:dist',
     'bower:install',
     'useminPrepare',
     'stylus',
@@ -347,7 +358,7 @@ module.exports = function (grunt) {
     'copy:dist',
     'processhtml:dist',
     'cdnify',
-    'cssmin',
+//     'cssmin',
     'uglify',
     'rev',
     'usemin'

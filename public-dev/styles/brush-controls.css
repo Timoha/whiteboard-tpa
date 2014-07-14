@@ -1,21 +1,66 @@
 .sliders {
-  padding: 0 10px 5px;
+  padding: 2px 10px 8px;
 }
 
 .sliders .slider {
   color: #ccc;
   padding: 4px 2px;
+  height: 16px;
+/*   display: table-row; */
+/*   vertical-align: middle; */
+}
+
+
+.rangeslider {
+  margin: 6px 0;
+}
+
+
+.rangeslider, .rangeslider-fill {
+  height: 6px;
+
+  background-color: #ccc;
+  position: relative;
+  width: 130px;
+  display: block;
 
 }
 
-.sliders input {
-  margin-top: 2px;
-  float: right;
+.rangeslider-fill {
+  position: absolute;
+  top: 0;
 }
 
-.sliders span {
-  font-size: 15px;
+
+.rangeslider-handle {
+  cursor: pointer;
+  display: inline-block;
+  position: absolute;
+  top: -6px;
+  margin: auto;
+  border-radius: 18px;
+  height: 18px;
+  width: 18px;
+  background-color: white;
+  box-shadow: 0 0 3px black;
+}
+
+.slider .rangeslider, .sliders .label {
   float: left;
+  vertical-align: middle;
+/*   width: 100% */
+}
+
+.sliders .label {
+  width: 71px;
+  display: table-cell;
+  vertical-align: middle;
+  font-size: 15px;
+}
+
+
+#colors {
+  display: none;
 }
 
 
@@ -31,4 +76,10 @@
   float: left;
   width: 33.33333333%;
   height: 45px;
+}
+
+
+.simplecolorpicker .color[data-selected] {
+  border: 1px solid white;
+  box-sizing: border-box;
 }
