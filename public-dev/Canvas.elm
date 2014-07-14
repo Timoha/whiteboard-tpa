@@ -5,11 +5,9 @@ import Touch
 import Window
 
 
-
 main = lift2 scene Window.dimensions
                    <| reverse . Dict.values <~ foldp addN Dict.empty
                       (applyBrush <~ Touch.touches ~ (portToBrush <~ newBrush))
-
 
 
 type Brush = { size : Float, color: Color}
