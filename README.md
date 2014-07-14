@@ -19,12 +19,12 @@ WiX.com App which allows visitors to leave drawings on the website.
 
 ![start drawing](https://github.com/andreywix/whiteboard-tpa/raw/master/wireframes/start-drawing-panel.png)
 
-### Drawing Mode:
+### Drawing Mode - [View Live Demo](http://andreywix.github.io/whiteboard-tpa/public-dev/):
 - Click onto "Checkmark" when done with the drawing
 - Can access Viewing Mode functionality by pressing "Hand"
 - People's names will be shown only in "Hand" mode (maybe)
 
-#### Default "Drawing Mode" state (first thing that visitors see)
+#### Default "Drawing Mode" state (first thing that visitors see) - [View Live Demo](http://andreywix.github.io/whiteboard-tpa/public-dev/)
 ![default](https://github.com/andreywix/whiteboard-tpa/raw/master/wireframes/selected.png)
 
 #### When clicked on "Brush Dot" color panel opens
