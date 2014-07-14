@@ -2,25 +2,25 @@
   'use strict';
 
   var colors = [
-    {r: '255', g: '147', b: '30',  name: "orange"},
-    {r: '237', g: '28', b: '36',   name: "red"},
-    {r: '255', g: '123', b: '172', name: "pink" },
-    {r: '41', g: '171', b: '226',  name: "blue"},
-    {r: '46', g: '49', b: '146',   name: "dark blue"},
-    {r: '102', g: '45', b: '145',  name: "purple"},
-    {r: '252', g: '238', b: '33',  name: "yellow"},
-    {r: '140', g: '198', b: '63',  name: "green"},
-    {r: '0', g: '104', b: '55',    name: "dark green"},
-    {r: '255', g: '255', b: '255', name: "white"},
-    {r: '117', g: '76', b: '36',   name: "brown"},
-    {r: '0', g: '0', b: '0',       name: "black"}
+    {red: '255', green: '147', blue: '30',  name: "orange"},
+    {red: '237', green: '28', blue: '36',   name: "red"},
+    {red: '255', green: '123', blue: '172', name: "pink" },
+    {red: '41', green: '171', blue: '226',  name: "blue"},
+    {red: '46', green: '49', blue: '146',   name: "dark blue"},
+    {red: '102', green: '45', blue: '145',  name: "purple"},
+    {red: '252', green: '238', blue: '33',  name: "yellow"},
+    {red: '140', green: '198', blue: '63',  name: "green"},
+    {red: '0', green: '104', blue: '55',    name: "dark green"},
+    {red: '255', green: '255', blue: '255', name: "white"},
+    {red: '117', green: '76', blue: '36',   name: "brown"},
+    {red: '0', green: '0', blue: '0',       name: "black"}
   ];
 
 
   var currBrush;
 
   $.constructColor = function (color) {
-    color.rgb = [color.r, color.g, color.b].join(',');
+    color.rgb = [color.red, color.green, color.blue].join(',');
     var rgb = "rgb(" + color.rgb + ")";
     return $( "<option>", {
       value: rgb,

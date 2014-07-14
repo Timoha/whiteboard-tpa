@@ -1,40 +1,40 @@
 function Brush(size, r, g, b, a) {
   this.size = size;
-  this.r = r;
-  this.g = g;
-  this.b = b;
-  this.a = a;
+  this.red = r;
+  this.green = g;
+  this.blue = b;
+  this.alpha = a;
 
   this.setSize = function (size) {
     this.size = size;
   };
 
   this.setR = function (r) {
-    this.r = r;
+    this.red = r;
   };
 
   this.setG = function (g) {
-    this.g = g;
+    this.green = g;
   };
 
   this.setB = function (b) {
-    this.b = b;
+    this.blue = b;
   };
 
   this.setA = function (a) {
-    this.a = a;
+    this.alpha = a;
   };
 
   this.toRGBColorString = function () {
-    var color = [this.r, this.g, this.b];
+    var color = [this.red, this.green, this.blue];
     return 'rgb(' + color.join(',')  +  ')';
   }
 
   this.fromRGBColorString = function (rgb) {
     var color = rgb.slice(4, rgb.length - 1).split(',');
-    this.r = parseInt(color[0], 10);
-    this.g = parseInt(color[1], 10);
-    this.b = parseInt(color[2], 10);
+    this.red = parseInt(color[0], 10);
+    this.green = parseInt(color[1], 10);
+    this.blue = parseInt(color[2], 10);
   }
 }
 

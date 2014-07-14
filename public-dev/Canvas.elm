@@ -5,15 +5,21 @@ import Touch
 import Window
 
 
-type Brush = { size : Float, r : Int, g : Int, b : Int, a : Float }
+
+main = lift2 scene Window.dimensions
+                   <| reverse . Dict.values <~ foldp addN Dict.empty
+                      (applyBrush <~ Touch.touches ~ (portToBrush <~ newBrush))
+
+
+
+type Brush = { size : Float, color: Color}
 type Brushed a = { a | brush: Brush }
 type Stroke = { points : [(Int, Int)], brush : Brush }
 
-port newBrush : Signal { size : Float, r : Int, g : Int, b : Int, a : Float }
+port newBrush : Signal { size : Float, red : Int, green : Int, blue : Int, alpha : Float }
 
-main = lift2 scene Window.dimensions
-                   (reverse . Dict.values <~ foldp addN Dict.empty
-                    (applyBrush <~ Touch.touches ~ newBrush))
+portToBrush : { size : Float, red : Int, green : Int, blue : Int, alpha : Float } -> Brush
+portToBrush p = { size = p.size, color = rgba p.red p.green p.blue p.alpha }
 
 
 applyBrush : [Touch.Touch] -> Brush -> [Brushed Touch.Touch]
@@ -25,23 +31,21 @@ addN ts dict = foldl add1 dict ts
 
 add1 : Brushed Touch.Touch -> Dict.Dict Int Stroke -> Dict.Dict Int Stroke
 add1 t d = let vs = Dict.getOrElse {brush = t.brush, points = []} t.id d
-           in  Dict.insert t.id {vs | points <- ((t.x, t.y) :: vs.points)} d
+           in  Dict.insert t.id {vs | points <- (t.x, t.y) :: vs.points} d
 
 scene : (Int,Int) -> [Stroke] -> Element
-scene (w,h) strokes =
+scene (w,h) paths =
     let float (a,b) = (toFloat a, toFloat -b)
-        forms = group (map
-                       (\stroke -> case (length stroke.points) > 1 of
-                          True -> traced (thickLine stroke.brush) (map float stroke.points)
-                          False -> thickDot (float (head stroke.points)) stroke.brush
-                       )
-                       strokes)
-
-        picture = collage w h [ move (float (-w `div` 2, -h `div` 2)) forms ]
-    in  picture
+        strokeOrDot path =
+            case (length path.points) > 1 of
+                True -> traced (thickLine path.brush) (map float path.points)
+                False -> dot (float <| head path.points) path.brush
+        forms = map strokeOrDot paths
+    in  collage w h [ move (float (-w `div` 2, -h `div` 2)) (group forms) ]
 
 thickLine : Brush -> LineStyle
-thickLine brush = {defaultLine | color <- rgba brush.r brush.g brush.b brush.a,
+thickLine brush = {defaultLine | color <- brush.color,
                                  width <- brush.size, join <- Smooth, cap <- Round}
-thickDot : (Float, Float) ->  Brush -> Form
-thickDot (x, y) brush = move (x, y) <| filled (rgba brush.r brush.g brush.b brush.a) (circle (brush.size / 2))
+
+dot : (Float, Float) ->  Brush -> Form
+dot pos brush = move pos <| filled brush.color (circle <| brush.size / 2)
