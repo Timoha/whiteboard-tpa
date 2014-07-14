@@ -120,12 +120,12 @@
                     <div class="wrapper">
                         <div class="sliders cf">
                             <div class="slider cf">
-                                <span>Radius:</span>
-                                <input id="radius" min="4" max="25" value="8" type="range" data-rangeslider />
+                                <div class="label">Radius</div>
+                                <input id="radius" min="4" max="35" value="8" type="range" data-rangeslider>
                             </div>
                             <div class="slider cf">
-                                <span>Opacity:</span>
-                                <input id="opacity" min="0" max="100" value="100" type="range" data-rangeslider />
+                                <div class="label">Opacity</div>
+                                <input id="opacity" min="0" max="100" value="100" type="range" data-rangeslider>
                             </div>
                         </div>
                         <select id="colors" class="cf" name="colorpicker"></select>
@@ -179,6 +179,11 @@
     <script src="bower_components/jquery-simplecolorpicker/jquery.simplecolorpicker.js"></script>
     <!-- endbuild -->
 
+
+</body>
+    <script type="text/javascript">
+
+    </script>
     <!-- build:js({.tmp,app}) scripts/index.js -->
     <script src="scripts/app.js"></script>
     <script src="scripts/brush-controls.js"></script>
@@ -203,9 +208,4 @@
       }
     </script>
     <!-- /process -->
-</body>
-    <script type="text/javascript">
-        var canvas = document.getElementById('canvas');
-        Elm.embed(Elm.Canvas, canvas);
-    </script>
 </html>

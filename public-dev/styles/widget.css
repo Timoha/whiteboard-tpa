@@ -56,14 +56,15 @@ ul, ol, li {
 }
 
 .tool-button {
+  user-select: none;
   width: 68px;
-  height: 55px;
+  height: 52px;
   background-color: #666;
   color: #ccc;
   font-size: 30px;
   vertical-align: middle;
   text-align: center;
-  line-height: 100%;
+  line-height: 80%;
   padding: 0;
   z-index: 0;
   outline: none;
