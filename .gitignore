@@ -1,7 +1,6 @@
 public-dev/build
 public-dev/cache
 public
-public-dev/bower_components/
 public-dev/node_modules/
 public-dev/.tmp/
 *.log
