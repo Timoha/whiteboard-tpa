@@ -23,6 +23,7 @@ Elm.Canvas.make = function (_elm) {
    Native.Json = Elm.Native.Json.make(_elm);
    var Native = Native || {};
    Native.Ports = Elm.Native.Ports.make(_elm);
+   var Set = Elm.Set.make(_elm);
    var Signal = Elm.Signal.make(_elm);
    var String = Elm.String.make(_elm);
    var Text = Elm.Text.make(_elm);
@@ -60,7 +61,7 @@ Elm.Canvas.make = function (_elm) {
                                  ,_0: Basics.toFloat(_v4._0)
                                  ,_1: Basics.toFloat(0 - _v4._1)};}
                        _E.Case($moduleName,
-                       "on line 36, column 24 to 45");
+                       "on line 67, column 24 to 45");
                     }();
                  };
                  var strokeOrDot = function (path) {
@@ -78,7 +79,7 @@ Elm.Canvas.make = function (_elm) {
                             $float,
                             path.points));}
                        _E.Case($moduleName,
-                       "between lines 38 and 41");
+                       "between lines 69 and 72");
                     }();
                  };
                  var forms = A2(List.map,
@@ -94,19 +95,20 @@ Elm.Canvas.make = function (_elm) {
                  Graphics.Collage.group(forms))]));
               }();}
          _E.Case($moduleName,
-         "between lines 36 and 42");
+         "between lines 67 and 73");
       }();
    });
    var add1 = F2(function (t,d) {
       return function () {
+         var id = Basics.abs(t.id);
          var vs = A3(Dict.getOrElse,
          {_: {}
          ,brush: t.brush
          ,points: _L.fromArray([])},
-         t.id,
+         id,
          d);
          return A3(Dict.insert,
-         t.id,
+         id,
          _U.replace([["points"
                      ,{ctor: "::"
                       ,_0: {ctor: "_Tuple2"
@@ -143,6 +145,28 @@ Elm.Canvas.make = function (_elm) {
              p.alpha)
              ,size: p.size};
    };
+   var undo = function (d) {
+      return function () {
+         var ids = Dict.keys(d);
+         return function () {
+            switch (ids.ctor)
+            {case "[]": return Dict.empty;}
+            return A2(Dict.remove,
+            List.maximum(ids),
+            d);
+         }();
+      }();
+   };
+   var Draw = function (a) {
+      return {ctor: "Draw",_0: a};
+   };
+   var Erase = function (a) {
+      return {ctor: "Erase",_0: a};
+   };
+   var undoAction = Native.Ports.portIn("undoAction",
+   Native.Ports.incomingSignal(function (v) {
+      return _U.isJSArray(v) ? {ctor: "_Tuple0"} : _E.raise("invalid input, expecting JSArray but got " + v);
+   }));
    var newBrush = Native.Ports.portIn("newBrush",
    Native.Ports.incomingSignal(function (v) {
       return typeof v === "object" && "size" in v && "red" in v && "green" in v && "blue" in v && "alpha" in v ? {_: {}
@@ -168,26 +192,54 @@ Elm.Canvas.make = function (_elm) {
              ,color: b
              ,size: a};
    });
-   var main = A2(Signal._op["~"],
+   var Undo = {ctor: "Undo"};
+   var DrawStroke = function (a) {
+      return {ctor: "DrawStroke"
+             ,_0: a};
+   };
+   var events = A2(Signal.merge,
    A2(Signal._op["<~"],
-   scene,
-   Window.dimensions),
-   A2(Signal._op["<~"],
-   function ($) {
-      return List.reverse(Dict.values($));
-   },
-   A3(Signal.foldp,
-   addN,
-   Dict.empty,
+   DrawStroke,
    A2(Signal._op["~"],
    A2(Signal._op["<~"],
    applyBrush,
    Touch.touches),
    A2(Signal._op["<~"],
    portToBrush,
-   newBrush)))));
+   newBrush))),
+   A2(Signal._op["<~"],
+   Basics.always(Undo),
+   undoAction));
+   var canvasState = function () {
+      var update = F2(function (event,
+      paths) {
+         return function () {
+            switch (event.ctor)
+            {case "DrawStroke":
+               return A2(addN,event._0,paths);
+               case "Undo":
+               return undo(paths);}
+            _E.Case($moduleName,
+            "between lines 24 and 27");
+         }();
+      });
+      return A3(Signal.foldp,
+      update,
+      Dict.empty,
+      events);
+   }();
+   var main = A2(Signal._op["~"],
+   A2(Signal._op["<~"],
+   scene,
+   Window.dimensions),
+   A2(Signal._op["<~"],
+   Dict.values,
+   canvasState));
    _elm.Canvas.values = {_op: _op
                         ,main: main
+                        ,events: events
+                        ,canvasState: canvasState
+                        ,undo: undo
                         ,portToBrush: portToBrush
                         ,applyBrush: applyBrush
                         ,addN: addN
@@ -195,6 +247,10 @@ Elm.Canvas.make = function (_elm) {
                         ,scene: scene
                         ,thickLine: thickLine
                         ,dot: dot
+                        ,DrawStroke: DrawStroke
+                        ,Undo: Undo
+                        ,Erase: Erase
+                        ,Draw: Draw
                         ,Brush: Brush
                         ,Brushed: Brushed
                         ,Stroke: Stroke};
