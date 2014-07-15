@@ -1,3 +1,5 @@
+'use strict';
+
 function Brush(size, r, g, b, a) {
   this.size = size;
   this.red = r;
