@@ -42,7 +42,7 @@ $(document).ready(function() {
 
   var defaultBrush = new Brush(8, 255, 147, 30, 1);
 
-  var canvas = Elm.embed(Elm.Canvas, document.getElementById('canvas'), {newBrush: defaultBrush});
+  var canvas = Elm.embed(Elm.Canvas, document.getElementById('canvas'), {newBrush: defaultBrush, undoAction: []});
 
 
   // open/close tab for following tools
@@ -73,6 +73,10 @@ $(document).ready(function() {
 
   $('#brush').on('brush_change', function (event, data) {
     canvas.ports.newBrush.send(data);
+  });
+
+  $('#undo-tool').click(function () {
+    canvas.ports.undoAction.send([]);
   });
 
 });
