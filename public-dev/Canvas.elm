@@ -5,94 +5,46 @@ import Dict
 import Touch
 import Window
 
+-- MODEL
 
-
-data Action = Drawing [Brushed Touch.Touch]
-            | Erasing [Brushed Touch.Touch]
-            | Undo
+data Action = Undo
             | ZoomIn
             | ZoomOut
-            | Default
-            | Touch.Touch
-
-data Undo = Erased [Stroke] | Drawn Int
+            | Touches [Touch.Touch]
 
 
-type Input = { mode : Mode, action : Action, touches : [Touch.Touch] }
+data Mode = Drawing
+          | Erasing
+          | Viewing
+
+data Event = Erased [Stroke] | Drew Int
 
 
-type History = Dict.Dict Int Undo
+type Input =
+  { mode : Mode
+  , action : Action
+  , brush : Brush
+  , canvasDims : (Int, Int)
+  }
+
+
+type Canvas =
+  { drawing : Doodle
+  , history : History
+  , dimensions : (Int, Int)
+  , scale : Float
+  , topLeft : (Int, Int)
+  }
+
+
+
+type History = Dict.Dict Int Event
 type Doodle = Dict.Dict Int Stroke
 type Brush = { size : Float, color : Color}
 type Brushed a = { a | brush : Brush }
 type Stroke = { id : Int, points : [Point], brush : Brush }
 type Point = { x : Float, y : Float }
 type Line = { p1 : Point, p2 : Point }
-type Canvas = { drawing: Doodle, mode: Action, history: [Undo] }
-
-
-
-port newBrush : Signal { size : Float, red : Int, green : Int, blue : Int, alpha : Float }
-port undoAction : Signal ()
-port mode : Signal String
-
-
-
-portToBrush : { size : Float, red : Int, green : Int, blue : Int, alpha : Float } -> Brush
-portToBrush p = { size = p.size, color = rgba p.red p.green p.blue p.alpha }
-
-
-
-modeToAction : String -> [Touch.Touch] -> Brush -> Action
-modeToAction mode ts brush =
-  case mode of
-    "Drawing" -> Drawing (applyBrush ts brush)
-    "Erasing" -> Erasing (applyBrush ts { size = 8, color = rgba 0 0 0 0.4})
-
-
-
-events : Signal Action
-events = merges [ modeToAction <~ mode ~ Touch.touches ~ (portToBrush <~ newBrush)
-                , always Undo <~ undoAction
-                ]
-
-
-
-historyState : Signal History
-historyState =
-  let
-    update event history =
-      case event of
-        Drawing ts -> addDrawn ts history
-        Erasing ts -> addChange ts (Erased []) history
-        _          -> history
-  in
-    foldp update Dict.empty events
-
-
-
-addChange : [Brushed Touch.Touch] -> Undo -> History -> History
-addChange ts v h = case ts of
-  [] -> h
-  _  -> Dict.insert (abs (head ts).id) v h
-
-
-addDrawn : [Brushed Touch.Touch] -> History -> History
-addDrawn ts history =
-  foldl (\t h -> Dict.insert (abs t.id) (Drawn <| abs t.id) h) history ts
-
-
-canvasState : Signal Doodle
-canvasState = foldp stepCanvas Dict.empty events
-
-
-
-stepCanvas : Action -> Canvas -> Canvas
-stepCanvas event ({drawing, mode, history} as canvas) =
-  case event of
-    Drawing ts -> addN ts paths
-    Erasing ts -> addHead ts paths
-    Undo      -> undo paths
 
 
 
@@ -108,6 +60,53 @@ pointToTuple p = (p.x, p.y)
 
 line : Point -> Point -> Line
 line p1 p2 = { p1 = p1, p2 = p2 }
+
+
+
+defaultCanvas : Canvas
+defaultCanvas =
+  { drawing = Dict.empty
+  , history = Dict.empty
+  , dimensions = (0, 0)
+  , scale = 1
+  , topLeft = (0, 0)
+  }
+
+-- INPUT
+
+port brushPort : Signal { size : Float, red : Int, green : Int, blue : Int, alpha : Float }
+port undoPort : Signal ()
+port modePort : Signal String
+
+
+
+portToBrush : { size : Float, red : Int, green : Int, blue : Int, alpha : Float } -> Brush
+portToBrush p = { size = p.size, color = rgba p.red p.green p.blue p.alpha }
+
+
+
+portToMode : String -> Mode
+portToMode s =
+  case s of
+    "Drawing" -> Drawing
+    "Erasing" -> Erasing
+
+
+
+actions : Signal Action
+actions = merges [ Touches <~ Touch.touches
+                 , always Undo <~ undoPort
+                 ]
+
+
+input : Signal Input
+input = Input <~ (portToMode <~ modePort)
+               ~ actions
+               ~ (portToBrush <~ brushPort)
+               ~ Window.dimensions -- for now
+
+
+-- UPDATE
 
 
 
@@ -161,11 +160,12 @@ isStrokesIntersect s1 s2 =
 
 
 
-isLineIntersectStroke : Line -> Stroke -> Bool
-isLineIntersectStroke l s =
+isLineStrokeIntersect : Line -> Stroke -> Bool
+isLineStrokeIntersect l s =
   case (length s.points) > 1 of
     True -> any (isIntersect l) <| toSegments s.points
     _    -> False
+
 
 
 strokesCrossed : Stroke -> [Stroke] -> [Stroke]
@@ -173,14 +173,17 @@ strokesCrossed s ss = filter (isStrokesIntersect s) ss
 
 
 
-undo : Doodle -> Doodle
-undo d =
+undo : (Doodle, History) -> (Doodle, History)
+undo (d, h) =
   let
-    ids = Dict.keys d
+    ids = Dict.keys h
   in
     case ids of
-      [] -> Dict.empty
-      _  -> Dict.remove (maximum ids) d
+      [] -> (d, Dict.empty)
+      _  -> case Dict.get (maximum ids) h of
+              Nothing               -> (Dict.empty, Dict.empty)
+              Just (Drew id)        -> (Dict.remove id d, Dict.remove id h)
+              Just (Erased strokes) -> (foldl (\s d -> Dict.insert s.id s d) d strokes, Dict.remove (maximum ids) h)
 
 
 
@@ -189,24 +192,73 @@ applyBrush ts b = map (\t -> {t | brush = b}) ts
 
 
 
-addN : [Brushed Touch.Touch] -> Doodle -> Doodle
-addN ts dict = foldl add1 dict ts
+addN : [Brushed Touch.Touch] -> Doodle -> History -> (Doodle, History)
+addN ts d h = (foldl add1 d ts, h)
 
 
 
-add1 : Brushed Touch.Touch -> Doodle -> Doodle
-add1 t d =
+add1 : Brushed Touch.Touch -> (Doodle, History) -> (Doodle, History)
+add1 t (d, h) =
   let
     id = (abs t.id)
     vs = Dict.getOrElse {brush = t.brush, points = [], id = id} id d
   in
-    Dict.insert id {vs | points <- point (toFloat t.x) (toFloat -t.y) :: vs.points} d
+    ( Dict.insert id {vs | points <- point (toFloat t.x) (toFloat -t.y) :: vs.points} d
+    , Dict.insert id (Drew id) h)
 
 
-addHead : [Brushed Touch.Touch] -> Doodle -> Doodle
-addHead ts d = case ts of
-  [] -> d
-  _  -> add1 (head ts) d
+
+removeEraser : Doodle -> History -> (Doodle, History)
+removeEraser d h =
+  let
+    ids = Dict.keys h
+  in
+    case ids of
+      [] -> (d, Dict.empty)
+      _  -> case Dict.get (maximum ids) h of
+              Just (Erased strokes) -> (Dict.remove (maximum ids) d, h)
+              _                     -> (d, h)
+
+
+eraser : [Brushed Touch.Touch] -> Doodle -> History -> (Doodle, History)
+eraser ts d h = case ts of
+  [] -> removeEraser d h
+  _  -> let
+          firstT = head ts
+          id = abs firstT.id
+          (d', h') = case Dict.get id d of
+            Just stroke -> let
+                             eraserSeg = line (point firstT.x firstT.y) (head stroke.points)
+                             crossed = filter (isLineStrokeIntersect eraserSeg) (Dict.values d)
+                             vs = crossed
+                           in (foldl (\s -> Dict.remove s.id) d crossed, Dict.insert id (Erased <| crossed ++ vs) h)
+            Nothing     ->
+        in (d', h')
+
+
+
+stepCanvas : Input -> Canvas -> Canvas
+stepCanvas {mode, action, brush, canvasDims}
+           ({drawing, history, dimensions, scale, topLeft} as canvas) =
+  let
+    (drawing', history') = case action of
+      Undo       -> undo (drawing, history)
+      Touches ts -> case mode of
+                Drawing -> addN (applyBrush ts brush) drawing history
+                Erasing -> eraser (applyBrush ts { size = 15, color = rgba 0 0 0 0.5 }) drawing history
+                _       -> (drawing, history)
+  in
+    { canvas | drawing <- drawing'
+             , history <- history' }
+
+
+
+canvasState : Signal Canvas
+canvasState = foldp stepCanvas defaultCanvas input
+
+
+
+-- VIEW
 
 
 thickLine : Brush -> LineStyle
@@ -220,8 +272,8 @@ dot pos brush = move (pointToTuple pos) <| filled brush.color (circle <| brush.s
 
 
 
-scene : (Int,Int) -> [Stroke] -> Element
-scene (w,h) paths =
+display : (Int,Int) -> [Stroke] -> Element
+display (w,h) paths =
   let
     float (a,b) = (toFloat a, toFloat -b)
     strokeOrDot path =
@@ -233,5 +285,5 @@ scene (w,h) paths =
 
 
 
-main = scene <~ Window.dimensions
-              ~ (Dict.values <~ canvasState)
+main = display <~ Window.dimensions
+                ~ (Dict.values . .drawing  <~ canvasState)

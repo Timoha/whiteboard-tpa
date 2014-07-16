@@ -45,9 +45,9 @@ $(document).ready(function() {
   var defaultBrush = new Brush(8, 255, 147, 30, 1);
 
   var canvas = Elm.embed(Elm.Canvas, document.getElementById('canvas'),
-                         {newBrush: defaultBrush,
-                          mode: "Drawing",
-                          undoAction: []}
+                         {brushPort: defaultBrush,
+                          modePort: "Drawing",
+                          undoPort: []}
                         );
 
 
@@ -76,22 +76,22 @@ $(document).ready(function() {
 
 
   $('#color-tool').click(function () {
-    canvas.ports.mode.send("Drawing");
+    canvas.ports.modePort.send("Drawing");
   });
 
   $('#eraser-tool').click(function () {
-    canvas.ports.mode.send("Erasing");
+    canvas.ports.modePort.send("Erasing");
   });
 
 
   $('#colors').initColorPanel('#brush', defaultBrush);
 
   $('#brush').on('brush_change', function (event, data) {
-    canvas.ports.newBrush.send(data);
+    canvas.ports.brushPort.send(data);
   });
 
   $('#undo-tool').click(function () {
-    canvas.ports.undoAction.send([]);
+    canvas.ports.undoPort.send([]);
   });
 
 });
