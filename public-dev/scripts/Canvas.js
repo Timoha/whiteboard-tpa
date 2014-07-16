@@ -51,15 +51,6 @@ Elm.Canvas.make = function (_elm) {
       },
       ts);
    });
-   var portToBrush = function (p) {
-      return {_: {}
-             ,color: A4(Color.rgba,
-             p.red,
-             p.green,
-             p.blue,
-             p.alpha)
-             ,size: p.size};
-   };
    var undo = function (d) {
       return function () {
          var ids = Dict.keys(d);
@@ -72,15 +63,10 @@ Elm.Canvas.make = function (_elm) {
          }();
       }();
    };
-   var lineToTuple = function (l) {
-      return {ctor: "_Tuple2"
-             ,_0: l.p1
-             ,_1: l.p2};
-   };
    var line = F2(function (p1,p2) {
       return {_: {},p1: p1,p2: p2};
    });
-   var connectPoints = function (ps) {
+   var toSegments = function (ps) {
       return function () {
          var startNew = F2(function (p,
          ls) {
@@ -143,7 +129,7 @@ Elm.Canvas.make = function (_elm) {
                             pointToTuple,
                             path.points));}
                        _E.Case($moduleName,
-                       "between lines 158 and 161");
+                       "between lines 204 and 207");
                     }();
                  };
                  var forms = A2(List.map,
@@ -157,7 +143,7 @@ Elm.Canvas.make = function (_elm) {
                                  ,_0: Basics.toFloat(_v6._0)
                                  ,_1: Basics.toFloat(0 - _v6._1)};}
                        _E.Case($moduleName,
-                       "on line 156, column 24 to 45");
+                       "on line 202, column 24 to 45");
                     }();
                  };
                  return A3(Graphics.Collage.collage,
@@ -170,67 +156,55 @@ Elm.Canvas.make = function (_elm) {
                  Graphics.Collage.group(forms))]));
               }();}
          _E.Case($moduleName,
-         "between lines 156 and 162");
+         "between lines 202 and 208");
       }();
    });
    var point = F2(function (x,y) {
       return {_: {},x: x,y: y};
    });
-   var linesIntersection = F2(function (_v10,
-   _v11) {
+   var linesIntersection = F2(function (l1,
+   l2) {
       return function () {
-         switch (_v11.ctor)
-         {case "_Tuple2":
-            return function () {
-                 switch (_v10.ctor)
-                 {case "_Tuple2":
-                    return function () {
-                         var dy34 = _v11._0.y - _v11._1.y;
-                         var dy12 = _v10._0.y - _v10._1.y;
-                         var dx34 = _v11._0.x - _v11._1.x;
-                         var dx12 = _v10._0.x - _v10._1.x;
-                         var den = dx12 * dy34 - dy12 * dx34;
-                         return _U.eq(den,
-                         0) ? Maybe.Nothing : function () {
-                            var det34 = _v11._0.x * _v11._1.y - _v11._0.y * _v11._1.x;
-                            var det12 = _v10._0.x * _v10._1.y - _v10._0.y * _v10._1.x;
-                            var numx = det12 * dx34 - dx12 * det34;
-                            var numy = det12 * dy34 - dy12 * det34;
-                            return Maybe.Just(A2(point,
-                            numx / den,
-                            numy / den));
-                         }();
-                      }();}
-                 _E.Case($moduleName,
-                 "between lines 49 and 61");
-              }();}
-         _E.Case($moduleName,
-         "between lines 49 and 61");
+         var dy34 = l2.p1.y - l2.p2.y;
+         var dy12 = l1.p1.y - l1.p2.y;
+         var dx34 = l2.p1.x - l2.p2.x;
+         var dx12 = l1.p1.x - l1.p2.x;
+         var den = dx12 * dy34 - dy12 * dx34;
+         return _U.eq(den,
+         0) ? Maybe.Nothing : function () {
+            var det34 = l2.p1.x * l2.p2.y - l2.p1.y * l2.p2.x;
+            var det12 = l1.p1.x * l1.p2.y - l1.p1.y * l1.p2.x;
+            var numx = det12 * dx34 - dx12 * det34;
+            var numy = det12 * dy34 - dy12 * det34;
+            return Maybe.Just(A2(point,
+            numx / den,
+            numy / den));
+         }();
       }();
    });
    var isIntersect = F2(function (l1,
    l2) {
       return function () {
-         var _v18 = A2(linesIntersection,
-         lineToTuple(l1),
-         lineToTuple(l2));
-         switch (_v18.ctor)
+         var _v10 = A2(linesIntersection,
+         l1,
+         l2);
+         switch (_v10.ctor)
          {case "Just": return true;
             case "Nothing": return false;}
          _E.Case($moduleName,
-         "between lines 67 and 69");
+         "between lines 121 and 123");
       }();
    });
    var isStrokesIntersect = F2(function (s1,
    s2) {
       return function () {
-         var _v20 = _U.cmp(List.length(s1.points),
+         var _v12 = _U.cmp(List.length(s1.points),
          1) > 0 || _U.cmp(List.length(s2.points),
          1) > 0;
-         switch (_v20)
+         switch (_v12)
          {case true: return function () {
-                 var segs2 = connectPoints(s2.points);
-                 var segs1 = connectPoints(s1.points);
+                 var segs2 = toSegments(s2.points);
+                 var segs1 = toSegments(s1.points);
                  return A2(List.any,
                  function (x) {
                     return A2(List.any,
@@ -242,11 +216,22 @@ Elm.Canvas.make = function (_elm) {
          return false;
       }();
    });
-   var strokeIntersects = F2(function (s,
+   var strokesCrossed = F2(function (s,
    ss) {
       return A2(List.filter,
       isStrokesIntersect(s),
       ss);
+   });
+   var isLineIntersectStroke = F2(function (l,
+   s) {
+      return function () {
+         var _v13 = _U.cmp(List.length(s.points),
+         1) > 0;
+         switch (_v13)
+         {case true:
+            return List.any(isIntersect(l))(toSegments(s.points));}
+         return false;
+      }();
    });
    var add1 = F2(function (t,d) {
       return function () {
@@ -254,6 +239,7 @@ Elm.Canvas.make = function (_elm) {
          var vs = A3(Dict.getOrElse,
          {_: {}
          ,brush: t.brush
+         ,id: id
          ,points: _L.fromArray([])},
          id,
          d);
@@ -276,6 +262,39 @@ Elm.Canvas.make = function (_elm) {
       dict,
       ts);
    });
+   var addHead = F2(function (ts,
+   d) {
+      return function () {
+         switch (ts.ctor)
+         {case "[]": return d;}
+         return A2(add1,List.head(ts),d);
+      }();
+   });
+   var addChange = F3(function (ts,
+   v,
+   h) {
+      return function () {
+         switch (ts.ctor)
+         {case "[]": return h;}
+         return A3(Dict.insert,
+         Basics.abs(List.head(ts).id),
+         v,
+         h);
+      }();
+   });
+   var portToBrush = function (p) {
+      return {_: {}
+             ,color: A4(Color.rgba,
+             p.red,
+             p.green,
+             p.blue,
+             p.alpha)
+             ,size: p.size};
+   };
+   var mode = Native.Ports.portIn("mode",
+   Native.Ports.incomingSignal(function (v) {
+      return typeof v === "string" || typeof v === "object" && v instanceof String ? v : _E.raise("invalid input, expecting JSString but got " + v);
+   }));
    var undoAction = Native.Ports.portIn("undoAction",
    Native.Ports.incomingSignal(function (v) {
       return _U.isJSArray(v) ? {ctor: "_Tuple0"} : _E.raise("invalid input, expecting JSArray but got " + v);
@@ -295,10 +314,13 @@ Elm.Canvas.make = function (_elm) {
    var Point = F2(function (a,b) {
       return {_: {},x: a,y: b};
    });
-   var Stroke = F2(function (a,b) {
+   var Stroke = F3(function (a,
+   b,
+   c) {
       return {_: {}
-             ,brush: b
-             ,points: a};
+             ,brush: c
+             ,id: a
+             ,points: b};
    });
    var Brushed = F2(function (a,
    b) {
@@ -311,41 +333,80 @@ Elm.Canvas.make = function (_elm) {
              ,color: b
              ,size: a};
    });
-   var Draw = function (a) {
-      return {ctor: "Draw",_0: a};
+   var Drawn = function (a) {
+      return {ctor: "Drawn",_0: a};
    };
-   var Erase = function (a) {
-      return {ctor: "Erase",_0: a};
-   };
-   var Undo = {ctor: "Undo"};
-   var DrawStroke = function (a) {
-      return {ctor: "DrawStroke"
+   var addDrawn = F2(function (ts,
+   history) {
+      return A3(List.foldl,
+      F2(function (t,h) {
+         return A3(Dict.insert,
+         Basics.abs(t.id),
+         Drawn(Basics.abs(t.id)),
+         h);
+      }),
+      history,
+      ts);
+   });
+   var Erased = function (a) {
+      return {ctor: "Erased"
              ,_0: a};
    };
-   var events = A2(Signal.merge,
-   A2(Signal._op["<~"],
-   DrawStroke,
-   A2(Signal._op["~"],
-   A2(Signal._op["<~"],
-   applyBrush,
-   Touch.touches),
-   A2(Signal._op["<~"],
-   portToBrush,
-   newBrush))),
-   A2(Signal._op["<~"],
-   Basics.always(Undo),
-   undoAction));
-   var canvasState = function () {
+   var Undo = {ctor: "Undo"};
+   var Erasing = function (a) {
+      return {ctor: "Erasing"
+             ,_0: a};
+   };
+   var Drawing = function (a) {
+      return {ctor: "Drawing"
+             ,_0: a};
+   };
+   var modeToAction = F3(function (mode,
+   ts,
+   brush) {
+      return function () {
+         switch (mode)
+         {case "Drawing":
+            return Drawing(A2(applyBrush,
+              ts,
+              brush));
+            case "Erasing":
+            return Erasing(A2(applyBrush,
+              ts,
+              {_: {}
+              ,color: A4(Color.rgba,0,0,0,0.4)
+              ,size: 8}));}
+         _E.Case($moduleName,
+         "between lines 40 and 42");
+      }();
+   });
+   var events = Signal.merges(_L.fromArray([A2(Signal._op["~"],
+                                           A2(Signal._op["~"],
+                                           A2(Signal._op["<~"],
+                                           modeToAction,
+                                           mode),
+                                           Touch.touches),
+                                           A2(Signal._op["<~"],
+                                           portToBrush,
+                                           newBrush))
+                                           ,A2(Signal._op["<~"],
+                                           Basics.always(Undo),
+                                           undoAction)]));
+   var historyState = function () {
       var update = F2(function (event,
-      paths) {
+      history) {
          return function () {
             switch (event.ctor)
-            {case "DrawStroke":
-               return A2(addN,event._0,paths);
-               case "Undo":
-               return undo(paths);}
-            _E.Case($moduleName,
-            "between lines 106 and 109");
+            {case "Drawing":
+               return A2(addDrawn,
+                 event._0,
+                 history);
+               case "Erasing":
+               return A3(addChange,
+                 event._0,
+                 Erased(_L.fromArray([])),
+                 history);}
+            return history;
          }();
       });
       return A3(Signal.foldp,
@@ -353,6 +414,27 @@ Elm.Canvas.make = function (_elm) {
       Dict.empty,
       events);
    }();
+   var stepCanvas = F2(function (event,
+   paths) {
+      return function () {
+         switch (event.ctor)
+         {case "Drawing": return A2(addN,
+              event._0,
+              paths);
+            case "Erasing":
+            return A2(addHead,
+              event._0,
+              paths);
+            case "Undo":
+            return undo(paths);}
+         _E.Case($moduleName,
+         "between lines 80 and 83");
+      }();
+   });
+   var canvasState = A3(Signal.foldp,
+   stepCanvas,
+   Dict.empty,
+   events);
    var main = A2(Signal._op["~"],
    A2(Signal._op["<~"],
    scene,
@@ -361,30 +443,37 @@ Elm.Canvas.make = function (_elm) {
    Dict.values,
    canvasState));
    _elm.Canvas.values = {_op: _op
+                        ,portToBrush: portToBrush
+                        ,modeToAction: modeToAction
+                        ,events: events
+                        ,historyState: historyState
+                        ,addChange: addChange
+                        ,addDrawn: addDrawn
+                        ,canvasState: canvasState
+                        ,stepCanvas: stepCanvas
                         ,point: point
                         ,pointToTuple: pointToTuple
                         ,line: line
-                        ,lineToTuple: lineToTuple
                         ,linesIntersection: linesIntersection
                         ,isIntersect: isIntersect
-                        ,connectPoints: connectPoints
+                        ,toSegments: toSegments
                         ,isStrokesIntersect: isStrokesIntersect
-                        ,strokeIntersects: strokeIntersects
-                        ,events: events
-                        ,canvasState: canvasState
+                        ,isLineIntersectStroke: isLineIntersectStroke
+                        ,strokesCrossed: strokesCrossed
                         ,undo: undo
-                        ,portToBrush: portToBrush
                         ,applyBrush: applyBrush
                         ,addN: addN
                         ,add1: add1
+                        ,addHead: addHead
                         ,thickLine: thickLine
                         ,dot: dot
                         ,scene: scene
                         ,main: main
-                        ,DrawStroke: DrawStroke
+                        ,Drawing: Drawing
+                        ,Erasing: Erasing
                         ,Undo: Undo
-                        ,Erase: Erase
-                        ,Draw: Draw
+                        ,Erased: Erased
+                        ,Drawn: Drawn
                         ,Brush: Brush
                         ,Brushed: Brushed
                         ,Stroke: Stroke

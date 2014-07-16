@@ -44,7 +44,11 @@ $(document).ready(function() {
 
   var defaultBrush = new Brush(8, 255, 147, 30, 1);
 
-  var canvas = Elm.embed(Elm.Canvas, document.getElementById('canvas'), {newBrush: defaultBrush, undoAction: []});
+  var canvas = Elm.embed(Elm.Canvas, document.getElementById('canvas'),
+                         {newBrush: defaultBrush,
+                          mode: "Drawing",
+                          undoAction: []}
+                        );
 
 
   // open/close tab for following tools
@@ -68,6 +72,15 @@ $(document).ready(function() {
   $('#color-tool, #eraser-tool, #drag-tool, #help-tool').click(function () {
     $('.active').toggleClass('active');
     $(this).toggleClass('active');
+  });
+
+
+  $('#color-tool').click(function () {
+    canvas.ports.mode.send("Drawing");
+  });
+
+  $('#eraser-tool').click(function () {
+    canvas.ports.mode.send("Erasing");
   });
 
 
