@@ -133,7 +133,7 @@
                 </div>
 
             </li>
-            <li style="display: none">
+            <li>
                 <button id="eraser-tool" class="tool-button icon-eraser">
                     <div class="tool-background style-border"></div>
                 </button>
@@ -176,33 +176,33 @@
 
 </body>
 <!-- build:js scripts/plugins.js -->
-    <script src="bower_components/jquery/jquery.js"></script>
-    <script src="bower_components/rangeslider.js/dist/rangeslider.js"></script>
-    <script src="bower_components/jquery-simplecolorpicker/jquery.simplecolorpicker.js"></script>
-    <!-- endbuild -->
-    <!-- build:js({.tmp,app}) scripts/index.js -->
+<script src="bower_components/jquery/dist/jquery.js"></script>
+<script src="bower_components/rangeslider.js/dist/rangeslider.js"></script>
+<script src="bower_components/jquery-simplecolorpicker/jquery.simplecolorpicker.js"></script>
+<!-- endbuild -->
+<!-- build:js({.tmp,app}) scripts/index.js -->
 <!--     <script src="scripts/app.js"></script> -->
-    <script src="scripts/Canvas.js"></script>
-    <script src="scripts/brush-controls.js"></script>
-    <script src="scripts/tool-panel.js"></script>
+<script src="scripts/Canvas.js"></script>
+<script src="scripts/brush-controls.js"></script>
+<script src="scripts/tool-panel.js"></script>
 <!--     <script src="scripts/services/wix.js"></script> -->
 <!--     <script src="scripts/controllers/widget.js"></script> -->
-    <!-- endbuild -->
+<!-- endbuild -->
 
-    <!-- process:remove -->
-    <script>
-      var testMode = false;
-      var parent = window.parent;
-      try {
+<!-- process:remove -->
+<script>
+    var testMode = false;
+    var parent = window.parent;
+    try {
         window.scenario = p && p.angular && p.angular.scenario;
-      } catch (e) {
-      }
-      if (testMode || window.scenario) {
+    } catch (e) {
+    }
+    if (testMode || window.scenario) {
         document.write('<scri' + 'pt src="mock/wix.js"></scr' + 'ipt>');
         document.write('<scr'+'ipt src="bower_components/angular-mocks/angular-mocks.js"></scr'+'ipt>');
         document.write('<scri' + 'pt src="mock/api.js"></scr' + 'ipt>');
         angular.module('whiteboard').requires.push('apiMock');
-      }
-    </script>
-    <!-- /process -->
+    }
+</script>
+<!-- /process -->
 </html>

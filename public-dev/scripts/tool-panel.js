@@ -1,3 +1,5 @@
+'use strict';
+
 function Brush(size, r, g, b, a) {
   this.size = size;
   this.red = r;
@@ -42,7 +44,11 @@ $(document).ready(function() {
 
   var defaultBrush = new Brush(8, 255, 147, 30, 1);
 
-  var canvas = Elm.embed(Elm.Canvas, document.getElementById('canvas'), {newBrush: defaultBrush, undoAction: []});
+  var canvas = Elm.embed(Elm.Canvas, document.getElementById('canvas'),
+                         {brushPort: defaultBrush,
+                          modePort: "Drawing",
+                          actionPort: "None"}
+                        );
 
 
   // open/close tab for following tools
@@ -69,14 +75,25 @@ $(document).ready(function() {
   });
 
 
+  $('#color-tool').click(function () {
+    canvas.ports.actionPort.send("None");
+    canvas.ports.modePort.send("Drawing");
+  });
+
+  $('#eraser-tool').click(function () {
+    canvas.ports.actionPort.send("None");
+    canvas.ports.modePort.send("Erasing");
+  });
+
+
   $('#colors').initColorPanel('#brush', defaultBrush);
 
   $('#brush').on('brush_change', function (event, data) {
-    canvas.ports.newBrush.send(data);
+    canvas.ports.brushPort.send(data);
   });
 
   $('#undo-tool').click(function () {
-    canvas.ports.undoAction.send([]);
+    canvas.ports.actionPort.send("Undo");
   });
 
 });
