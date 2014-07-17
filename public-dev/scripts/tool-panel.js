@@ -47,7 +47,7 @@ $(document).ready(function() {
   var canvas = Elm.embed(Elm.Canvas, document.getElementById('canvas'),
                          {brushPort: defaultBrush,
                           modePort: "Drawing",
-                          undoPort: []}
+                          actionPort: "None"}
                         );
 
 
@@ -76,10 +76,12 @@ $(document).ready(function() {
 
 
   $('#color-tool').click(function () {
+    canvas.ports.actionPort.send("None");
     canvas.ports.modePort.send("Drawing");
   });
 
   $('#eraser-tool').click(function () {
+    canvas.ports.actionPort.send("None");
     canvas.ports.modePort.send("Erasing");
   });
 
@@ -91,7 +93,7 @@ $(document).ready(function() {
   });
 
   $('#undo-tool').click(function () {
-    canvas.ports.undoPort.send([]);
+    canvas.ports.actionPort.send("Undo");
   });
 
 });
