@@ -52,7 +52,7 @@ $(document).ready(function() {
 
 
   // open/close tab for following tools
-  $('#color-tool, #drag-tool').on('mousedown touchstart', function () {
+  $('#color-tool, #drag-tool').on('mousedown', function () {
     var element = $(this);
     $('.tab-open').not(element.parent()).removeClass('tab-open');
     element.parent().toggleClass('tab-open');
