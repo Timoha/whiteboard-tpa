@@ -69,7 +69,7 @@ $(document).ready(function() {
   });
 
   // make following tools active on click
-  $('#color-tool, #eraser-tool, #drag-tool, #help-tool').on('click touchend', function () {
+  $('#color-tool, #eraser-tool, #drag-tool, #help-tool').on('click touchstart', function () {
     $('.active').toggleClass('active');
     $(this).toggleClass('active');
   });
