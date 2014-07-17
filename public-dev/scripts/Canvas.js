@@ -213,7 +213,7 @@ Elm.Canvas.make = function (_elm) {
                             pointToTuple,
                             path.points));}
                        _E.Case($moduleName,
-                       "between lines 298 and 301");
+                       "between lines 297 and 300");
                     }();
                  };
                  var forms = A2(List.map,
@@ -227,7 +227,7 @@ Elm.Canvas.make = function (_elm) {
                                  ,_0: Basics.toFloat(_v7._0)
                                  ,_1: Basics.toFloat(0 - _v7._1)};}
                        _E.Case($moduleName,
-                       "on line 296, column 20 to 41");
+                       "on line 295, column 20 to 41");
                     }();
                  };
                  return A3(Graphics.Collage.collage,
@@ -240,7 +240,7 @@ Elm.Canvas.make = function (_elm) {
                  Graphics.Collage.group(forms))]));
               }();}
          _E.Case($moduleName,
-         "between lines 295 and 302");
+         "between lines 294 and 301");
       }();
    });
    var point = F2(function (x,y) {
@@ -355,49 +355,50 @@ Elm.Canvas.make = function (_elm) {
                       ,_0: d
                       ,_1: h};}
             return function () {
-               var _v13 = A2(Dict.get,
-               List.maximum(ids),
-               h);
-               switch (_v13.ctor)
-               {case "Just":
-                  switch (_v13._0.ctor)
-                    {case "Drew":
-                       return {ctor: "_Tuple2"
-                              ,_0: A2(Dict.remove,
-                              _v13._0._0,
-                              d)
-                              ,_1: A2(Dict.remove,
-                              _v13._0._0,
-                              h)};
-                       case "Erased":
-                       return {ctor: "_Tuple2"
-                              ,_0: A3(List.foldl,
-                              F2(function (s,d) {
-                                 return A3(Dict.insert,
-                                 s.id,
-                                 s,
-                                 d);
-                              }),
-                              d,
-                              _v13._0._0)
-                              ,_1: A3(List.foldl,
-                              F2(function (s,h$) {
-                                 return A3(Dict.insert,
-                                 s.id,
-                                 Drew(s.id),
-                                 h$);
-                              }),
-                              A2(Dict.remove,
-                              List.maximum(ids),
-                              h),
-                              _v13._0._0)};}
-                    break;
-                  case "Nothing":
-                  return {ctor: "_Tuple2"
-                         ,_0: Dict.empty
-                         ,_1: Dict.empty};}
-               _E.Case($moduleName,
-               "between lines 176 and 180");
+               var lastId = List.maximum(ids);
+               return function () {
+                  var _v13 = A2(Dict.get,
+                  lastId,
+                  h);
+                  switch (_v13.ctor)
+                  {case "Just":
+                     switch (_v13._0.ctor)
+                       {case "Drew":
+                          return {ctor: "_Tuple2"
+                                 ,_0: A2(Dict.remove,
+                                 _v13._0._0,
+                                 d)
+                                 ,_1: A2(Dict.remove,
+                                 _v13._0._0,
+                                 h)};
+                          case "Erased":
+                          return {ctor: "_Tuple2"
+                                 ,_0: A3(List.foldl,
+                                 F2(function (s,d) {
+                                    return A3(Dict.insert,
+                                    s.id,
+                                    s,
+                                    d);
+                                 }),
+                                 d,
+                                 _v13._0._0)
+                                 ,_1: A3(List.foldl,
+                                 F2(function (s,h$) {
+                                    return A3(Dict.insert,
+                                    s.id,
+                                    Drew(s.id),
+                                    h$);
+                                 }),
+                                 A2(Dict.remove,lastId,h),
+                                 _v13._0._0)};}
+                       break;
+                     case "Nothing":
+                     return {ctor: "_Tuple2"
+                            ,_0: Dict.empty
+                            ,_1: Dict.empty};}
+                  _E.Case($moduleName,
+                  "between lines 177 and 181");
+               }();
             }();
          }();
       }();
@@ -406,7 +407,6 @@ Elm.Canvas.make = function (_elm) {
    h) {
       return function () {
          var ids = Dict.keys(h);
-         var lastId = List.maximum(ids);
          return function () {
             switch (ids.ctor)
             {case "[]":
@@ -414,27 +414,30 @@ Elm.Canvas.make = function (_elm) {
                       ,_0: d
                       ,_1: Dict.empty};}
             return function () {
-               var _v18 = A2(Dict.get,
-               lastId,
-               h);
-               switch (_v18.ctor)
-               {case "Just":
-                  switch (_v18._0.ctor)
-                    {case "Erased":
-                       return function () {
-                            switch (_v18._0._0.ctor)
-                            {case "[]":
+               var lastId = List.maximum(ids);
+               return function () {
+                  var _v18 = A2(Dict.get,
+                  lastId,
+                  h);
+                  switch (_v18.ctor)
+                  {case "Just":
+                     switch (_v18._0.ctor)
+                       {case "Erased":
+                          return function () {
+                               switch (_v18._0._0.ctor)
+                               {case "[]":
+                                  return {ctor: "_Tuple2"
+                                         ,_0: A2(Dict.remove,lastId,d)
+                                         ,_1: A2(Dict.remove,lastId,h)};}
                                return {ctor: "_Tuple2"
                                       ,_0: A2(Dict.remove,lastId,d)
-                                      ,_1: A2(Dict.remove,lastId,h)};}
-                            return {ctor: "_Tuple2"
-                                   ,_0: A2(Dict.remove,lastId,d)
-                                   ,_1: h};
-                         }();}
-                    break;}
-               return {ctor: "_Tuple2"
-                      ,_0: d
-                      ,_1: h};
+                                      ,_1: h};
+                            }();}
+                       break;}
+                  return {ctor: "_Tuple2"
+                         ,_0: d
+                         ,_1: h};
+               }();
             }();
          }();
       }();
@@ -454,17 +457,17 @@ Elm.Canvas.make = function (_elm) {
                switch (_v23.ctor)
                {case "Just":
                   return function () {
-                       var _raw = List.isEmpty(Dict.values(h)) ? Erased(_L.fromArray([])) : function () {
+                       var _raw = function () {
                           var _v25 = A2(Dict.get,id,h);
                           switch (_v25.ctor)
                           {case "Just": return _v25._0;
                              case "Nothing":
                              return Erased(_L.fromArray([]));}
                           _E.Case($moduleName,
-                          "between lines 249 and 252");
+                          "between lines 248 and 251");
                        }(),
                        $ = _raw.ctor === "Erased" ? _raw : _E.Case($moduleName,
-                       "between lines 247 and 252"),
+                       "between lines 248 and 251"),
                        vs = $._0;
                        var strokes = List.tail(List.reverse(Dict.values(d)));
                        var eraserSeg = A2(line,
@@ -494,7 +497,7 @@ Elm.Canvas.make = function (_elm) {
                          Erased(_L.fromArray([])),
                          h)};}
                _E.Case($moduleName,
-               "between lines 240 and 253");
+               "between lines 241 and 252");
             }();
          }();
       }();
@@ -592,7 +595,7 @@ Elm.Canvas.make = function (_elm) {
                        _v30.drawing,
                        _v30.history);}
                   _E.Case($moduleName,
-                  "between lines 261 and 268");
+                  "between lines 260 and 267");
                }(),
                drawing$ = $._0,
                history$ = $._1;

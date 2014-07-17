@@ -52,7 +52,7 @@ $(document).ready(function() {
 
 
   // open/close tab for following tools
-  $('#color-tool, #drag-tool').mousedown(function () {
+  $('#color-tool, #drag-tool').on('mousedown touchstart', function () {
     var element = $(this);
     $('.tab-open').not(element.parent()).removeClass('tab-open');
     element.parent().toggleClass('tab-open');
@@ -69,18 +69,18 @@ $(document).ready(function() {
   });
 
   // make following tools active on click
-  $('#color-tool, #eraser-tool, #drag-tool, #help-tool').click(function () {
+  $('#color-tool, #eraser-tool, #drag-tool, #help-tool').on('click touchend', function () {
     $('.active').toggleClass('active');
     $(this).toggleClass('active');
   });
 
 
-  $('#color-tool').click(function () {
+  $('#color-tool').on('click touchstart', function () {
     canvas.ports.actionPort.send("None");
     canvas.ports.modePort.send("Drawing");
   });
 
-  $('#eraser-tool').click(function () {
+  $('#eraser-tool').on('click touchstart', function () {
     canvas.ports.actionPort.send("None");
     canvas.ports.modePort.send("Erasing");
   });
@@ -92,7 +92,7 @@ $(document).ready(function() {
     canvas.ports.brushPort.send(data);
   });
 
-  $('#undo-tool').click(function () {
+  $('#undo-tool').on('click touchstart', function () {
     canvas.ports.actionPort.send("Undo");
   });
 

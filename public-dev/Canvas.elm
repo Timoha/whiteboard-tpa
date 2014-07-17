@@ -173,11 +173,12 @@ undo d h =
   in
     case ids of
       [] -> (d, h)
-      _  -> case Dict.get (maximum ids) h of
+      _  -> let lastId = maximum ids
+            in case Dict.get lastId h of
               Nothing               -> (Dict.empty, Dict.empty)
               Just (Drew id)        -> (Dict.remove id d, Dict.remove id h)--(d, h) --
-              Just (Erased strokes) -> ( foldl (\s d -> Dict.insert s.id s d) d strokes
-                                       , foldl (\s h' -> Dict.insert s.id (Drew s.id) h') (Dict.remove (maximum ids) h) strokes)
+              Just (Erased ss) -> ( foldl (\s d -> Dict.insert s.id s d) d ss
+                                  , foldl (\s h' -> Dict.insert s.id (Drew s.id) h') (Dict.remove lastId h) ss)
 
 
 
@@ -220,15 +221,15 @@ removeEraser : Doodle -> History -> (Doodle, History)
 removeEraser d h =
   let
     ids = Dict.keys h
-    lastId = maximum ids
   in
     case ids of
       [] -> (d, Dict.empty)
-      _  -> case Dict.get lastId h of
-              Just (Erased s) -> case s of
-                                   [] -> (Dict.remove lastId d, Dict.remove lastId h)
-                                   _  -> (Dict.remove lastId d, h)
-              _               -> (d, h)
+      _  -> let lastId = maximum ids
+            in case Dict.get lastId h of
+                    Just (Erased s) -> case s of
+                                         [] -> (Dict.remove lastId d, Dict.remove lastId h)
+                                         _  -> (Dict.remove lastId d, h)
+                    _               -> (d, h)
 
 
 eraser : [Brushed Touch.Touch] -> Doodle -> History -> (Doodle, History)
@@ -244,10 +245,8 @@ eraser ts d h = case ts of
                        strokes = tail . reverse <| Dict.values d
                        crossed = filter (isLineStrokeIntersect eraserSeg) strokes
                        erased = if isEmpty crossed then [] else [(head crossed)]
-                       (Erased vs) = if isEmpty <| Dict.values h
-                                     then Erased []
-                                     else case Dict.get id h of
-                                       Just v  -> v
+                       (Erased vs) = case Dict.get id h of
+                                       Just vs  -> vs
                                        Nothing -> Erased []
                      in ( foldl (\s -> Dict.remove s.id) (add1 t d) crossed
                         , Dict.insert id (Erased <| erased ++ vs) h)
