@@ -52,7 +52,7 @@ $(document).ready(function() {
 
 
   // open/close tab for following tools
-  $('#color-tool, #drag-tool').on('mousedown', function () {
+  $('#color-tool').on('mousedown', function () {
     var element = $(this);
     $('.tab-open').not(element.parent()).removeClass('tab-open');
     element.parent().toggleClass('tab-open');
@@ -94,6 +94,19 @@ $(document).ready(function() {
 
   $('#undo-tool').on('click', function () {
     canvas.ports.actionPort.send("Undo");
+  });
+
+  $('#drag-tool').on('click', function () {
+    canvas.ports.actionPort.send("None");
+    canvas.ports.modePort.send("Viewing");
+  });
+
+  $('#zoomIn-tool').on('click', function () {
+    canvas.ports.actionPort.send("ZoomIn");
+  });
+
+  $('#zoomIn-tool').on('click', function () {
+    canvas.ports.actionPort.send("ZoomOut");
   });
 
 });
