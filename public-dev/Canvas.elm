@@ -35,9 +35,6 @@ type Canvas =
   { drawing : Doodle
   , history : History
   , dimensions : (Int, Int)
-  , zoom : Float
-  , topLeft : (Int, Int)
-  , lastMove : Maybe (Int, Int)
   }
 
 
@@ -49,7 +46,17 @@ type Brushed a = { a | brush : Brush }
 type Stroke = { id : Int, points : [Point], brush : Brush }
 type Point = { x : Float, y : Float }
 type Line = { p1 : Point, p2 : Point }
+type Zoomable a = { a | windowDims : (Int, Int)
+                      , zoom : Float
+                      , topLeft : (Int, Int)
+                      , lastMove : Maybe (Int, Int) }
 
+
+
+getCanvas : Zoomable Canvas -> Canvas
+getCanvas c = { drawing = c.drawing
+              , history = c.history
+              , dimensions = c.dimensions }
 
 
 point : Float -> Float -> Point
@@ -67,13 +74,14 @@ line p1 p2 = { p1 = p1, p2 = p2 }
 
 
 
-defaultCanvas : Canvas
+defaultCanvas : Zoomable Canvas
 defaultCanvas =
   { drawing = Dict.empty
   , history = Dict.empty
   , dimensions = (10000, 7000)
+  , windowDims = (0, 0)
   , zoom = 1
-  , topLeft = (500, 500)
+  , topLeft = (0, 0)
   , lastMove = Nothing
   }
 
@@ -147,18 +155,6 @@ toSegments ps =
   in tail <| foldl connect [] ps
 
 
-
-isStrokesIntersect : Stroke -> Stroke -> Bool
-isStrokesIntersect s1 s2 =
-  if (length s1.points) > 1 || (length s2.points) > 1
-  then let
-         segs1 = toSegments s1.points
-         segs2 = toSegments s2.points
-       in any (\x -> any (isIntersect x) segs2) segs1
-  else False
-
-
-
 isLineStrokeIntersect : Line -> Stroke -> Bool
 isLineStrokeIntersect l s =
   if (length s.points) > 1
@@ -167,25 +163,21 @@ isLineStrokeIntersect l s =
 
 
 
-strokesCrossed : Stroke -> [Stroke] -> [Stroke]
-strokesCrossed s ss = filter (isStrokesIntersect s) ss
-
-
-
-undo : Doodle -> History -> (Doodle, History)
-undo d h =
-  let
-    ids = Dict.keys h
-  in
-    case ids of
-      [] -> (d, h)
-      _  -> let lastId = maximum ids
-            in case Dict.get lastId h of
-              Nothing               -> (Dict.empty, Dict.empty)
-              Just (Drew id)        -> (Dict.remove id d, Dict.remove id h)--(d, h) --
-              Just (Erased ss) -> ( foldl (\s d -> Dict.insert s.id s d) d ss
-                                  , foldl (\s h' -> Dict.insert s.id (Drew s.id) h') (Dict.remove lastId h) ss)
-
+undo : Canvas -> Canvas
+undo ({drawing, history} as c)  =
+  let ids = Dict.keys history
+  in if isEmpty ids
+     then c
+     else
+       let lastId = maximum ids
+       in case Dict.get lastId history of
+         Nothing          -> { c | drawing <- Dict.empty
+                                 , history <- Dict.empty }
+         Just (Drew id)   -> { c | drawing <- Dict.remove id drawing
+                                 , history <- Dict.remove id history }
+         Just (Erased ss) -> { c | drawing <- foldl (\s d -> Dict.insert s.id s d) drawing ss
+                                 , history <- foldl (\s h -> Dict.insert s.id (Drew s.id) h)
+                                                    (Dict.remove lastId history) ss }
 
 
 applyBrush : [Touch.Touch] -> Brush -> [Brushed Touch.Touch]
@@ -212,95 +204,113 @@ add1 t d =
 
 
 
-removeEraser : Doodle -> History -> (Doodle, History)
-removeEraser d h =
+removeEraser : Canvas -> Canvas
+removeEraser ({drawing, history} as c) =
   let
-    ids = Dict.keys h
+    ids = Dict.keys history
   in
     case ids of
-      [] -> (d, Dict.empty)
+      [] -> { c | drawing <- Dict.empty
+                , history <- Dict.empty }
       _  -> let lastId = maximum ids
-            in case Dict.get lastId h of
-                    Just (Erased s) -> case s of
-                                         [] -> (Dict.remove lastId d, Dict.remove lastId h)
-                                         _  -> (Dict.remove lastId d, h)
-                    _               -> (d, h)
+            in case Dict.get lastId history of
+              Just (Erased s) -> case s of
+                                   [] -> { c | drawing <- Dict.remove lastId drawing
+                                             , history <- Dict.remove lastId history }
+                                   _  -> { c | drawing <- Dict.remove lastId drawing }
+              _               -> c
 
 
-eraser : [Brushed Touch.Touch] -> Doodle -> History -> (Doodle, History)
-eraser ts d h = case ts of
-  [] -> removeEraser d h
-  _  -> let
-          t = head ts
-          id = abs t.id
-        in case Dict.get id d of
-          Nothing -> (add1 t d, Dict.insert id (Erased []) h)
-          Just s  -> let
-                       eraserSeg = line (point t.x t.y) (head s.points)
-                       strokes = tail . reverse <| Dict.values d
-                       crossed = filter (isLineStrokeIntersect eraserSeg) strokes
-                       erased = if isEmpty crossed then [] else [head crossed] -- erase only latest
-                       (Erased vs) = Dict.getOrElse (Erased []) id h
-                     in ( foldl (\s -> Dict.remove s.id) (add1 t d) erased
-                        , Dict.insert id (Erased <| erased ++ vs) h)
+eraser : [Brushed Touch.Touch] -> Canvas -> Canvas
+eraser ts ({drawing, history} as c) =
+  if isEmpty ts
+  then removeEraser c
+  else
+    let
+      t = head ts
+      id = abs t.id
+    in case Dict.get id drawing of
+      Just s  -> let
+                   eraserSeg = line (point t.x t.y) (head s.points)
+                   strokes = tail . reverse <| Dict.values drawing
+                   crossed = filter (isLineStrokeIntersect eraserSeg) strokes
+                   erased = if isEmpty crossed then [] else [head crossed] -- erase only latest
+                   (Erased vs) = Dict.getOrElse (Erased []) id history
+                 in {c | drawing <- foldl (\s -> Dict.remove s.id) (add1 t drawing) erased
+                       , history <- Dict.insert id (Erased <| erased ++ vs) history }
+      Nothing -> {c | drawing <- add1 t drawing
+                    , history <- Dict.insert id (Erased []) history }
 
 
 
-stepScale : Float -> Float -> Point -> (Float, Point)
-stepScale factor s topLeft = (s, topLeft)
 
-
-
-stepMove : [Touch.Touch] -> (Int, Int) -> (Int, Int) -> Maybe (Int, Int) -> (Int, Int) -> (Maybe (Int, Int), (Int, Int))
-stepMove ts (canW, canH) (winW, winH) lastMove (top, left) = case ts of
-  [] -> (Nothing, (top, left))
-  _  -> let
-    t = head ts
-  in case lastMove of
-     Just (x, y) ->
-       let
-          top' = top + (y - t.y)
-          left' = left + (x - t.x)
-       in (Just (t.x, t.y), (top', left'))
-     Nothing -> (Just (t.x, t.y), (top, left))
+stepMove : [Touch.Touch] -> Zoomable Canvas -> Zoomable Canvas
+stepMove ts ({lastMove, dimensions, windowDims, zoom, topLeft} as c) =
+  let
+    (canW, canH) = dimensions
+    (winW, winH) = windowDims
+    (top, left) = topLeft
+  in if isEmpty ts
+  then { c | lastMove <- Nothing }
+  else
+    let
+      t = head ts
+      float (a, b) = (toFloat a, toFloat b)
+      roundT (a, b) = (round a, round b)
+    in case lastMove of
+       Just (x, y) ->
+         let
+            (dx, dy) = float ((x - t.x), (y - t.y))
+            top' = top +  (round <|  dy / zoom)
+            left' = left + (round <| dx / zoom)
+         in { c | lastMove <- Just (t.x, t.y)
+                , topLeft  <- (top', left') }
+       Nothing -> { c | lastMove <- Just (t.x, t.y) }
 
 
 scaleTouches : (Int, Int) -> Float -> Touch.Touch -> Touch.Touch
 scaleTouches (top, left) zoom t =
-  { t | x <- round ((toFloat (left + t.x)) / zoom)
-      , y <- round ((toFloat (top + t.y)) / zoom) }
-
-
-stepCanvas : Input -> Canvas -> Canvas
-stepCanvas {mode, action, brush, canvasDims, windowDims}
-           ({drawing, history, dimensions, zoom, topLeft, lastMove} as canvas) =
   let
-    (drawing', history') = case action of
-      Undo       -> undo drawing history
-      Touches ts' -> let
-                  ts = map (scaleTouches topLeft zoom) ts'
+    float (a, b) = (toFloat a, toFloat b)
+    (x, y) = float (t.x, t.y)
+  in { t | x <- round (x / zoom) + left
+         , y <- round (y / zoom) + top }
+
+
+--stepZoom : Float -> (Int, Int) -> Float -> ((Int, Int), Float)
+
+
+stepCanvas : Input -> Zoomable Canvas -> Zoomable Canvas
+stepCanvas {mode, action, brush, canvasDims, windowDims}
+           ({drawing, history, dimensions, zoom, topLeft, lastMove} as zcanvas) =
+  let
+    c = getCanvas zcanvas
+    canvas' = case action of
+      Undo       -> undo c
+      Touches ts -> let
+                  ts' = map (scaleTouches topLeft zoom) ts
                 in case mode of
-                Drawing -> (addN (applyBrush ts brush) drawing, recordDrew ts history)
-                Erasing -> eraser (applyBrush ts { size = 15, color = rgba 0 0 0 0.1 }) drawing history
-                _       -> (drawing, history)
-      _          -> (drawing, history)
-    (lastMove', topLeft') = case action of
-     -- ZoomIn  -> stepScale 1.1 zoom topLeft
-      --ZoomOut -> stepScale 0.9 zoom topLeft
-        Touches ts' -> case mode of
-                         Viewing -> stepMove ts' canvasDims windowDims lastMove topLeft
-                         _ -> (lastMove, topLeft)
-        _       -> (lastMove, topLeft)
+                  Drawing -> { c | drawing <- addN (applyBrush ts' brush) drawing
+                                 , history <- recordDrew ts' history }
+                  Erasing -> eraser (applyBrush ts' { size = 15, color = rgba 0 0 0 0.1 }) c
+                  _       -> c
+      _           -> c
+    zcanvas' = case action of
+        --ZoomIn  -> stepZoom 1.5 topLeft zoom
+        --ZoomOut -> stepZoom (1 / 1.5) topLeft zoom
+        Touches ts' -> let
+                         ts = map (scaleTouches topLeft zoom) ts'
+                       in case mode of
+                         Viewing -> stepMove ts' zcanvas
+                         _ -> zcanvas
+        _           -> zcanvas
   in
-    { canvas | drawing <- drawing'
-             , history <- history'
-             , topLeft <- topLeft'
-             , lastMove <- lastMove'
-             }
+    { zcanvas' | drawing <- canvas'.drawing
+               , history <- canvas'.history }
 
 
 
-canvasState : Signal Canvas
+canvasState : Signal (Zoomable Canvas)
 canvasState = foldp stepCanvas defaultCanvas input
 
 
@@ -319,7 +329,7 @@ dot pos brush = move pos <| filled brush.color (circle <| brush.size / 2)
 
 
 
-display : (Int, Int) -> Canvas -> Element
+display : (Int, Int) -> Zoomable Canvas -> Element
 display (w, h) ({drawing, history, dimensions, zoom, topLeft} as canvas) =
   let
     paths = Dict.values drawing
@@ -332,7 +342,7 @@ display (w, h) ({drawing, history, dimensions, zoom, topLeft} as canvas) =
       then traced (thickLine p.brush) <| map (flipVert . pointToTuple) p.points
       else dot (flipVert . pointToTuple . head <| p.points) p.brush
     forms = map strokeOrDot paths
-  in collage w h [ move (flipVert ((-w' * zoom / 2) - left, (-h' * zoom / 2) - top)) (scale zoom <| group forms) ]
+  in collage w h [ move (flipVert (-w' * zoom/ 2 - left  , -h' * zoom/ 2 - top)) (scale zoom <| group forms) ]
 
 
 minScale : (Float, Float) -> (Float,Float) -> Float
