@@ -48,7 +48,8 @@ type Point = { x : Float, y : Float }
 type Line = { p1 : Point, p2 : Point }
 type Zoomable a = { a | windowDims : (Int, Int)
                       , zoom : Float
-                      , leftTop : (Int, Int)
+                      , absPos : (Int, Int)
+                      , zoomOffset : (Int, Int)
                       , lastMove : Maybe (Int, Int) }
 
 
@@ -81,7 +82,8 @@ defaultCanvas =
   , dimensions = (10000, 7000)
   , windowDims = (0, 0)
   , zoom = 1
-  , leftTop = (0, 0)
+  , absPos = (0, 0)
+  , zoomOffset = (0, 0)
   , lastMove = Nothing
   }
 
@@ -245,11 +247,9 @@ eraser ts ({drawing, history} as c) =
 
 
 stepMove : [Touch.Touch] -> Zoomable Canvas -> Zoomable Canvas
-stepMove ts ({lastMove, dimensions, windowDims, zoom, leftTop} as c) =
+stepMove ts ({lastMove, zoom, absPos} as c) =
   let
-    (canW, canH) = dimensions
-    (winW, winH) = windowDims
-    (left, top) = leftTop
+    (x, y) = absPos
   in if isEmpty ts
   then { c | lastMove <- Nothing }
   else
@@ -258,50 +258,51 @@ stepMove ts ({lastMove, dimensions, windowDims, zoom, leftTop} as c) =
       float (a, b) = (toFloat a, toFloat b)
       roundT (a, b) = (round a, round b)
     in case lastMove of
-       Just (x, y) ->
+       Just (tx, ty) ->
          let
-            (dx, dy) = float ((x - t.x), (y - t.y))
-            top' = top + (round <|  dy / zoom)
-            left' = left + (round <| dx / zoom)
+            (dx, dy) = float ((tx - t.x), (ty - t.y))
+            x' = x + (round <| dx / zoom)
+            y' = y + (round <| dy / zoom)
          in { c | lastMove <- Just (t.x, t.y)
-                , leftTop  <- ( left', top') }
+                , absPos  <- (x', y')}
        Nothing -> { c | lastMove <- Just (t.x, t.y) }
 
 
-scaleTouches : (Int, Int) -> Float -> Touch.Touch -> Touch.Touch
-scaleTouches (left, top) zoom t =
+scaleTouches : (Int, Int) -> (Int, Int) -> Float -> Touch.Touch -> Touch.Touch
+scaleTouches (x, y) (dx, dy) zoom t =
   let
     float (a, b) = (toFloat a, toFloat b)
-    (x, y) = float (t.x, t.y)
-  in { t | x <- Debug.log "sx" <| round (x / zoom) + left
-         , y <- Debug.log "sy" <| round (y / zoom) + top }
+    (tx, ty) = float (t.x, t.y)
+  in { t | x <- round (tx / zoom) + x + dx
+         , y <- round (ty / zoom) + y + dy }
 
 
 stepZoom : Float -> Zoomable Canvas -> Zoomable Canvas
-stepZoom factor ({dimensions, windowDims, zoom, leftTop} as c) =
+stepZoom factor ({windowDims, zoom, zoomOffset} as c) =
   let
     scaleF f (a, b) = (a / f, b / f)
     float (a, b) = (toFloat a, toFloat b)
     roundT (a, b) = (round a, round b)
     delta (a, b) (a', b') = (a - a', b - b')
     zoom' = zoom * factor
-    winD  = Debug.log "scaled win with old zoom: " <| scaleF zoom <| float windowDims
-    winD' = Debug.log "scaled win with new zoom: " <| scaleF zoom' <| float windowDims
-    (dx, dy) = Debug.log "scale delta leftTop: " <| roundT <| scaleF 2 <| delta winD winD'
-    (left, top) = leftTop
-  in { c | leftTop <- (left + dx, top + dy)
-         , zoom    <- zoom' }
+    winD  = scaleF zoom <| float windowDims
+    winD' = scaleF zoom' <| float windowDims
+    (dx, dy) = roundT <| scaleF 2 <| delta winD winD'
+    (x, y) = zoomOffset
+  in { c | zoom    <- zoom'
+         , zoomOffset <- (x + dx, y + dy)}
+
 
 stepCanvas : Input -> Zoomable Canvas -> Zoomable Canvas
 stepCanvas {mode, action, brush, canvasDims, windowDims}
-           ({drawing, history, dimensions, zoom, leftTop, lastMove} as zcanvas'') =
+           ({drawing, history, dimensions, zoom, lastMove, absPos, zoomOffset} as zcanvas'') =
   let
-    zcanvas = { zcanvas'' | windowDims <- Debug.log "windowDims" windowDims }
+    zcanvas = { zcanvas'' | windowDims <- windowDims }
     c = getCanvas zcanvas
     canvas' = case action of
       Undo       -> undo c
       Touches ts -> let
-                  ts' = map (scaleTouches leftTop zoom) ts
+                  ts' = map (scaleTouches absPos zoomOffset zoom) ts
                 in case mode of
                   Drawing -> { c | drawing <- addN (applyBrush ts' brush) drawing
                                  , history <- recordDrew ts' history }
@@ -346,7 +347,7 @@ dot pos brush = move pos <| filled brush.color (circle <| brush.size / 2)
 
 
 display : (Int, Int) -> Zoomable Canvas -> Element
-display (w, h) ({drawing, history, dimensions, zoom, leftTop} as canvas) =
+display (w, h) ({drawing, history, zoom, absPos} as canvas) =
   let
     float (a, b) = (toFloat a, toFloat b)
     flipVert (a, b) = (a, -b)
@@ -358,9 +359,9 @@ display (w, h) ({drawing, history, dimensions, zoom, leftTop} as canvas) =
       else dot (flipVert . pointToTuple . head <| p.points) p.brush
     forms = map strokeOrDot paths
     toZero zoom (w, h) = (-w * zoom / 2, h * zoom / 2)
-    toLeftTop (left, top) (x, y) = (x, y)
-    pos = toLeftTop (float <| Debug.log "leftTop: " leftTop) <| toZero zoom (float (w, h))
-  in collage w h [ scale zoom <| move (Debug.log "moved to: " pos ) (group forms) ]
+    toAbsPos (dx, dy) (x, y) = (x - dx * zoom, y + dy * zoom )
+    pos = toAbsPos (float absPos) <| toZero zoom (float (w, h))
+  in collage w h [ scale zoom <| move pos (group forms) ]
 
 
 minScale : (Float, Float) -> (Float,Float) -> Float
