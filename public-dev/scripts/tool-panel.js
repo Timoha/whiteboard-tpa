@@ -105,7 +105,7 @@ $(document).ready(function() {
     canvas.ports.actionPort.send("ZoomIn");
   });
 
-  $('#zoomIn-tool').on('click', function () {
+  $('#zoomOut-tool').on('click', function () {
     canvas.ports.actionPort.send("ZoomOut");
   });
 
