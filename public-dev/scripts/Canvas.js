@@ -10,7 +10,6 @@ Elm.Canvas.make = function (_elm) {
    _A = _N.Array.make(_elm),
    _E = _N.Error.make(_elm),
    $moduleName = "Canvas";
-   var Array = Elm.Array.make(_elm);
    var Basics = Elm.Basics.make(_elm);
    var Color = Elm.Color.make(_elm);
    var Debug = Elm.Debug.make(_elm);
@@ -49,94 +48,26 @@ Elm.Canvas.make = function (_elm) {
                          ,Graphics.Collage.Round]],
       Graphics.Collage.defaultLine);
    };
-   var minScale = F2(function (_v0,
-   _v1) {
+   var scaleTouches = F4(function (_v0,
+   _v1,
+   zoom,
+   t) {
       return function () {
          switch (_v1.ctor)
          {case "_Tuple2":
             return function () {
                  switch (_v0.ctor)
                  {case "_Tuple2":
-                    return A2(Basics.max,
-                      _v0._0 / _v1._0,
-                      _v0._1 / _v1._1);}
-                 _E.Case($moduleName,
-                 "on line 341, column 3 to 27");
-              }();}
-         _E.Case($moduleName,
-         "on line 341, column 3 to 27");
-      }();
-   });
-   var constructZooms = function (_v8) {
-      return function () {
-         return function () {
-            var zoomStep = 2;
-            var zoomScale = A3(List.foldl,
-            F2(function (z,zs) {
-               return {ctor: "::"
-                      ,_0: List.head(zs) / zoomStep
-                      ,_1: zs};
-            }),
-            _L.fromArray([16]),
-            _L.range(1,9));
-            var $float = function (_v10) {
-               return function () {
-                  switch (_v10.ctor)
-                  {case "_Tuple2":
-                     return {ctor: "_Tuple2"
-                            ,_0: Basics.toFloat(_v10._0)
-                            ,_1: Basics.toFloat(_v10._1)};}
-                  _E.Case($moduleName,
-                  "on line 346, column 21 to 41");
-               }();
-            };
-            var minZoom = A2(minScale,
-            $float(_v8.windowDims),
-            $float(_v8.dimensions));
-            var zooms$ = Array.fromList({ctor: "::"
-                                        ,_0: minZoom
-                                        ,_1: A2(List.filter,
-                                        function (z) {
-                                           return _U.cmp(z,minZoom) > 0;
-                                        },
-                                        zoomScale)});
-            var zoomLevel = List.filter(function (_v14) {
-               return function () {
-                  switch (_v14.ctor)
-                  {case "_Tuple2":
-                     return _U.eq(_v14._1,1);}
-                  _E.Case($moduleName,
-                  "on line 351, column 36 to 42");
-               }();
-            })(Array.toIndexedList(zooms$));
-            var zoomLevel$ = List.isEmpty(zoomLevel) ? 0 : Basics.fst(List.head(zoomLevel));
-            return _U.replace([["zooms"
-                               ,A2(Debug.log,"zooms",zooms$)]
-                              ,["zoomLevel",zoomLevel$]],
-            _v8);
-         }();
-      }();
-   };
-   var scaleTouches = F4(function (_v18,
-   _v19,
-   zoom,
-   t) {
-      return function () {
-         switch (_v19.ctor)
-         {case "_Tuple2":
-            return function () {
-                 switch (_v18.ctor)
-                 {case "_Tuple2":
                     return function () {
-                         var $float = function (_v26) {
+                         var $float = function (_v8) {
                             return function () {
-                               switch (_v26.ctor)
+                               switch (_v8.ctor)
                                {case "_Tuple2":
                                   return {ctor: "_Tuple2"
-                                         ,_0: Basics.toFloat(_v26._0)
-                                         ,_1: Basics.toFloat(_v26._1)};}
+                                         ,_0: Basics.toFloat(_v8._0)
+                                         ,_1: Basics.toFloat(_v8._1)};}
                                _E.Case($moduleName,
-                               "on line 332, column 21 to 41");
+                               "on line 329, column 21 to 41");
                             }();
                          };
                          var $ = $float({ctor: "_Tuple2"
@@ -145,165 +76,164 @@ Elm.Canvas.make = function (_elm) {
                          tx = $._0,
                          ty = $._1;
                          return _U.replace([["x"
-                                            ,Debug.log("x")(Basics.round(tx / zoom + _v18._0 + _v19._0))]
+                                            ,Debug.log("x")(Basics.round(tx / zoom + _v0._0 + _v1._0))]
                                            ,["y"
-                                            ,Debug.log("y")(Basics.round(ty / zoom + _v18._1 + _v19._1))]],
+                                            ,Debug.log("y")(Basics.round(ty / zoom + _v0._1 + _v1._1))]],
                          t);
                       }();}
                  _E.Case($moduleName,
-                 "between lines 331 and 335");
+                 "between lines 328 and 332");
               }();}
          _E.Case($moduleName,
-         "between lines 331 and 335");
+         "between lines 328 and 332");
       }();
    });
-   var stepZoom = F2(function (deltaLevel,
-   _v30) {
+   var stepZoom = F2(function (factor,
+   _v12) {
       return function () {
          return function () {
-            var $ = _v30.zoomOffset,
+            var $ = _v12.zoomOffset,
             x = $._0,
             y = $._1;
-            var zoomLevel$$ = _v30.zoomLevel + deltaLevel;
-            var zoom = A2(Array.getOrFail,
-            A2(Debug.log,
-            "oldzoomlevel",
-            _v30.zoomLevel),
-            _v30.zooms);
-            var $ = Debug.log("zoom")(function () {
-               var _v32 = A2(Array.get,
-               zoomLevel$$,
-               _v30.zooms);
-               switch (_v32.ctor)
-               {case "Just":
-                  return {ctor: "_Tuple2"
-                         ,_0: _v32._0
-                         ,_1: zoomLevel$$};
-                  case "Nothing":
-                  return {ctor: "_Tuple2"
-                         ,_0: zoom
-                         ,_1: _v30.zoomLevel};}
-               _E.Case($moduleName,
-               "between lines 317 and 320");
-            }()),
-            zoom$ = $._0,
-            zoomLevel$ = $._1;
-            var delta = F2(function (_v34,
-            _v35) {
+            var zoom$ = A2(Basics.min,
+            A2(Basics.max,
+            _v12.zoom * factor,
+            _v12.minZoom),
+            _v12.maxZoom);
+            var delta = F2(function (_v14,
+            _v15) {
                return function () {
-                  switch (_v35.ctor)
+                  switch (_v15.ctor)
                   {case "_Tuple2":
                      return function () {
-                          switch (_v34.ctor)
+                          switch (_v14.ctor)
                           {case "_Tuple2":
                              return {ctor: "_Tuple2"
-                                    ,_0: _v34._0 - _v35._0
-                                    ,_1: _v34._1 - _v35._1};}
+                                    ,_0: _v14._0 - _v15._0
+                                    ,_1: _v14._1 - _v15._1};}
                           _E.Case($moduleName,
-                          "on line 314, column 30 to 44");
+                          "on line 315, column 30 to 44");
                        }();}
                   _E.Case($moduleName,
-                  "on line 314, column 30 to 44");
+                  "on line 315, column 30 to 44");
                }();
             });
-            var $float = function (_v42) {
+            var $float = function (_v22) {
                return function () {
-                  switch (_v42.ctor)
+                  switch (_v22.ctor)
                   {case "_Tuple2":
                      return {ctor: "_Tuple2"
-                            ,_0: Basics.toFloat(_v42._0)
-                            ,_1: Basics.toFloat(_v42._1)};}
+                            ,_0: Basics.toFloat(_v22._0)
+                            ,_1: Basics.toFloat(_v22._1)};}
                   _E.Case($moduleName,
-                  "on line 313, column 21 to 41");
+                  "on line 314, column 21 to 41");
                }();
             };
             var scaleF = F2(function (f,
-            _v46) {
+            _v26) {
                return function () {
-                  switch (_v46.ctor)
+                  switch (_v26.ctor)
                   {case "_Tuple2":
                      return {ctor: "_Tuple2"
-                            ,_0: _v46._0 / f
-                            ,_1: _v46._1 / f};}
+                            ,_0: _v26._0 / f
+                            ,_1: _v26._1 / f};}
                   _E.Case($moduleName,
-                  "on line 312, column 24 to 36");
+                  "on line 313, column 24 to 36");
                }();
             });
-            var winD = scaleF(zoom)($float(_v30.windowDims));
-            var winD$ = scaleF(zoom$)($float(_v30.windowDims));
+            var winD = scaleF(_v12.zoom)($float(_v12.windowDims));
+            var winD$ = scaleF(zoom$)($float(_v12.windowDims));
             var $ = scaleF(2)(A2(delta,
             winD,
             winD$)),
             dx = $._0,
             dy = $._1;
-            return _U.replace([["zoomLevel"
-                               ,zoomLevel$]
+            return _U.replace([["zoom"
+                               ,zoom$]
                               ,["zoomOffset"
                                ,{ctor: "_Tuple2"
                                 ,_0: x + dx
                                 ,_1: y + dy}]],
-            _v30);
+            _v12);
          }();
       }();
    });
-   var withinBounds = function (_v50) {
+   var withinBounds = function (_v30) {
       return function () {
          return function () {
-            var limitRightBottom = F2(function (_v52,
-            _v53) {
+            var limitRightBottom = F2(function (_v32,
+            _v33) {
                return function () {
-                  switch (_v53.ctor)
+                  switch (_v33.ctor)
                   {case "_Tuple2":
                      return function () {
-                          switch (_v52.ctor)
+                          switch (_v32.ctor)
                           {case "_Tuple2":
                              return {ctor: "_Tuple2"
                                     ,_0: A2(Basics.min,
-                                    _v52._0,
-                                    _v53._0)
+                                    _v32._0,
+                                    _v33._0)
                                     ,_1: A2(Basics.min,
-                                    _v52._1,
-                                    _v53._1)};}
+                                    _v32._1,
+                                    _v33._1)};}
                           _E.Case($moduleName,
-                          "on line 297, column 41 to 59");
+                          "on line 298, column 41 to 59");
                        }();}
                   _E.Case($moduleName,
-                  "on line 297, column 41 to 59");
+                  "on line 298, column 41 to 59");
                }();
             });
-            var limitLeftTop = F2(function (_v60,
-            _v61) {
+            var limitLeftTop = F2(function (_v40,
+            _v41) {
                return function () {
-                  switch (_v61.ctor)
+                  switch (_v41.ctor)
                   {case "_Tuple2":
                      return function () {
-                          switch (_v60.ctor)
+                          switch (_v40.ctor)
                           {case "_Tuple2":
                              return {ctor: "_Tuple2"
                                     ,_0: A2(Basics.max,
-                                    _v60._0,
-                                    _v61._0)
+                                    _v40._0,
+                                    _v41._0)
                                     ,_1: A2(Basics.max,
-                                    _v60._1,
-                                    _v61._1)};}
+                                    _v40._1,
+                                    _v41._1)};}
                           _E.Case($moduleName,
-                          "on line 296, column 37 to 55");
+                          "on line 297, column 37 to 55");
                        }();}
                   _E.Case($moduleName,
-                  "on line 296, column 37 to 55");
+                  "on line 297, column 37 to 55");
                }();
             });
-            var subT = F2(function (_v68,
-            _v69) {
+            var subT = F2(function (_v48,
+            _v49) {
                return function () {
-                  switch (_v69.ctor)
+                  switch (_v49.ctor)
                   {case "_Tuple2":
                      return function () {
-                          switch (_v68.ctor)
+                          switch (_v48.ctor)
                           {case "_Tuple2":
                              return {ctor: "_Tuple2"
-                                    ,_0: _v68._0 - _v69._0
-                                    ,_1: _v68._1 - _v69._1};}
+                                    ,_0: _v48._0 - _v49._0
+                                    ,_1: _v48._1 - _v49._1};}
+                          _E.Case($moduleName,
+                          "on line 296, column 29 to 43");
+                       }();}
+                  _E.Case($moduleName,
+                  "on line 296, column 29 to 43");
+               }();
+            });
+            var addT = F2(function (_v56,
+            _v57) {
+               return function () {
+                  switch (_v57.ctor)
+                  {case "_Tuple2":
+                     return function () {
+                          switch (_v56.ctor)
+                          {case "_Tuple2":
+                             return {ctor: "_Tuple2"
+                                    ,_0: _v56._0 + _v57._0
+                                    ,_1: _v56._1 + _v57._1};}
                           _E.Case($moduleName,
                           "on line 295, column 29 to 43");
                        }();}
@@ -311,59 +241,38 @@ Elm.Canvas.make = function (_elm) {
                   "on line 295, column 29 to 43");
                }();
             });
-            var addT = F2(function (_v76,
-            _v77) {
-               return function () {
-                  switch (_v77.ctor)
-                  {case "_Tuple2":
-                     return function () {
-                          switch (_v76.ctor)
-                          {case "_Tuple2":
-                             return {ctor: "_Tuple2"
-                                    ,_0: _v76._0 + _v77._0
-                                    ,_1: _v76._1 + _v77._1};}
-                          _E.Case($moduleName,
-                          "on line 294, column 29 to 43");
-                       }();}
-                  _E.Case($moduleName,
-                  "on line 294, column 29 to 43");
-               }();
-            });
             var leftTop = A2(limitLeftTop,
             A2(addT,
-            _v50.absPos,
-            _v50.zoomOffset),
+            _v30.absPos,
+            _v30.zoomOffset),
             {ctor: "_Tuple2",_0: 0,_1: 0});
-            var $float = function (_v84) {
+            var $float = function (_v64) {
                return function () {
-                  switch (_v84.ctor)
+                  switch (_v64.ctor)
                   {case "_Tuple2":
                      return {ctor: "_Tuple2"
-                            ,_0: Basics.toFloat(_v84._0)
-                            ,_1: Basics.toFloat(_v84._1)};}
+                            ,_0: Basics.toFloat(_v64._0)
+                            ,_1: Basics.toFloat(_v64._1)};}
                   _E.Case($moduleName,
-                  "on line 293, column 21 to 41");
+                  "on line 294, column 21 to 41");
                }();
             };
-            var $ = $float(_v50.dimensions),
+            var $ = $float(_v30.dimensions),
             w = $._0,
             h = $._1;
             var scaleF = F2(function (f,
-            _v88) {
+            _v68) {
                return function () {
-                  switch (_v88.ctor)
+                  switch (_v68.ctor)
                   {case "_Tuple2":
                      return {ctor: "_Tuple2"
-                            ,_0: _v88._0 / f
-                            ,_1: _v88._1 / f};}
+                            ,_0: _v68._0 / f
+                            ,_1: _v68._1 / f};}
                   _E.Case($moduleName,
-                  "on line 292, column 24 to 36");
+                  "on line 293, column 24 to 36");
                }();
             });
-            var zoom = A2(Array.getOrFail,
-            _v50.zoomLevel,
-            _v50.zooms);
-            var windowDims$ = scaleF(zoom)($float(_v50.windowDims));
+            var windowDims$ = scaleF(_v30.zoom)($float(_v30.windowDims));
             var $ = A2(limitRightBottom,
             A2(addT,leftTop,windowDims$),
             {ctor: "_Tuple2",_0: w,_1: h}),
@@ -373,58 +282,73 @@ Elm.Canvas.make = function (_elm) {
             w) < 0 && _U.cmp(bottom,
             h) < 0 ? A2(subT,
             leftTop,
-            _v50.zoomOffset) : A2(subT,
+            _v30.zoomOffset) : A2(subT,
             A2(subT,
             {ctor: "_Tuple2"
             ,_0: right
             ,_1: bottom},
             windowDims$),
-            _v50.zoomOffset);
+            _v30.zoomOffset);
             return _U.replace([["absPos"
                                ,absPos$]],
-            _v50);
+            _v30);
          }();
       }();
    };
+   var minScale = F2(function (_v72,
+   _v73) {
+      return function () {
+         switch (_v73.ctor)
+         {case "_Tuple2":
+            return function () {
+                 switch (_v72.ctor)
+                 {case "_Tuple2":
+                    return A2(Basics.max,
+                      _v72._0 / _v73._0,
+                      _v72._1 / _v73._1);}
+                 _E.Case($moduleName,
+                 "on line 287, column 3 to 27");
+              }();}
+         _E.Case($moduleName,
+         "on line 287, column 3 to 27");
+      }();
+   });
    var stepMove = F2(function (ts,
-   _v92) {
+   _v80) {
       return function () {
          return function () {
-            var zoom = A2(Array.getOrFail,
-            _v92.zoomLevel,
-            _v92.zooms);
-            var $ = _v92.absPos,
+            var $ = _v80.absPos,
             x = $._0,
             y = $._1;
             return List.isEmpty(ts) ? _U.replace([["lastMove"
                                                   ,Maybe.Nothing]],
-            _v92) : function () {
-               var $float = function (_v94) {
+            _v80) : function () {
+               var $float = function (_v82) {
                   return function () {
-                     switch (_v94.ctor)
+                     switch (_v82.ctor)
                      {case "_Tuple2":
                         return {ctor: "_Tuple2"
-                               ,_0: Basics.toFloat(_v94._0)
-                               ,_1: Basics.toFloat(_v94._1)};}
+                               ,_0: Basics.toFloat(_v82._0)
+                               ,_1: Basics.toFloat(_v82._1)};}
                      _E.Case($moduleName,
                      "on line 272, column 23 to 43");
                   }();
                };
                var t = List.head(ts);
                return function () {
-                  var _v98 = _v92.lastMove;
-                  switch (_v98.ctor)
+                  var _v86 = _v80.lastMove;
+                  switch (_v86.ctor)
                   {case "Just":
-                     switch (_v98._0.ctor)
+                     switch (_v86._0.ctor)
                        {case "_Tuple2":
                           return function () {
                                var $ = $float({ctor: "_Tuple2"
-                                              ,_0: _v98._0._0 - t.x
-                                              ,_1: _v98._0._1 - t.y}),
+                                              ,_0: _v86._0._0 - t.x
+                                              ,_1: _v86._0._1 - t.y}),
                                dx = $._0,
                                dy = $._1;
-                               var x$ = x + dx / zoom;
-                               var y$ = y + dy / zoom;
+                               var x$ = x + dx / _v80.zoom;
+                               var y$ = y + dy / _v80.zoom;
                                return _U.replace([["lastMove"
                                                   ,Maybe.Just({ctor: "_Tuple2"
                                                               ,_0: t.x
@@ -433,7 +357,7 @@ Elm.Canvas.make = function (_elm) {
                                                   ,{ctor: "_Tuple2"
                                                    ,_0: x$
                                                    ,_1: y$}]],
-                               _v92);
+                               _v80);
                             }();}
                        break;
                      case "Nothing":
@@ -441,7 +365,7 @@ Elm.Canvas.make = function (_elm) {
                                         ,Maybe.Just({ctor: "_Tuple2"
                                                     ,_0: t.x
                                                     ,_1: t.y})]],
-                       _v92);}
+                       _v80);}
                   _E.Case($moduleName,
                   "between lines 273 and 281");
                }();
@@ -479,24 +403,24 @@ Elm.Canvas.make = function (_elm) {
       A3(ccw,l1.p1,l1.p2,l2.p2)));
    });
    var withinWindowDims = F2(function (ts,
-   _v102) {
+   _v90) {
       return function () {
-         switch (_v102.ctor)
+         switch (_v90.ctor)
          {case "_Tuple2":
             return function () {
                  var within = function (t) {
                     return _U.cmp(t.x,
                     0) > 0 && (_U.cmp(t.x,
-                    _v102._0) < 0 && (_U.cmp(t.y,
+                    _v90._0) < 0 && (_U.cmp(t.y,
                     0) > 0 && _U.cmp(t.y,
-                    _v102._1) < 0));
+                    _v90._1) < 0));
                  };
                  return A2(List.filter,
                  within,
                  ts);
               }();}
          _E.Case($moduleName,
-         "between lines 139 and 140");
+         "between lines 140 and 141");
       }();
    });
    var portToBrush = function (p) {
@@ -535,16 +459,15 @@ Elm.Canvas.make = function (_elm) {
                        ,drawing: Dict.empty
                        ,history: Dict.empty
                        ,lastMove: Maybe.Nothing
+                       ,maxZoom: Math.pow(2,4)
+                       ,minZoom: 1
                        ,windowDims: {ctor: "_Tuple2"
                                     ,_0: 0
                                     ,_1: 0}
-                       ,zoomLevel: 1
+                       ,zoom: 1
                        ,zoomOffset: {ctor: "_Tuple2"
                                     ,_0: 0
-                                    ,_1: 0}
-                       ,zooms: Array.fromList(_L.fromArray([0.5
-                                                           ,1
-                                                           ,2]))};
+                                    ,_1: 0}};
    var line = F2(function (p1,p2) {
       return {_: {},p1: p1,p2: p2};
    });
@@ -592,35 +515,53 @@ Elm.Canvas.make = function (_elm) {
              ,_0: p.x
              ,_1: p.y};
    };
-   var display = F2(function (_v107,
-   _v108) {
+   var display = F2(function (_v95,
+   _v96) {
       return function () {
          return function () {
-            switch (_v107.ctor)
+            switch (_v95.ctor)
             {case "_Tuple2":
                return function () {
+                    var toAbsPos = F2(function (_v101,
+                    _v102) {
+                       return function () {
+                          switch (_v102.ctor)
+                          {case "_Tuple2":
+                             return function () {
+                                  switch (_v101.ctor)
+                                  {case "_Tuple2":
+                                     return {ctor: "_Tuple2"
+                                            ,_0: _v102._0 - _v101._0 * _v96.zoom
+                                            ,_1: _v102._1 + _v101._1 * _v96.zoom};}
+                                  _E.Case($moduleName,
+                                  "on line 400, column 33 to 61");
+                               }();}
+                          _E.Case($moduleName,
+                          "on line 400, column 33 to 61");
+                       }();
+                    });
                     var toZero = F2(function (zoom,
-                    _v113) {
+                    _v109) {
+                       return function () {
+                          switch (_v109.ctor)
+                          {case "_Tuple2":
+                             return {ctor: "_Tuple2"
+                                    ,_0: (0 - _v109._0) * zoom / 2
+                                    ,_1: _v109._1 * zoom / 2};}
+                          _E.Case($moduleName,
+                          "on line 399, column 27 to 54");
+                       }();
+                    });
+                    var paths = Dict.values(_v96.drawing);
+                    var flipVert = function (_v113) {
                        return function () {
                           switch (_v113.ctor)
                           {case "_Tuple2":
                              return {ctor: "_Tuple2"
-                                    ,_0: (0 - _v113._0) * zoom / 2
-                                    ,_1: _v113._1 * zoom / 2};}
+                                    ,_0: _v113._0
+                                    ,_1: 0 - _v113._1};}
                           _E.Case($moduleName,
-                          "on line 421, column 27 to 54");
-                       }();
-                    });
-                    var paths = Dict.values(_v108.drawing);
-                    var flipVert = function (_v117) {
-                       return function () {
-                          switch (_v117.ctor)
-                          {case "_Tuple2":
-                             return {ctor: "_Tuple2"
-                                    ,_0: _v117._0
-                                    ,_1: 0 - _v117._1};}
-                          _E.Case($moduleName,
-                          "on line 414, column 24 to 29");
+                          "on line 392, column 24 to 29");
                        }();
                     };
                     var strokeOrDot = function (p) {
@@ -636,52 +577,31 @@ Elm.Canvas.make = function (_elm) {
                     var forms = A2(List.map,
                     strokeOrDot,
                     paths);
-                    var $float = function (_v121) {
+                    var $float = function (_v117) {
                        return function () {
-                          switch (_v121.ctor)
+                          switch (_v117.ctor)
                           {case "_Tuple2":
                              return {ctor: "_Tuple2"
-                                    ,_0: Basics.toFloat(_v121._0)
-                                    ,_1: Basics.toFloat(_v121._1)};}
+                                    ,_0: Basics.toFloat(_v117._0)
+                                    ,_1: Basics.toFloat(_v117._1)};}
                           _E.Case($moduleName,
-                          "on line 413, column 21 to 41");
+                          "on line 391, column 21 to 41");
                        }();
                     };
-                    var zoom = A2(Array.getOrFail,
-                    _v108.zoomLevel,
-                    _v108.zooms);
-                    var toAbsPos = F2(function (_v125,
-                    _v126) {
-                       return function () {
-                          switch (_v126.ctor)
-                          {case "_Tuple2":
-                             return function () {
-                                  switch (_v125.ctor)
-                                  {case "_Tuple2":
-                                     return {ctor: "_Tuple2"
-                                            ,_0: _v126._0 - _v125._0 * zoom
-                                            ,_1: _v126._1 + _v125._1 * zoom};}
-                                  _E.Case($moduleName,
-                                  "on line 422, column 33 to 61");
-                               }();}
-                          _E.Case($moduleName,
-                          "on line 422, column 33 to 61");
-                       }();
-                    });
-                    var pos = toAbsPos(_v108.absPos)(A2(toZero,
-                    zoom,
+                    var pos = toAbsPos(_v96.absPos)(A2(toZero,
+                    _v96.zoom,
                     $float({ctor: "_Tuple2"
-                           ,_0: _v107._0
-                           ,_1: _v107._1})));
+                           ,_0: _v95._0
+                           ,_1: _v95._1})));
                     return A3(Graphics.Collage.collage,
-                    _v107._0,
-                    _v107._1,
-                    _L.fromArray([Graphics.Collage.scale(zoom)(A2(Graphics.Collage.move,
+                    _v95._0,
+                    _v95._1,
+                    _L.fromArray([Graphics.Collage.scale(_v96.zoom)(A2(Graphics.Collage.move,
                     pos,
                     Graphics.Collage.group(forms)))]));
                  }();}
             _E.Case($moduleName,
-            "between lines 411 and 424");
+            "between lines 390 and 402");
          }();
       }();
    });
@@ -720,26 +640,29 @@ Elm.Canvas.make = function (_elm) {
              ,drawing: c.drawing
              ,history: c.history};
    };
-   var Zoomable = F7(function (a,
+   var Zoomable = F8(function (a,
    b,
    c,
    d,
    e,
    f,
-   g) {
+   g,
+   h) {
       return _U.insert("lastMove",
-      f,
+      g,
       _U.insert("zoomOffset",
-      e,
+      f,
       _U.insert("absPos",
+      e,
+      _U.insert("maxZoom",
       d,
-      _U.insert("zooms",
+      _U.insert("minZoom",
       c,
-      _U.insert("zoomLevel",
+      _U.insert("zoom",
       b,
       _U.insert("windowDims",
       a,
-      g))))));
+      h)))))));
    });
    var Line = F2(function (a,b) {
       return {_: {},p1: a,p2: b};
@@ -804,27 +727,27 @@ Elm.Canvas.make = function (_elm) {
       return {ctor: "Erased"
              ,_0: a};
    };
-   var stepUndo = function (_v133) {
+   var stepUndo = function (_v121) {
       return function () {
          return function () {
-            var ids = Dict.keys(_v133.history);
-            return List.isEmpty(ids) ? _v133 : function () {
+            var ids = Dict.keys(_v121.history);
+            return List.isEmpty(ids) ? _v121 : function () {
                var lastId = List.maximum(ids);
                var $ = function () {
-                  var _v135 = A2(Dict.get,
+                  var _v123 = A2(Dict.get,
                   lastId,
-                  _v133.history);
-                  switch (_v135.ctor)
+                  _v121.history);
+                  switch (_v123.ctor)
                   {case "Just":
-                     switch (_v135._0.ctor)
+                     switch (_v123._0.ctor)
                        {case "Drew":
                           return {ctor: "_Tuple2"
                                  ,_0: A2(Dict.remove,
-                                 _v135._0._0,
-                                 _v133.drawing)
+                                 _v123._0._0,
+                                 _v121.drawing)
                                  ,_1: A2(Dict.remove,
-                                 _v135._0._0,
-                                 _v133.history)};
+                                 _v123._0._0,
+                                 _v121.history)};
                           case "Erased":
                           return {ctor: "_Tuple2"
                                  ,_0: A3(List.foldl,
@@ -834,8 +757,8 @@ Elm.Canvas.make = function (_elm) {
                                     s,
                                     d);
                                  }),
-                                 _v133.drawing,
-                                 _v135._0._0)
+                                 _v121.drawing,
+                                 _v123._0._0)
                                  ,_1: A3(List.foldl,
                                  F2(function (s,h) {
                                     return A3(Dict.insert,
@@ -845,85 +768,85 @@ Elm.Canvas.make = function (_elm) {
                                  }),
                                  A2(Dict.remove,
                                  lastId,
-                                 _v133.history),
-                                 _v135._0._0)};}
+                                 _v121.history),
+                                 _v123._0._0)};}
                        break;
                      case "Nothing":
                      return {ctor: "_Tuple2"
                             ,_0: Dict.empty
                             ,_1: Dict.empty};}
                   _E.Case($moduleName,
-                  "between lines 184 and 190");
+                  "between lines 185 and 191");
                }(),
                d = $._0,
                h = $._1;
                return _U.replace([["drawing",d]
                                  ,["history",h]],
-               _v133);
+               _v121);
             }();
          }();
       }();
    };
-   var removeEraser = function (_v139) {
+   var removeEraser = function (_v127) {
       return function () {
          return function () {
-            var ids = Dict.keys(_v139.history);
+            var ids = Dict.keys(_v127.history);
             var $ = List.isEmpty(ids) ? {ctor: "_Tuple2"
                                         ,_0: Dict.empty
                                         ,_1: Dict.empty} : function () {
                var lastId = List.maximum(ids);
                var removeLast = Dict.remove(lastId);
                return function () {
-                  var _v141 = A2(Dict.get,
+                  var _v129 = A2(Dict.get,
                   lastId,
-                  _v139.history);
-                  switch (_v141.ctor)
+                  _v127.history);
+                  switch (_v129.ctor)
                   {case "Just":
-                     switch (_v141._0.ctor)
+                     switch (_v129._0.ctor)
                        {case "Erased":
-                          return List.isEmpty(_v141._0._0) ? {ctor: "_Tuple2"
-                                                             ,_0: removeLast(_v139.drawing)
-                                                             ,_1: removeLast(_v139.history)} : {ctor: "_Tuple2"
-                                                                                               ,_0: removeLast(_v139.drawing)
-                                                                                               ,_1: _v139.history};}
+                          return List.isEmpty(_v129._0._0) ? {ctor: "_Tuple2"
+                                                             ,_0: removeLast(_v127.drawing)
+                                                             ,_1: removeLast(_v127.history)} : {ctor: "_Tuple2"
+                                                                                               ,_0: removeLast(_v127.drawing)
+                                                                                               ,_1: _v127.history};}
                        break;}
                   return {ctor: "_Tuple2"
-                         ,_0: _v139.drawing
-                         ,_1: _v139.history};
+                         ,_0: _v127.drawing
+                         ,_1: _v127.history};
                }();
             }(),
             d = $._0,
             h = $._1;
             return _U.replace([["drawing",d]
                               ,["history",h]],
-            _v139);
+            _v127);
          }();
       }();
    };
    var stepEraser = F2(function (ts,
-   _v144) {
+   _v132) {
       return function () {
-         return List.isEmpty(ts) ? removeEraser(_v144) : function () {
+         return List.isEmpty(ts) ? removeEraser(_v132) : function () {
             var t = List.head(ts);
             var id = Basics.abs(t.id);
             return function () {
-               var _v146 = A2(Dict.get,
+               var _v134 = A2(Dict.get,
                id,
-               _v144.drawing);
-               switch (_v146.ctor)
+               _v132.drawing);
+               switch (_v134.ctor)
                {case "Just":
                   return function () {
                        var _raw = A3(Dict.getOrElse,
                        Erased(_L.fromArray([])),
                        A2(Debug.log,"t.id",id),
-                       _v144.history),
+                       _v132.history),
                        $ = _raw.ctor === "Erased" ? _raw : _E.Case($moduleName,
-                       "on line 253, column 34 to 90"),
+                       "on line 254, column 34 to 90"),
                        vs = $._0;
-                       var strokes = List.tail(List.reverse(Dict.values(_v144.drawing)));
+                       var strokes = List.tail(List.reverse(Dict.values(_v132.drawing)));
                        var eraserSeg = A2(line,
                        A2(point,t.x,t.y),
-                       List.head(_v146._0.points));
+                       List.head(_v134._0.points));
                        var crossed = A2(List.filter,
                        isLineStrokeIntersect(eraserSeg),
                        strokes);
@@ -933,26 +856,26 @@ Elm.Canvas.make = function (_elm) {
                                           function (s) {
                                              return Dict.remove(s.id);
                                           },
-                                          A2(add1,t,_v144.drawing),
+                                          A2(add1,t,_v132.drawing),
                                           erased)]
                                          ,["history"
                                           ,A3(Dict.insert,
                                           id,
                                           Erased(_L.append(erased,vs)),
-                                          _v144.history)]],
-                       _v144);
+                                          _v132.history)]],
+                       _v132);
                     }();
                   case "Nothing":
                   return _U.replace([["drawing"
-                                     ,A2(add1,t,_v144.drawing)]
+                                     ,A2(add1,t,_v132.drawing)]
                                     ,["history"
                                      ,A3(Dict.insert,
                                      id,
                                      Erased(_L.fromArray([])),
-                                     _v144.history)]],
-                    _v144);}
+                                     _v132.history)]],
+                    _v132);}
                _E.Case($moduleName,
-               "between lines 247 and 257");
+               "between lines 248 and 258");
             }();
          }();
       }();
@@ -967,7 +890,7 @@ Elm.Canvas.make = function (_elm) {
             case "Erasing": return Erasing;
             case "Viewing": return Viewing;}
          _E.Case($moduleName,
-         "between lines 108 and 111");
+         "between lines 109 and 112");
       }();
    };
    var Touches = function (a) {
@@ -986,7 +909,7 @@ Elm.Canvas.make = function (_elm) {
             case "ZoomIn": return ZoomIn;
             case "ZoomOut": return ZoomOut;}
          _E.Case($moduleName,
-         "between lines 116 and 120");
+         "between lines 117 and 121");
       }();
    };
    var actions = Signal.merges(_L.fromArray([A2(Signal._op["<~"],
@@ -1016,43 +939,57 @@ Elm.Canvas.make = function (_elm) {
                    ,_0: 10000
                    ,_1: 7000})),
    Window.dimensions);
-   var stepCanvas = F2(function (_v150,
-   _v151) {
+   var stepCanvas = F2(function (_v138,
+   _v139) {
       return function () {
          return function () {
             return function () {
-               var zc = _U.replace([["windowDims"
-                                    ,_v150.windowDims]],
-               _v151);
-               var zcanvas = constructZooms(zc);
+               var $float = function (_v142) {
+                  return function () {
+                     switch (_v142.ctor)
+                     {case "_Tuple2":
+                        return {ctor: "_Tuple2"
+                               ,_0: Basics.toFloat(_v142._0)
+                               ,_1: Basics.toFloat(_v142._1)};}
+                     _E.Case($moduleName,
+                     "on line 340, column 21 to 41");
+                  }();
+               };
+               var zcanvas = _U.replace([["windowDims"
+                                         ,_v138.windowDims]
+                                        ,["minZoom"
+                                         ,A2(Basics.max,
+                                         1,
+                                         A2(minScale,
+                                         $float(_v138.windowDims),
+                                         $float(_v139.dimensions)))]],
+               _v139);
                var c = getCanvas(zcanvas);
                var canvas$ = function () {
-                  var _v154 = _v150.action;
-                  switch (_v154.ctor)
+                  var _v146 = _v138.action;
+                  switch (_v146.ctor)
                   {case "Touches":
                      return function () {
                           var ts$ = A2(List.map,
                           A3(scaleTouches,
-                          _v151.absPos,
-                          _v151.zoomOffset,
-                          A2(Array.getOrFail,
-                          zcanvas.zoomLevel,
-                          zcanvas.zooms)),
-                          _v154._0);
+                          _v139.absPos,
+                          _v139.zoomOffset,
+                          _v139.zoom),
+                          _v146._0);
                           return function () {
-                             var _v156 = _v150.mode;
-                             switch (_v156.ctor)
+                             var _v148 = _v138.mode;
+                             switch (_v148.ctor)
                              {case "Drawing":
                                 return _U.replace([["drawing"
                                                    ,A2(addN,
                                                    A2(applyBrush,
                                                    ts$,
-                                                   _v150.brush),
-                                                   _v151.drawing)]
+                                                   _v138.brush),
+                                                   _v139.drawing)]
                                                   ,["history"
                                                    ,A2(recordDrew,
                                                    ts$,
-                                                   _v151.history)]],
+                                                   _v139.history)]],
                                   c);
                                 case "Erasing":
                                 return A2(stepEraser,
@@ -1070,22 +1007,24 @@ Elm.Canvas.make = function (_elm) {
                   return c;
                }();
                var zcanvas$ = withinBounds(function () {
-                  var _v157 = _v150.action;
-                  switch (_v157.ctor)
+                  var _v149 = _v138.action;
+                  switch (_v149.ctor)
                   {case "Touches":
                      return function () {
-                          var _v159 = _v150.mode;
-                          switch (_v159.ctor)
+                          var _v151 = _v138.mode;
+                          switch (_v151.ctor)
                           {case "Viewing":
                              return A2(stepMove,
-                               _v157._0,
+                               _v149._0,
                                zcanvas);}
                           return zcanvas;
                        }();
                      case "ZoomIn":
-                     return A2(stepZoom,1,zcanvas);
+                     return A2(stepZoom,2,zcanvas);
                      case "ZoomOut":
-                     return A2(stepZoom,-1,zcanvas);}
+                     return A2(stepZoom,
+                       1 / 2,
+                       zcanvas);}
                   return zcanvas;
                }());
                return _U.replace([["drawing"
@@ -1129,11 +1068,10 @@ Elm.Canvas.make = function (_elm) {
                         ,removeEraser: removeEraser
                         ,stepEraser: stepEraser
                         ,stepMove: stepMove
+                        ,minScale: minScale
                         ,withinBounds: withinBounds
                         ,stepZoom: stepZoom
                         ,scaleTouches: scaleTouches
-                        ,minScale: minScale
-                        ,constructZooms: constructZooms
                         ,stepCanvas: stepCanvas
                         ,canvasState: canvasState
                         ,thickLine: thickLine
