@@ -48,8 +48,8 @@ type Point = { x : Float, y : Float }
 type Line = { p1 : Point, p2 : Point }
 type Zoomable a = { a | windowDims : (Int, Int)
                       , zoom : Float
-                      , absPos : (Int, Int)
-                      , zoomOffset : (Int, Int)
+                      , absPos : (Float, Float)
+                      , zoomOffset : (Float, Float)
                       , lastMove : Maybe (Int, Int) }
 
 
@@ -261,20 +261,20 @@ stepMove ts ({lastMove, zoom, absPos} as c) =
        Just (tx, ty) ->
          let
             (dx, dy) = float ((tx - t.x), (ty - t.y))
-            x' = x + (round <| dx / zoom)
-            y' = y + (round <| dy / zoom)
+            x' = x + dx / zoom
+            y' = y + dy / zoom
          in { c | lastMove <- Just (t.x, t.y)
                 , absPos  <- (x', y')}
        Nothing -> { c | lastMove <- Just (t.x, t.y) }
 
 
-scaleTouches : (Int, Int) -> (Int, Int) -> Float -> Touch.Touch -> Touch.Touch
+scaleTouches : (Float, Float) -> (Float, Float) -> Float -> Touch.Touch -> Touch.Touch
 scaleTouches (x, y) (dx, dy) zoom t =
   let
     float (a, b) = (toFloat a, toFloat b)
     (tx, ty) = float (t.x, t.y)
-  in { t | x <- round (tx / zoom) + x + dx
-         , y <- round (ty / zoom) + y + dy }
+  in { t | x <- round (tx / zoom + x + dx)
+         , y <- round (ty / zoom + y + dy) }
 
 
 stepZoom : Float -> Zoomable Canvas -> Zoomable Canvas
@@ -287,7 +287,7 @@ stepZoom factor ({windowDims, zoom, zoomOffset} as c) =
     zoom' = zoom * factor
     winD  = scaleF zoom <| float windowDims
     winD' = scaleF zoom' <| float windowDims
-    (dx, dy) = roundT <| scaleF 2 <| delta winD winD'
+    (dx, dy) = scaleF 2 <| delta winD winD'
     (x, y) = zoomOffset
   in { c | zoom    <- zoom'
          , zoomOffset <- (x + dx, y + dy)}
@@ -360,7 +360,7 @@ display (w, h) ({drawing, history, zoom, absPos} as canvas) =
     forms = map strokeOrDot paths
     toZero zoom (w, h) = (-w * zoom / 2, h * zoom / 2)
     toAbsPos (dx, dy) (x, y) = (x - dx * zoom, y + dy * zoom )
-    pos = toAbsPos (float absPos) <| toZero zoom (float (w, h))
+    pos = toAbsPos absPos <| toZero zoom (float (w, h))
   in collage w h [ scale zoom <| move pos (group forms) ]
 
 

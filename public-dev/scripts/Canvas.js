@@ -128,9 +128,9 @@ Elm.Canvas.make = function (_elm) {
             });
             var winD = scaleF(_v8.zoom)($float(_v8.windowDims));
             var winD$ = scaleF(zoom$)($float(_v8.windowDims));
-            var $ = roundT(scaleF(2)(A2(delta,
+            var $ = scaleF(2)(A2(delta,
             winD,
-            winD$))),
+            winD$)),
             dx = $._0,
             dy = $._1;
             return _U.replace([["zoom"
@@ -171,9 +171,9 @@ Elm.Canvas.make = function (_elm) {
                          tx = $._0,
                          ty = $._1;
                          return _U.replace([["x"
-                                            ,Basics.round(tx / zoom) + _v30._0 + _v31._0]
+                                            ,Basics.round(tx / zoom + _v30._0 + _v31._0)]
                                            ,["y"
-                                            ,Basics.round(ty / zoom) + _v30._1 + _v31._1]],
+                                            ,Basics.round(ty / zoom + _v30._1 + _v31._1)]],
                          t);
                       }();}
                  _E.Case($moduleName,
@@ -228,8 +228,8 @@ Elm.Canvas.make = function (_elm) {
                                               ,_1: _v52._0._1 - t.y}),
                                dx = $._0,
                                dy = $._1;
-                               var x$ = x + Basics.round(dx / _v42.zoom);
-                               var y$ = y + Basics.round(dy / _v42.zoom);
+                               var x$ = x + dx / _v42.zoom;
+                               var y$ = y + dy / _v42.zoom;
                                return _U.replace([["lastMove"
                                                   ,Maybe.Just({ctor: "_Tuple2"
                                                               ,_0: t.x
@@ -446,7 +446,7 @@ Elm.Canvas.make = function (_elm) {
                           "on line 352, column 21 to 41");
                        }();
                     };
-                    var pos = toAbsPos($float(_v58.absPos))(A2(toZero,
+                    var pos = toAbsPos(_v58.absPos)(A2(toZero,
                     _v58.zoom,
                     $float({ctor: "_Tuple2"
                            ,_0: _v57._0
