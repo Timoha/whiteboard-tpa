@@ -32,24 +32,6 @@ Elm.Canvas.make = function (_elm) {
    var Touch = Elm.Touch.make(_elm);
    var Window = Elm.Window.make(_elm);
    var _op = {};
-   var minScale = F2(function (_v0,
-   _v1) {
-      return function () {
-         switch (_v1.ctor)
-         {case "_Tuple2":
-            return function () {
-                 switch (_v0.ctor)
-                 {case "_Tuple2":
-                    return A2(Basics.min,
-                      _v0._0 / _v1._0,
-                      _v0._1 / _v1._1);}
-                 _E.Case($moduleName,
-                 "on line 369, column 3 to 27");
-              }();}
-         _E.Case($moduleName,
-         "on line 369, column 3 to 27");
-      }();
-   });
    var dot = F2(function (pos,
    brush) {
       return Graphics.Collage.move(pos)(A2(Graphics.Collage.filled,
@@ -66,43 +48,76 @@ Elm.Canvas.make = function (_elm) {
                          ,Graphics.Collage.Round]],
       Graphics.Collage.defaultLine);
    };
+   var scaleTouches = F4(function (_v0,
+   _v1,
+   zoom,
+   t) {
+      return function () {
+         switch (_v1.ctor)
+         {case "_Tuple2":
+            return function () {
+                 switch (_v0.ctor)
+                 {case "_Tuple2":
+                    return function () {
+                         var $float = function (_v8) {
+                            return function () {
+                               switch (_v8.ctor)
+                               {case "_Tuple2":
+                                  return {ctor: "_Tuple2"
+                                         ,_0: Basics.toFloat(_v8._0)
+                                         ,_1: Basics.toFloat(_v8._1)};}
+                               _E.Case($moduleName,
+                               "on line 329, column 21 to 41");
+                            }();
+                         };
+                         var $ = $float({ctor: "_Tuple2"
+                                        ,_0: t.x
+                                        ,_1: t.y}),
+                         tx = $._0,
+                         ty = $._1;
+                         return _U.replace([["x"
+                                            ,Debug.log("x")(Basics.round(tx / zoom + _v0._0 + _v1._0))]
+                                           ,["y"
+                                            ,Debug.log("y")(Basics.round(ty / zoom + _v0._1 + _v1._1))]],
+                         t);
+                      }();}
+                 _E.Case($moduleName,
+                 "between lines 328 and 332");
+              }();}
+         _E.Case($moduleName,
+         "between lines 328 and 332");
+      }();
+   });
    var stepZoom = F2(function (factor,
-   _v8) {
+   _v12) {
       return function () {
          return function () {
-            var $ = _v8.zoomOffset,
+            var $ = _v12.zoomOffset,
             x = $._0,
             y = $._1;
-            var zoom$ = _v8.zoom * factor;
-            var delta = F2(function (_v10,
-            _v11) {
+            var zoom$ = A2(Basics.min,
+            A2(Basics.max,
+            _v12.zoom * factor,
+            _v12.minZoom),
+            _v12.maxZoom);
+            var delta = F2(function (_v14,
+            _v15) {
                return function () {
-                  switch (_v11.ctor)
+                  switch (_v15.ctor)
                   {case "_Tuple2":
                      return function () {
-                          switch (_v10.ctor)
+                          switch (_v14.ctor)
                           {case "_Tuple2":
                              return {ctor: "_Tuple2"
-                                    ,_0: _v10._0 - _v11._0
-                                    ,_1: _v10._1 - _v11._1};}
+                                    ,_0: _v14._0 - _v15._0
+                                    ,_1: _v14._1 - _v15._1};}
                           _E.Case($moduleName,
-                          "on line 286, column 30 to 44");
+                          "on line 315, column 30 to 44");
                        }();}
                   _E.Case($moduleName,
-                  "on line 286, column 30 to 44");
+                  "on line 315, column 30 to 44");
                }();
             });
-            var roundT = function (_v18) {
-               return function () {
-                  switch (_v18.ctor)
-                  {case "_Tuple2":
-                     return {ctor: "_Tuple2"
-                            ,_0: Basics.round(_v18._0)
-                            ,_1: Basics.round(_v18._1)};}
-                  _E.Case($moduleName,
-                  "on line 285, column 22 to 38");
-               }();
-            };
             var $float = function (_v22) {
                return function () {
                   switch (_v22.ctor)
@@ -111,7 +126,7 @@ Elm.Canvas.make = function (_elm) {
                             ,_0: Basics.toFloat(_v22._0)
                             ,_1: Basics.toFloat(_v22._1)};}
                   _E.Case($moduleName,
-                  "on line 284, column 21 to 41");
+                  "on line 314, column 21 to 41");
                }();
             };
             var scaleF = F2(function (f,
@@ -123,11 +138,11 @@ Elm.Canvas.make = function (_elm) {
                             ,_0: _v26._0 / f
                             ,_1: _v26._1 / f};}
                   _E.Case($moduleName,
-                  "on line 283, column 24 to 36");
+                  "on line 313, column 24 to 36");
                }();
             });
-            var winD = scaleF(_v8.zoom)($float(_v8.windowDims));
-            var winD$ = scaleF(zoom$)($float(_v8.windowDims));
+            var winD = scaleF(_v12.zoom)($float(_v12.windowDims));
+            var winD$ = scaleF(zoom$)($float(_v12.windowDims));
             var $ = scaleF(2)(A2(delta,
             winD,
             winD$)),
@@ -139,97 +154,201 @@ Elm.Canvas.make = function (_elm) {
                                ,{ctor: "_Tuple2"
                                 ,_0: x + dx
                                 ,_1: y + dy}]],
-            _v8);
+            _v12);
          }();
       }();
    });
-   var scaleTouches = F4(function (_v30,
-   _v31,
-   zoom,
-   t) {
+   var withinBounds = function (_v30) {
       return function () {
-         switch (_v31.ctor)
+         return function () {
+            var limitRightBottom = F2(function (_v32,
+            _v33) {
+               return function () {
+                  switch (_v33.ctor)
+                  {case "_Tuple2":
+                     return function () {
+                          switch (_v32.ctor)
+                          {case "_Tuple2":
+                             return {ctor: "_Tuple2"
+                                    ,_0: A2(Basics.min,
+                                    _v32._0,
+                                    _v33._0)
+                                    ,_1: A2(Basics.min,
+                                    _v32._1,
+                                    _v33._1)};}
+                          _E.Case($moduleName,
+                          "on line 298, column 41 to 59");
+                       }();}
+                  _E.Case($moduleName,
+                  "on line 298, column 41 to 59");
+               }();
+            });
+            var limitLeftTop = F2(function (_v40,
+            _v41) {
+               return function () {
+                  switch (_v41.ctor)
+                  {case "_Tuple2":
+                     return function () {
+                          switch (_v40.ctor)
+                          {case "_Tuple2":
+                             return {ctor: "_Tuple2"
+                                    ,_0: A2(Basics.max,
+                                    _v40._0,
+                                    _v41._0)
+                                    ,_1: A2(Basics.max,
+                                    _v40._1,
+                                    _v41._1)};}
+                          _E.Case($moduleName,
+                          "on line 297, column 37 to 55");
+                       }();}
+                  _E.Case($moduleName,
+                  "on line 297, column 37 to 55");
+               }();
+            });
+            var subT = F2(function (_v48,
+            _v49) {
+               return function () {
+                  switch (_v49.ctor)
+                  {case "_Tuple2":
+                     return function () {
+                          switch (_v48.ctor)
+                          {case "_Tuple2":
+                             return {ctor: "_Tuple2"
+                                    ,_0: _v48._0 - _v49._0
+                                    ,_1: _v48._1 - _v49._1};}
+                          _E.Case($moduleName,
+                          "on line 296, column 29 to 43");
+                       }();}
+                  _E.Case($moduleName,
+                  "on line 296, column 29 to 43");
+               }();
+            });
+            var addT = F2(function (_v56,
+            _v57) {
+               return function () {
+                  switch (_v57.ctor)
+                  {case "_Tuple2":
+                     return function () {
+                          switch (_v56.ctor)
+                          {case "_Tuple2":
+                             return {ctor: "_Tuple2"
+                                    ,_0: _v56._0 + _v57._0
+                                    ,_1: _v56._1 + _v57._1};}
+                          _E.Case($moduleName,
+                          "on line 295, column 29 to 43");
+                       }();}
+                  _E.Case($moduleName,
+                  "on line 295, column 29 to 43");
+               }();
+            });
+            var leftTop = A2(limitLeftTop,
+            A2(addT,
+            _v30.absPos,
+            _v30.zoomOffset),
+            {ctor: "_Tuple2",_0: 0,_1: 0});
+            var $float = function (_v64) {
+               return function () {
+                  switch (_v64.ctor)
+                  {case "_Tuple2":
+                     return {ctor: "_Tuple2"
+                            ,_0: Basics.toFloat(_v64._0)
+                            ,_1: Basics.toFloat(_v64._1)};}
+                  _E.Case($moduleName,
+                  "on line 294, column 21 to 41");
+               }();
+            };
+            var $ = $float(_v30.dimensions),
+            w = $._0,
+            h = $._1;
+            var scaleF = F2(function (f,
+            _v68) {
+               return function () {
+                  switch (_v68.ctor)
+                  {case "_Tuple2":
+                     return {ctor: "_Tuple2"
+                            ,_0: _v68._0 / f
+                            ,_1: _v68._1 / f};}
+                  _E.Case($moduleName,
+                  "on line 293, column 24 to 36");
+               }();
+            });
+            var windowDims$ = scaleF(_v30.zoom)($float(_v30.windowDims));
+            var $ = A2(limitRightBottom,
+            A2(addT,leftTop,windowDims$),
+            {ctor: "_Tuple2",_0: w,_1: h}),
+            right = $._0,
+            bottom = $._1;
+            var absPos$ = _U.cmp(right,
+            w) < 0 && _U.cmp(bottom,
+            h) < 0 ? A2(subT,
+            leftTop,
+            _v30.zoomOffset) : A2(subT,
+            A2(subT,
+            {ctor: "_Tuple2"
+            ,_0: right
+            ,_1: bottom},
+            windowDims$),
+            _v30.zoomOffset);
+            return _U.replace([["absPos"
+                               ,absPos$]],
+            _v30);
+         }();
+      }();
+   };
+   var minScale = F2(function (_v72,
+   _v73) {
+      return function () {
+         switch (_v73.ctor)
          {case "_Tuple2":
             return function () {
-                 switch (_v30.ctor)
+                 switch (_v72.ctor)
                  {case "_Tuple2":
-                    return function () {
-                         var $float = function (_v38) {
-                            return function () {
-                               switch (_v38.ctor)
-                               {case "_Tuple2":
-                                  return {ctor: "_Tuple2"
-                                         ,_0: Basics.toFloat(_v38._0)
-                                         ,_1: Basics.toFloat(_v38._1)};}
-                               _E.Case($moduleName,
-                               "on line 274, column 21 to 41");
-                            }();
-                         };
-                         var $ = $float({ctor: "_Tuple2"
-                                        ,_0: t.x
-                                        ,_1: t.y}),
-                         tx = $._0,
-                         ty = $._1;
-                         return _U.replace([["x"
-                                            ,Basics.round(tx / zoom + _v30._0 + _v31._0)]
-                                           ,["y"
-                                            ,Basics.round(ty / zoom + _v30._1 + _v31._1)]],
-                         t);
-                      }();}
+                    return A2(Basics.max,
+                      _v72._0 / _v73._0,
+                      _v72._1 / _v73._1);}
                  _E.Case($moduleName,
-                 "between lines 273 and 277");
+                 "on line 287, column 3 to 27");
               }();}
          _E.Case($moduleName,
-         "between lines 273 and 277");
+         "on line 287, column 3 to 27");
       }();
    });
    var stepMove = F2(function (ts,
-   _v42) {
+   _v80) {
       return function () {
          return function () {
-            var $ = _v42.absPos,
+            var $ = _v80.absPos,
             x = $._0,
             y = $._1;
             return List.isEmpty(ts) ? _U.replace([["lastMove"
                                                   ,Maybe.Nothing]],
-            _v42) : function () {
-               var roundT = function (_v44) {
+            _v80) : function () {
+               var $float = function (_v82) {
                   return function () {
-                     switch (_v44.ctor)
+                     switch (_v82.ctor)
                      {case "_Tuple2":
                         return {ctor: "_Tuple2"
-                               ,_0: Basics.round(_v44._0)
-                               ,_1: Basics.round(_v44._1)};}
+                               ,_0: Basics.toFloat(_v82._0)
+                               ,_1: Basics.toFloat(_v82._1)};}
                      _E.Case($moduleName,
-                     "on line 259, column 24 to 40");
-                  }();
-               };
-               var $float = function (_v48) {
-                  return function () {
-                     switch (_v48.ctor)
-                     {case "_Tuple2":
-                        return {ctor: "_Tuple2"
-                               ,_0: Basics.toFloat(_v48._0)
-                               ,_1: Basics.toFloat(_v48._1)};}
-                     _E.Case($moduleName,
-                     "on line 258, column 23 to 43");
+                     "on line 272, column 23 to 43");
                   }();
                };
                var t = List.head(ts);
                return function () {
-                  var _v52 = _v42.lastMove;
-                  switch (_v52.ctor)
+                  var _v86 = _v80.lastMove;
+                  switch (_v86.ctor)
                   {case "Just":
-                     switch (_v52._0.ctor)
+                     switch (_v86._0.ctor)
                        {case "_Tuple2":
                           return function () {
                                var $ = $float({ctor: "_Tuple2"
-                                              ,_0: _v52._0._0 - t.x
-                                              ,_1: _v52._0._1 - t.y}),
+                                              ,_0: _v86._0._0 - t.x
+                                              ,_1: _v86._0._1 - t.y}),
                                dx = $._0,
                                dy = $._1;
-                               var x$ = x + dx / _v42.zoom;
-                               var y$ = y + dy / _v42.zoom;
+                               var x$ = x + dx / _v80.zoom;
+                               var y$ = y + dy / _v80.zoom;
                                return _U.replace([["lastMove"
                                                   ,Maybe.Just({ctor: "_Tuple2"
                                                               ,_0: t.x
@@ -238,7 +357,7 @@ Elm.Canvas.make = function (_elm) {
                                                   ,{ctor: "_Tuple2"
                                                    ,_0: x$
                                                    ,_1: y$}]],
-                               _v42);
+                               _v80);
                             }();}
                        break;
                      case "Nothing":
@@ -246,9 +365,9 @@ Elm.Canvas.make = function (_elm) {
                                         ,Maybe.Just({ctor: "_Tuple2"
                                                     ,_0: t.x
                                                     ,_1: t.y})]],
-                       _v42);}
+                       _v80);}
                   _E.Case($moduleName,
-                  "between lines 260 and 268");
+                  "between lines 273 and 281");
                }();
             }();
          }();
@@ -283,6 +402,27 @@ Elm.Canvas.make = function (_elm) {
       l2.p1),
       A3(ccw,l1.p1,l1.p2,l2.p2)));
    });
+   var withinWindowDims = F2(function (ts,
+   _v90) {
+      return function () {
+         switch (_v90.ctor)
+         {case "_Tuple2":
+            return function () {
+                 var within = function (t) {
+                    return _U.cmp(t.x,
+                    0) > 0 && (_U.cmp(t.x,
+                    _v90._0) < 0 && (_U.cmp(t.y,
+                    0) > 0 && _U.cmp(t.y,
+                    _v90._1) < 0));
+                 };
+                 return A2(List.filter,
+                 within,
+                 ts);
+              }();}
+         _E.Case($moduleName,
+         "between lines 140 and 141");
+      }();
+   });
    var portToBrush = function (p) {
       return {_: {}
              ,color: A4(Color.rgba,
@@ -314,11 +454,13 @@ Elm.Canvas.make = function (_elm) {
                                 ,_0: 0
                                 ,_1: 0}
                        ,dimensions: {ctor: "_Tuple2"
-                                    ,_0: 10000
-                                    ,_1: 7000}
+                                    ,_0: 2000
+                                    ,_1: 1300}
                        ,drawing: Dict.empty
                        ,history: Dict.empty
                        ,lastMove: Maybe.Nothing
+                       ,maxZoom: Math.pow(2,4)
+                       ,minZoom: 1
                        ,windowDims: {ctor: "_Tuple2"
                                     ,_0: 0
                                     ,_1: 0}
@@ -373,53 +515,53 @@ Elm.Canvas.make = function (_elm) {
              ,_0: p.x
              ,_1: p.y};
    };
-   var display = F2(function (_v57,
-   _v58) {
+   var display = F2(function (_v95,
+   _v96) {
       return function () {
          return function () {
-            switch (_v57.ctor)
+            switch (_v95.ctor)
             {case "_Tuple2":
                return function () {
-                    var toAbsPos = F2(function (_v63,
-                    _v64) {
+                    var toAbsPos = F2(function (_v101,
+                    _v102) {
                        return function () {
-                          switch (_v64.ctor)
+                          switch (_v102.ctor)
                           {case "_Tuple2":
                              return function () {
-                                  switch (_v63.ctor)
+                                  switch (_v101.ctor)
                                   {case "_Tuple2":
                                      return {ctor: "_Tuple2"
-                                            ,_0: _v64._0 - _v63._0 * _v58.zoom
-                                            ,_1: _v64._1 + _v63._1 * _v58.zoom};}
+                                            ,_0: _v102._0 - _v101._0 * _v96.zoom
+                                            ,_1: _v102._1 + _v101._1 * _v96.zoom};}
                                   _E.Case($moduleName,
-                                  "on line 362, column 33 to 61");
+                                  "on line 400, column 33 to 61");
                                }();}
                           _E.Case($moduleName,
-                          "on line 362, column 33 to 61");
+                          "on line 400, column 33 to 61");
                        }();
                     });
                     var toZero = F2(function (zoom,
-                    _v71) {
+                    _v109) {
                        return function () {
-                          switch (_v71.ctor)
+                          switch (_v109.ctor)
                           {case "_Tuple2":
                              return {ctor: "_Tuple2"
-                                    ,_0: (0 - _v71._0) * zoom / 2
-                                    ,_1: _v71._1 * zoom / 2};}
+                                    ,_0: (0 - _v109._0) * zoom / 2
+                                    ,_1: _v109._1 * zoom / 2};}
                           _E.Case($moduleName,
-                          "on line 361, column 27 to 54");
+                          "on line 399, column 27 to 54");
                        }();
                     });
-                    var paths = Dict.values(_v58.drawing);
-                    var flipVert = function (_v75) {
+                    var paths = Dict.values(_v96.drawing);
+                    var flipVert = function (_v113) {
                        return function () {
-                          switch (_v75.ctor)
+                          switch (_v113.ctor)
                           {case "_Tuple2":
                              return {ctor: "_Tuple2"
-                                    ,_0: _v75._0
-                                    ,_1: 0 - _v75._1};}
+                                    ,_0: _v113._0
+                                    ,_1: 0 - _v113._1};}
                           _E.Case($moduleName,
-                          "on line 353, column 24 to 29");
+                          "on line 392, column 24 to 29");
                        }();
                     };
                     var strokeOrDot = function (p) {
@@ -435,31 +577,31 @@ Elm.Canvas.make = function (_elm) {
                     var forms = A2(List.map,
                     strokeOrDot,
                     paths);
-                    var $float = function (_v79) {
+                    var $float = function (_v117) {
                        return function () {
-                          switch (_v79.ctor)
+                          switch (_v117.ctor)
                           {case "_Tuple2":
                              return {ctor: "_Tuple2"
-                                    ,_0: Basics.toFloat(_v79._0)
-                                    ,_1: Basics.toFloat(_v79._1)};}
+                                    ,_0: Basics.toFloat(_v117._0)
+                                    ,_1: Basics.toFloat(_v117._1)};}
                           _E.Case($moduleName,
-                          "on line 352, column 21 to 41");
+                          "on line 391, column 21 to 41");
                        }();
                     };
-                    var pos = toAbsPos(_v58.absPos)(A2(toZero,
-                    _v58.zoom,
+                    var pos = toAbsPos(_v96.absPos)(A2(toZero,
+                    _v96.zoom,
                     $float({ctor: "_Tuple2"
-                           ,_0: _v57._0
-                           ,_1: _v57._1})));
+                           ,_0: _v95._0
+                           ,_1: _v95._1})));
                     return A3(Graphics.Collage.collage,
-                    _v57._0,
-                    _v57._1,
-                    _L.fromArray([Graphics.Collage.scale(_v58.zoom)(A2(Graphics.Collage.move,
+                    _v95._0,
+                    _v95._1,
+                    _L.fromArray([Graphics.Collage.scale(_v96.zoom)(A2(Graphics.Collage.move,
                     pos,
                     Graphics.Collage.group(forms)))]));
                  }();}
             _E.Case($moduleName,
-            "between lines 351 and 364");
+            "between lines 390 and 402");
          }();
       }();
    });
@@ -498,21 +640,29 @@ Elm.Canvas.make = function (_elm) {
              ,drawing: c.drawing
              ,history: c.history};
    };
-   var Zoomable = F6(function (a,
+   var Zoomable = F8(function (a,
    b,
    c,
    d,
    e,
-   f) {
+   f,
+   g,
+   h) {
       return _U.insert("lastMove",
-      e,
+      g,
       _U.insert("zoomOffset",
-      d,
+      f,
       _U.insert("absPos",
+      e,
+      _U.insert("maxZoom",
+      d,
+      _U.insert("minZoom",
       c,
       _U.insert("zoom",
       b,
-      _U.insert("windowDims",a,f)))));
+      _U.insert("windowDims",
+      a,
+      h)))))));
    });
    var Line = F2(function (a,b) {
       return {_: {},p1: a,p2: b};
@@ -577,137 +727,126 @@ Elm.Canvas.make = function (_elm) {
       return {ctor: "Erased"
              ,_0: a};
    };
-   var undo = function (_v83) {
+   var stepUndo = function (_v121) {
       return function () {
          return function () {
-            var ids = Dict.keys(_v83.history);
-            return List.isEmpty(ids) ? _v83 : function () {
+            var ids = Dict.keys(_v121.history);
+            return List.isEmpty(ids) ? _v121 : function () {
                var lastId = List.maximum(ids);
-               return function () {
-                  var _v85 = A2(Dict.get,
+               var $ = function () {
+                  var _v123 = A2(Dict.get,
                   lastId,
-                  _v83.history);
-                  switch (_v85.ctor)
+                  _v121.history);
+                  switch (_v123.ctor)
                   {case "Just":
-                     switch (_v85._0.ctor)
+                     switch (_v123._0.ctor)
                        {case "Drew":
-                          return _U.replace([["drawing"
-                                             ,A2(Dict.remove,
-                                             _v85._0._0,
-                                             _v83.drawing)]
-                                            ,["history"
-                                             ,A2(Dict.remove,
-                                             _v85._0._0,
-                                             _v83.history)]],
-                            _v83);
+                          return {ctor: "_Tuple2"
+                                 ,_0: A2(Dict.remove,
+                                 _v123._0._0,
+                                 _v121.drawing)
+                                 ,_1: A2(Dict.remove,
+                                 _v123._0._0,
+                                 _v121.history)};
                           case "Erased":
-                          return _U.replace([["drawing"
-                                             ,A3(List.foldl,
-                                             F2(function (s,d) {
-                                                return A3(Dict.insert,
-                                                s.id,
-                                                s,
-                                                d);
-                                             }),
-                                             _v83.drawing,
-                                             _v85._0._0)]
-                                            ,["history"
-                                             ,A3(List.foldl,
-                                             F2(function (s,h) {
-                                                return A3(Dict.insert,
-                                                s.id,
-                                                Drew(s.id),
-                                                h);
-                                             }),
-                                             A2(Dict.remove,
-                                             lastId,
-                                             _v83.history),
-                                             _v85._0._0)]],
-                            _v83);}
+                          return {ctor: "_Tuple2"
+                                 ,_0: A3(List.foldl,
+                                 F2(function (s,d) {
+                                    return A3(Dict.insert,
+                                    s.id,
+                                    s,
+                                    d);
+                                 }),
+                                 _v121.drawing,
+                                 _v123._0._0)
+                                 ,_1: A3(List.foldl,
+                                 F2(function (s,h) {
+                                    return A3(Dict.insert,
+                                    s.id,
+                                    Drew(s.id),
+                                    h);
+                                 }),
+                                 A2(Dict.remove,
+                                 lastId,
+                                 _v121.history),
+                                 _v123._0._0)};}
                        break;
                      case "Nothing":
-                     return _U.replace([["drawing"
-                                        ,Dict.empty]
-                                       ,["history",Dict.empty]],
-                       _v83);}
+                     return {ctor: "_Tuple2"
+                            ,_0: Dict.empty
+                            ,_1: Dict.empty};}
                   _E.Case($moduleName,
-                  "between lines 175 and 182");
-               }();
+                  "between lines 185 and 191");
+               }(),
+               d = $._0,
+               h = $._1;
+               return _U.replace([["drawing",d]
+                                 ,["history",h]],
+               _v121);
             }();
          }();
       }();
    };
-   var removeEraser = function (_v89) {
+   var removeEraser = function (_v127) {
       return function () {
          return function () {
-            var ids = Dict.keys(_v89.history);
-            return function () {
-               switch (ids.ctor)
-               {case "[]":
-                  return _U.replace([["drawing"
-                                     ,Dict.empty]
-                                    ,["history",Dict.empty]],
-                    _v89);}
+            var ids = Dict.keys(_v127.history);
+            var $ = List.isEmpty(ids) ? {ctor: "_Tuple2"
+                                        ,_0: Dict.empty
+                                        ,_1: Dict.empty} : function () {
+               var lastId = List.maximum(ids);
+               var removeLast = Dict.remove(lastId);
                return function () {
-                  var lastId = List.maximum(ids);
-                  return function () {
-                     var _v92 = A2(Dict.get,
-                     lastId,
-                     _v89.history);
-                     switch (_v92.ctor)
-                     {case "Just":
-                        switch (_v92._0.ctor)
-                          {case "Erased":
-                             return function () {
-                                  switch (_v92._0._0.ctor)
-                                  {case "[]":
-                                     return _U.replace([["drawing"
-                                                        ,A2(Dict.remove,
-                                                        lastId,
-                                                        _v89.drawing)]
-                                                       ,["history"
-                                                        ,A2(Dict.remove,
-                                                        lastId,
-                                                        _v89.history)]],
-                                       _v89);}
-                                  return _U.replace([["drawing"
-                                                     ,A2(Dict.remove,
-                                                     lastId,
-                                                     _v89.drawing)]],
-                                  _v89);
-                               }();}
-                          break;}
-                     return _v89;
-                  }();
+                  var _v129 = A2(Dict.get,
+                  lastId,
+                  _v127.history);
+                  switch (_v129.ctor)
+                  {case "Just":
+                     switch (_v129._0.ctor)
+                       {case "Erased":
+                          return List.isEmpty(_v129._0._0) ? {ctor: "_Tuple2"
+                                                             ,_0: removeLast(_v127.drawing)
+                                                             ,_1: removeLast(_v127.history)} : {ctor: "_Tuple2"
+                                                                                               ,_0: removeLast(_v127.drawing)
+                                                                                               ,_1: _v127.history};}
+                       break;}
+                  return {ctor: "_Tuple2"
+                         ,_0: _v127.drawing
+                         ,_1: _v127.history};
                }();
-            }();
+            }(),
+            d = $._0,
+            h = $._1;
+            return _U.replace([["drawing",d]
+                              ,["history",h]],
+            _v127);
          }();
       }();
    };
-   var eraser = F2(function (ts,
-   _v96) {
+   var stepEraser = F2(function (ts,
+   _v132) {
       return function () {
-         return List.isEmpty(ts) ? removeEraser(_v96) : function () {
+         return List.isEmpty(ts) ? removeEraser(_v132) : function () {
             var t = List.head(ts);
             var id = Basics.abs(t.id);
             return function () {
-               var _v98 = A2(Dict.get,
+               var _v134 = A2(Dict.get,
                id,
-               _v96.drawing);
-               switch (_v98.ctor)
+               _v132.drawing);
+               switch (_v134.ctor)
                {case "Just":
                   return function () {
                        var _raw = A3(Dict.getOrElse,
                        Erased(_L.fromArray([])),
-                       id,
-                       _v96.history),
+                       A2(Debug.log,"t.id",id),
+                       _v132.history),
                        $ = _raw.ctor === "Erased" ? _raw : _E.Case($moduleName,
-                       "on line 240, column 34 to 71"),
+                       "on line 254, column 34 to 90"),
                        vs = $._0;
-                       var strokes = List.tail(List.reverse(Dict.values(_v96.drawing)));
+                       var strokes = List.tail(List.reverse(Dict.values(_v132.drawing)));
                        var eraserSeg = A2(line,
                        A2(point,t.x,t.y),
-                       List.head(_v98._0.points));
+                       List.head(_v134._0.points));
                        var crossed = A2(List.filter,
                        isLineStrokeIntersect(eraserSeg),
                        strokes);
@@ -717,26 +856,26 @@ Elm.Canvas.make = function (_elm) {
                                           function (s) {
                                              return Dict.remove(s.id);
                                           },
-                                          A2(add1,t,_v96.drawing),
+                                          A2(add1,t,_v132.drawing),
                                           erased)]
                                          ,["history"
                                           ,A3(Dict.insert,
                                           id,
                                           Erased(_L.append(erased,vs)),
-                                          _v96.history)]],
-                       _v96);
+                                          _v132.history)]],
+                       _v132);
                     }();
                   case "Nothing":
                   return _U.replace([["drawing"
-                                     ,A2(add1,t,_v96.drawing)]
+                                     ,A2(add1,t,_v132.drawing)]
                                     ,["history"
                                      ,A3(Dict.insert,
                                      id,
                                      Erased(_L.fromArray([])),
-                                     _v96.history)]],
-                    _v96);}
+                                     _v132.history)]],
+                    _v132);}
                _E.Case($moduleName,
-               "between lines 234 and 244");
+               "between lines 248 and 258");
             }();
          }();
       }();
@@ -751,7 +890,7 @@ Elm.Canvas.make = function (_elm) {
             case "Erasing": return Erasing;
             case "Viewing": return Viewing;}
          _E.Case($moduleName,
-         "between lines 105 and 108");
+         "between lines 109 and 112");
       }();
    };
    var Touches = function (a) {
@@ -770,12 +909,16 @@ Elm.Canvas.make = function (_elm) {
             case "ZoomIn": return ZoomIn;
             case "ZoomOut": return ZoomOut;}
          _E.Case($moduleName,
-         "between lines 113 and 117");
+         "between lines 117 and 121");
       }();
    };
    var actions = Signal.merges(_L.fromArray([A2(Signal._op["<~"],
                                             Touches,
-                                            Touch.touches)
+                                            A2(Signal._op["~"],
+                                            A2(Signal._op["<~"],
+                                            withinWindowDims,
+                                            Touch.touches),
+                                            Window.dimensions))
                                             ,A2(Signal._op["<~"],
                                             portToAction,
                                             actionPort)]));
@@ -796,43 +939,60 @@ Elm.Canvas.make = function (_elm) {
                    ,_0: 10000
                    ,_1: 7000})),
    Window.dimensions);
-   var stepCanvas = F2(function (_v102,
-   _v103) {
+   var stepCanvas = F2(function (_v138,
+   _v139) {
       return function () {
          return function () {
             return function () {
+               var $float = function (_v142) {
+                  return function () {
+                     switch (_v142.ctor)
+                     {case "_Tuple2":
+                        return {ctor: "_Tuple2"
+                               ,_0: Basics.toFloat(_v142._0)
+                               ,_1: Basics.toFloat(_v142._1)};}
+                     _E.Case($moduleName,
+                     "on line 340, column 21 to 41");
+                  }();
+               };
                var zcanvas = _U.replace([["windowDims"
-                                         ,_v102.windowDims]],
-               _v103);
+                                         ,_v138.windowDims]
+                                        ,["minZoom"
+                                         ,A2(Basics.max,
+                                         1,
+                                         A2(minScale,
+                                         $float(_v138.windowDims),
+                                         $float(_v139.dimensions)))]],
+               _v139);
                var c = getCanvas(zcanvas);
                var canvas$ = function () {
-                  var _v106 = _v102.action;
-                  switch (_v106.ctor)
+                  var _v146 = _v138.action;
+                  switch (_v146.ctor)
                   {case "Touches":
                      return function () {
                           var ts$ = A2(List.map,
                           A3(scaleTouches,
-                          _v103.absPos,
-                          _v103.zoomOffset,
-                          _v103.zoom),
-                          _v106._0);
+                          _v139.absPos,
+                          _v139.zoomOffset,
+                          _v139.zoom),
+                          _v146._0);
                           return function () {
-                             var _v108 = _v102.mode;
-                             switch (_v108.ctor)
+                             var _v148 = _v138.mode;
+                             switch (_v148.ctor)
                              {case "Drawing":
                                 return _U.replace([["drawing"
                                                    ,A2(addN,
                                                    A2(applyBrush,
                                                    ts$,
-                                                   _v102.brush),
-                                                   _v103.drawing)]
+                                                   _v138.brush),
+                                                   _v139.drawing)]
                                                   ,["history"
                                                    ,A2(recordDrew,
                                                    ts$,
-                                                   _v103.history)]],
+                                                   _v139.history)]],
                                   c);
                                 case "Erasing":
-                                return A2(eraser,
+                                return A2(stepEraser,
                                   A2(applyBrush,
                                   ts$,
                                   {_: {}
@@ -842,19 +1002,20 @@ Elm.Canvas.make = function (_elm) {
                              return c;
                           }();
                        }();
-                     case "Undo": return undo(c);}
+                     case "Undo":
+                     return stepUndo(c);}
                   return c;
                }();
-               var zcanvas$ = function () {
-                  var _v109 = _v102.action;
-                  switch (_v109.ctor)
+               var zcanvas$ = withinBounds(function () {
+                  var _v149 = _v138.action;
+                  switch (_v149.ctor)
                   {case "Touches":
                      return function () {
-                          var _v111 = _v102.mode;
-                          switch (_v111.ctor)
+                          var _v151 = _v138.mode;
+                          switch (_v151.ctor)
                           {case "Viewing":
                              return A2(stepMove,
-                               _v109._0,
+                               _v149._0,
                                zcanvas);}
                           return zcanvas;
                        }();
@@ -865,7 +1026,7 @@ Elm.Canvas.make = function (_elm) {
                        1 / 2,
                        zcanvas);}
                   return zcanvas;
-               }();
+               }());
                return _U.replace([["drawing"
                                   ,canvas$.drawing]
                                  ,["history",canvas$.history]],
@@ -894,26 +1055,28 @@ Elm.Canvas.make = function (_elm) {
                         ,portToAction: portToAction
                         ,actions: actions
                         ,input: input
+                        ,withinWindowDims: withinWindowDims
                         ,ccw: ccw
                         ,isIntersect: isIntersect
                         ,toSegments: toSegments
                         ,isLineStrokeIntersect: isLineStrokeIntersect
-                        ,undo: undo
+                        ,stepUndo: stepUndo
                         ,applyBrush: applyBrush
                         ,recordDrew: recordDrew
                         ,addN: addN
                         ,add1: add1
                         ,removeEraser: removeEraser
-                        ,eraser: eraser
+                        ,stepEraser: stepEraser
                         ,stepMove: stepMove
-                        ,scaleTouches: scaleTouches
+                        ,minScale: minScale
+                        ,withinBounds: withinBounds
                         ,stepZoom: stepZoom
+                        ,scaleTouches: scaleTouches
                         ,stepCanvas: stepCanvas
                         ,canvasState: canvasState
                         ,thickLine: thickLine
                         ,dot: dot
                         ,display: display
-                        ,minScale: minScale
                         ,main: main
                         ,Undo: Undo
                         ,ZoomIn: ZoomIn
