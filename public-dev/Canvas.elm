@@ -5,6 +5,7 @@ import Dict
 import Touch
 import Window
 import Debug
+import Array
 
 -- MODEL
 
@@ -47,7 +48,8 @@ type Stroke = { id : Int, points : [Point], brush : Brush }
 type Point = { x : Float, y : Float }
 type Line = { p1 : Point, p2 : Point }
 type Zoomable a = { a | windowDims : (Int, Int)
-                      , zoom : Float
+                      , zoomLevel : Int
+                      , zooms : Array.Array Float
                       , absPos : (Float, Float)
                       , zoomOffset : (Float, Float)
                       , lastMove : Maybe (Int, Int) }
@@ -79,9 +81,10 @@ defaultCanvas : Zoomable Canvas
 defaultCanvas =
   { drawing = Dict.empty
   , history = Dict.empty
-  , dimensions = (3000, 2200)
+  , dimensions = (2000, 1300)
   , windowDims = (0, 0)
-  , zoom = 1
+  , zoomLevel = 1
+  , zooms = Array.fromList [0.5, 1, 2]
   , absPos = (0, 0)
   , zoomOffset = (0, 0)
   , lastMove = Nothing
@@ -118,7 +121,7 @@ portToAction s =
 
 
 actions : Signal Action
-actions = merges [ Touches <~ Touch.touches
+actions = merges [ Touches <~ (withinWindowDims <~ Touch.touches ~ Window.dimensions)
                  , portToAction <~ actionPort
                  ]
 
@@ -130,6 +133,11 @@ input = Input <~ (portToMode <~ modePort)
                ~ constant (10000, 7000)-- for now
                ~ Window.dimensions
 
+
+withinWindowDims : [Touch.Touch] -> (Int, Int) -> [Touch.Touch]
+withinWindowDims ts (w, h) =
+  let within t = t.x > 0 && t.x < w && t.y > 0 && t.y < h
+  in filter within ts
 
 
 -- UPDATE
@@ -242,7 +250,7 @@ stepEraser ts ({drawing, history} as c) =
                    strokes = tail . reverse <| Dict.values drawing
                    crossed = filter (isLineStrokeIntersect eraserSeg) strokes
                    erased = if isEmpty crossed then [] else [head crossed] -- erase only latest
-                   (Erased vs) = Dict.getOrElse (Erased []) id history
+                   (Erased vs) = Dict.getOrElse (Erased []) (Debug.log "t.id" id) history
                  in {c | drawing <- foldl (\s -> Dict.remove s.id) (add1 t drawing) erased
                        , history <- Dict.insert id (Erased <| erased ++ vs) history }
       Nothing -> {c | drawing <- add1 t drawing
@@ -252,9 +260,10 @@ stepEraser ts ({drawing, history} as c) =
 
 
 stepMove : [Touch.Touch] -> Zoomable Canvas -> Zoomable Canvas
-stepMove ts ({lastMove, zoom, absPos} as c) =
+stepMove ts ({lastMove, zooms, zoomLevel, absPos} as c) =
   let
     (x, y) = absPos
+    zoom = Array.getOrFail zoomLevel zooms
   in if isEmpty ts
   then { c | lastMove <- Nothing }
   else
@@ -273,14 +282,13 @@ stepMove ts ({lastMove, zoom, absPos} as c) =
 
 
 
-minScale : (Float, Float) -> (Float,Float) -> Float
-minScale (winW, winH) (w,h) =
-  max (winW / w) (winH / h)
+
 
 
 withinBounds : Zoomable Canvas -> Zoomable Canvas
-withinBounds ({zoom, absPos, zoomOffset, dimensions, windowDims} as c) =
+withinBounds ({zooms, zoomLevel, absPos, zoomOffset, dimensions, windowDims} as c) =
   let
+    zoom = Array.getOrFail zoomLevel zooms
     scaleF f (a, b) = (a / f, b / f)
     float (a, b) = (toFloat a, toFloat b)
     addT (x, y) (dx, dy) = (x + dx, y + dy)
@@ -289,28 +297,31 @@ withinBounds ({zoom, absPos, zoomOffset, dimensions, windowDims} as c) =
     limitRightBottom (x, y) (x', y') = (min x x', min y y')
     leftTop = limitLeftTop (addT absPos zoomOffset) (0, 0)
     windowDims' = scaleF zoom <| float windowDims
-    rightBottom = addT leftTop windowDims'
     (w, h) = (float dimensions)
-    (right, bottom) = limitRightBottom rightBottom (w, h)
+    (right, bottom) = limitRightBottom (addT leftTop windowDims') (w, h)
+    absPos' = if right < w && bottom < h
+              then subT leftTop zoomOffset
+              else subT (subT (right, bottom) windowDims') zoomOffset
+  in { c | absPos <- absPos' }
 
-  in
-    if right < w && bot < h
-    then { c | absPos <- subT leftTop zoomOffset }
-    else { c | absPos <- subT (subT (right, bottom) windowDims') zoomOffset }
 
 
-stepZoom : Float -> Zoomable Canvas -> Zoomable Canvas
-stepZoom factor ({windowDims, zoom, zoomOffset} as c) =
+stepZoom : Int -> Zoomable Canvas -> Zoomable Canvas
+stepZoom deltaLevel ({windowDims, zooms, zoomLevel, zoomOffset} as c) =
   let
     scaleF f (a, b) = (a / f, b / f)
     float (a, b) = (toFloat a, toFloat b)
     delta (a, b) (a', b') = (a - a', b - b')
-    zoom' = zoom * factor
+    zoom = Array.getOrFail (Debug.log "oldzoomlevel" zoomLevel) zooms
+    zoomLevel'' = zoomLevel + deltaLevel
+    (zoom', zoomLevel') = Debug.log "zoom" <| case Array.get zoomLevel'' zooms of
+              Just z -> (z, zoomLevel'')
+              Nothing -> (zoom, zoomLevel)
     winD  = scaleF zoom <| float windowDims
     winD' = scaleF zoom' <| float windowDims
     (dx, dy) = scaleF 2 <| delta winD winD'
     (x, y) = zoomOffset
-  in { c | zoom    <- zoom'
+  in { c | zoomLevel  <- zoomLevel'
          , zoomOffset <- (x + dx, y + dy)}
 
 
@@ -325,16 +336,36 @@ scaleTouches (x, y) (dx, dy) zoom t =
 
 
 
+minScale : (Float, Float) -> (Float,Float) -> Float
+minScale (winW, winH) (w,h) =
+  max (winW / w) (winH / h)
+
+constructZooms : Zoomable Canvas -> Zoomable Canvas
+constructZooms ({dimensions, windowDims} as c) =
+  let
+    float (a, b) = (toFloat a, toFloat b)
+    zoomStep = 2
+    minZoom = minScale (float windowDims) (float dimensions)
+    zoomScale = foldl (\z zs -> (head zs) / zoomStep :: zs) [16] [1 .. 9]
+    zooms' = Array.fromList (minZoom :: (filter (\z -> z > minZoom) zoomScale))
+    zoomLevel = filter (\(f, s) -> s == 1) <| Array.toIndexedList zooms'
+    zoomLevel' = if isEmpty zoomLevel then 0 else fst <| head zoomLevel
+  in {c | zooms <- Debug.log "zooms" zooms'
+        , zoomLevel <- zoomLevel'}
+
+
+
 stepCanvas : Input -> Zoomable Canvas -> Zoomable Canvas
 stepCanvas {mode, action, brush, canvasDims, windowDims}
-           ({drawing, history, dimensions, zoom, lastMove, absPos, zoomOffset} as zcanvas'') =
+           ({drawing, history, dimensions, zoomLevel, zooms, lastMove, absPos, zoomOffset} as zcanvas'') =
   let
-    zcanvas = { zcanvas'' | windowDims <- windowDims }
+    zc = { zcanvas'' | windowDims <- windowDims }
+    zcanvas = constructZooms zc
     c = getCanvas zcanvas
     canvas' = case action of
       Undo       -> stepUndo c
       Touches ts -> let
-                  ts' = map (scaleTouches absPos zoomOffset zoom) ts
+                  ts' = map (scaleTouches absPos zoomOffset (Array.getOrFail zcanvas.zoomLevel zcanvas.zooms)) ts
                 in case mode of
                   Drawing -> { c | drawing <- addN (applyBrush ts' brush) drawing
                                  , history <- recordDrew ts' history }
@@ -342,8 +373,8 @@ stepCanvas {mode, action, brush, canvasDims, windowDims}
                   _       -> c
       _           -> c
     zcanvas' = withinBounds <| case action of
-        ZoomIn  -> stepZoom 2 zcanvas
-        ZoomOut -> stepZoom (1 / 2) zcanvas
+        ZoomIn  -> stepZoom 1 zcanvas
+        ZoomOut -> stepZoom -1 zcanvas
         Touches ts -> case mode of
                          Viewing -> stepMove ts zcanvas
                          _ -> zcanvas
@@ -376,8 +407,9 @@ dot pos brush = move pos <| filled brush.color (circle <| brush.size / 2)
 
 
 display : (Int, Int) -> Zoomable Canvas -> Element
-display (w, h) ({drawing, history, zoom, absPos} as canvas) =
+display (w, h) ({drawing, history, zoomLevel, zooms, absPos} as canvas) =
   let
+    zoom = Array.getOrFail zoomLevel zooms
     float (a, b) = (toFloat a, toFloat b)
     flipVert (a, b) = (a, -b)
     paths = Dict.values drawing
