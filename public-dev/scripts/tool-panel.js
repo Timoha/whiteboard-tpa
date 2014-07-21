@@ -2,41 +2,42 @@
 
 function Brush(size, r, g, b, a) {
   this.size = size;
-  this.red = r;
-  this.green = g;
-  this.blue = b;
-  this.alpha = a;
+  this.color = {};
+  this.color.red = r;
+  this.color.green = g;
+  this.color.blue = b;
+  this.color.alpha = a;
 
   this.setSize = function (size) {
     this.size = size;
   };
 
   this.setR = function (r) {
-    this.red = r;
+    this.color.red = r;
   };
 
   this.setG = function (g) {
-    this.green = g;
+    this.color.green = g;
   };
 
   this.setB = function (b) {
-    this.blue = b;
+    this.color.blue = b;
   };
 
   this.setA = function (a) {
-    this.alpha = a;
+    this.color.alpha = a;
   };
 
   this.toRGBColorString = function () {
-    var color = [this.red, this.green, this.blue];
+    var color = [this.color.red, this.color.green, this.color.blue];
     return 'rgb(' + color.join(',')  +  ')';
   }
 
   this.fromRGBColorString = function (rgb) {
     var color = rgb.slice(4, rgb.length - 1).split(',');
-    this.red = parseInt(color[0], 10);
-    this.green = parseInt(color[1], 10);
-    this.blue = parseInt(color[2], 10);
+    this.color.red = parseInt(color[0], 10);
+    this.color.green = parseInt(color[1], 10);
+    this.color.blue = parseInt(color[2], 10);
   }
 }
 
@@ -44,15 +45,26 @@ $(document).ready(function() {
 
   var defaultBrush = new Brush(8, 255, 147, 30, 1);
 
-  var canvas = Elm.embed(Elm.Canvas, document.getElementById('canvas'),
+  var editor = Elm.embed(Elm.Editor, document.getElementById('canvas'),
                          {brushPort: defaultBrush,
                           modePort: "Drawing",
                           actionPort: "None"}
                         );
 
+  var minimap = Elm.embed(Elm.Minimap, document.getElementById('minimap'),
+                          {canvasPort: null});
+
+  function updateMinimap(canvas) {
+    minimap.ports.canvasPort.send(canvas);
+  }
+
+
+  $('#drag-tool').on('mousedown', function () {
+    editor.ports.canvasOut.subscribe(updateMinimap);
+  });
 
   // open/close tab for following tools
-  $('#color-tool').on('mousedown', function () {
+  $('#color-tool, #drag-tool').on('mousedown', function () {
     var element = $(this);
     $('.tab-open').not(element.parent()).removeClass('tab-open');
     element.parent().toggleClass('tab-open');
@@ -61,10 +73,11 @@ $(document).ready(function() {
   // close tab if clicked anywhere outside it
   $(document).on('mousedown touchstart', function (e) {
     var activeTool = $('.tab-open');
-
     if (!activeTool.is(e.target)
         && activeTool.has(e.target).length === 0) {
+      editor.ports.canvasOut.unsubscribe(updateMinimap);
       activeTool.removeClass('tab-open');
+
     }
   });
 
@@ -76,37 +89,37 @@ $(document).ready(function() {
 
 
   $('#color-tool').on('click', function () {
-    canvas.ports.actionPort.send("None");
-    canvas.ports.modePort.send("Drawing");
+    editor.ports.actionPort.send("None");
+    editor.ports.modePort.send("Drawing");
   });
 
   $('#eraser-tool').on('click', function () {
-    canvas.ports.actionPort.send("None");
-    canvas.ports.modePort.send("Erasing");
+    editor.ports.actionPort.send("None");
+    editor.ports.modePort.send("Erasing");
   });
 
 
   $('#colors').initColorPanel('#brush', defaultBrush);
 
   $('#brush').on('brush_change', function (event, data) {
-    canvas.ports.brushPort.send(data);
+    editor.ports.brushPort.send(data);
   });
 
   $('#undo-tool').on('click', function () {
-    canvas.ports.actionPort.send("Undo");
+    editor.ports.actionPort.send("Undo");
   });
 
   $('#drag-tool').on('click', function () {
-    canvas.ports.actionPort.send("None");
-    canvas.ports.modePort.send("Viewing");
+    editor.ports.actionPort.send("None");
+    editor.ports.modePort.send("Viewing");
   });
 
   $('#zoomIn-tool').on('click', function () {
-    canvas.ports.actionPort.send("ZoomIn");
+    editor.ports.actionPort.send("ZoomIn");
   });
 
   $('#zoomOut-tool').on('click', function () {
-    canvas.ports.actionPort.send("ZoomOut");
+    editor.ports.actionPort.send("ZoomOut");
   });
 
 });
