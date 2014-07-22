@@ -162,17 +162,12 @@ display : (Int, Int) -> Zoomable Canvas -> Element
 display (w, h) ({drawing, history, zoom, absPos} as canvas) =
   let
     float (a, b) = (toFloat a, toFloat b)
-    flipVert (a, b) = (a, -b)
-    paths = Dict.values drawing
-    strokeOrDot p =
-      if (length p.points) > 1
-      then traced (thickLine p.brush) <| map (flipVert . pointToTuple) p.points
-      else dot (flipVert . pointToTuple . head <| p.points) p.brush
-    forms = map strokeOrDot paths
+    strokes = Dict.values drawing
+    canvas = renderStrokes strokes
     toZero zoom (w, h) = (-w * zoom / 2, h * zoom / 2)
     toAbsPos (dx, dy) (x, y) = (x - dx * zoom, y + dy * zoom )
     pos = toAbsPos absPos <| toZero zoom (float (w, h))
-  in collage w h [ scale zoom <| move pos (group forms) ]
+  in collage w h [ scale zoom <| move pos canvas ]
 
 
 

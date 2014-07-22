@@ -86,6 +86,8 @@ stepStroke t d =
 -- VIEW
 
 
+
+
 thickLine : Brush -> LineStyle
 thickLine brush = { defaultLine | color <- toRgbaColor brush.color
                                 , width <- brush.size
@@ -96,3 +98,16 @@ thickLine brush = { defaultLine | color <- toRgbaColor brush.color
 
 dot : (Float, Float) -> Brush -> Form
 dot pos brush = move pos <| filled (toRgbaColor brush.color) (circle <| brush.size / 2)
+
+
+
+renderStrokes : [Stroke] -> Form
+renderStrokes ss =
+  let
+    flipVert (a, b) = (a, -b)
+    strokeOrDot s =
+      if (length s.points) > 1
+      then traced (thickLine s.brush) <| map (flipVert . pointToTuple) s.points
+      else dot (flipVert . pointToTuple . head <| s.points) s.brush
+    ss' = map strokeOrDot ss
+ in group ss'
