@@ -7,6 +7,7 @@ import Debug
 import Navigation (..)
 import Canvas (..)
 import Eraser (stepEraser)
+import History (..)
 
 
 -- MODEL
@@ -16,6 +17,9 @@ data Action = Undo
             | ZoomOut
             | None
             | Touches [Touch.Touch]
+            | View
+            | Draw
+            | Erase
 
 
 data Mode = Drawing
@@ -23,33 +27,43 @@ data Mode = Drawing
           | Viewing
 
 
+data Event = Erased [(Int, Stroke)] | Drew Int
+
+type Whiteboard =  Zoomable (Undoable Editor)
+
 
 type Input =
-  { mode : Mode
-  , action : Action
+  { action : Action
   , brush : Brush
   , canvasDims : (Int, Int)
   , windowDims : (Int, Int)
   }
 
 
-getCanvas : Zoomable Canvas -> Canvas
-getCanvas c = { drawing = c.drawing
-              , history = c.history
-              , dimensions = c.dimensions }
+
+type Undoable a = { a | history : History }
+type Editor = { mode : Mode, canvas : Canvas }
 
 
-defaultCanvas : Zoomable Canvas
+
+defaultCanvas : Canvas
 defaultCanvas =
   { drawing = Dict.empty
-  , history = Dict.empty
   , dimensions = (2000, 1300)
-  , windowDims = (0, 0)
+  }
+
+
+defaultEditor : Whiteboard
+defaultEditor =
+  { canvas = defaultCanvas
+  , mode = Drawing
+  , history = Dict.empty
   , zoom = 1
   , minZoom = 1
   , maxZoom = 2 ^ 4
-  , absPos = (0, 0)
   , zoomOffset = (0, 0)
+  , absPos = (0, 0)
+  , windowDims = (0, 0)
   , lastMove = Nothing
   }
 
@@ -57,21 +71,14 @@ defaultCanvas =
 
 port brushPort : Signal { size : Float, color : { red : Int, green : Int, blue : Int, alpha : Float }  }
 port actionPort : Signal String
-port modePort : Signal String
-
-
-
-portToMode : String -> Mode
-portToMode s =
-  case s of
-    "Drawing" -> Drawing
-    "Erasing" -> Erasing
-    "Viewing" -> Viewing
 
 
 portToAction : String -> Action
 portToAction s =
   case s of
+    "Draw"    -> Draw
+    "View"    -> View
+    "Erase"   -> Erase
     "Undo"    -> Undo
     "ZoomIn"  -> ZoomIn
     "ZoomOut" -> ZoomOut
@@ -85,10 +92,9 @@ actions = merges [ Touches <~ (withinWindowDims <~ Touch.touches ~ Window.dimens
 
 
 input : Signal Input
-input = Input <~ (portToMode <~ modePort)
-               ~ actions
+input = Input <~ actions
                ~ brushPort
-               ~ constant (10000, 7000)-- for now
+               ~ constant (2000, 1300)-- for now
                ~ Window.dimensions
 
 
@@ -101,56 +107,92 @@ withinWindowDims ts (w, h) =
 -- OUTPUT
 
 
-getDrawing : Input -> Zoomable Canvas -> Maybe ({ absPos : (Float, Float), zoomOffset : (Float, Float), zoom : Float, dimensions : (Int, Int), windowDims : (Int, Int)
-                                , drawing : [{points:[{ x:Int, y:Int }], brush:{ size:Float, color:{ red:Int, green:Int, blue:Int, alpha:Float }}}]})
-getDrawing {mode} {drawing, absPos, zoomOffset, zoom, dimensions, windowDims} =
+getDrawing : Whiteboard -> Maybe ({ absPos : (Float, Float), zoomOffset : (Float, Float), zoom : Float, dimensions : (Int, Int), windowDims : (Int, Int)
+                                  , drawing : [{points:[{ x:Int, y:Int }], brush:{ size:Float, color:{ red:Int, green:Int, blue:Int, alpha:Float }}}]})
+getDrawing {mode, canvas, absPos, zoomOffset, zoom, windowDims} =
   case mode of
-    Viewing -> Just {drawing = Dict.values drawing, absPos = absPos, zoomOffset = zoomOffset, zoom = zoom, dimensions = dimensions, windowDims = windowDims}
+    Viewing -> Just {drawing = Dict.values canvas.drawing, absPos = absPos, zoomOffset = zoomOffset, zoom = zoom, dimensions = canvas.dimensions, windowDims = windowDims}
     _ -> Nothing
 
 port canvasOut : Signal (Maybe { absPos : (Float, Float), zoomOffset : (Float, Float), zoom : Float, dimensions : (Int, Int), windowDims : (Int, Int)
                         , drawing : [{ points:[{ x:Int, y:Int }], brush:{ size:Float, color:{ red:Int, green:Int, blue:Int, alpha:Float }}}]})
-port canvasOut = getDrawing <~ input ~ canvasState
+port canvasOut = getDrawing <~ editorState
 
 
 -- UPDATE
 
+
+getUndoable : Whiteboard -> Undoable Editor
+getUndoable w = { canvas = w.canvas
+                , mode = w.mode
+                , history = w.history
+                }
+
+getZoomable : Whiteboard -> Zoomable Editor
+getZoomable w = { canvas = w.canvas
+                , mode = w.mode
+                , windowDims = w.windowDims
+                , zoom = w.zoom
+                , minZoom = w.minZoom
+                , maxZoom = w.maxZoom
+                , absPos = w.absPos
+                , zoomOffset = w.zoomOffset
+                , lastMove = w.lastMove }
+
+
+
+
+
+stepMode : Action -> Mode -> Mode
+stepMode action mode =
+  case action of
+    View  -> Viewing
+    Draw  -> Drawing
+    Erase -> Erasing
+    _     -> mode
+
+
+
 eraserBrush : Brush
 eraserBrush = { size = 15, color = toRgb (rgba 0 0 0 0.1) }
 
-stepCanvas : Input -> Zoomable Canvas -> Zoomable Canvas
-stepCanvas {mode, action, brush, canvasDims, windowDims}
-           ({drawing, history, dimensions, zoom, lastMove, absPos, zoomOffset} as zcanvas'') =
+stepEditor : Input -> Whiteboard -> Whiteboard
+stepEditor {action, brush, canvasDims, windowDims}
+           ({mode, canvas, history, zoom, absPos, zoomOffset} as editor) =
   let
     float (a, b) = (toFloat a, toFloat b)
-    zcanvas = { zcanvas'' | windowDims <- windowDims
-                          , minZoom <- max 1 (minScale (float windowDims) (float dimensions)) }
-    c = getCanvas zcanvas
-    canvas' = case action of
-      Undo       -> stepUndo c
-      Touches ts -> let
-                      ts' = map (scaleTouches absPos zoomOffset zoom) ts
-                    in case mode of
-                      Drawing -> { c | drawing <- addN (applyBrush ts' brush) drawing
-                                     , history <- recordDrew ts' history }
-                      Erasing -> stepEraser (applyBrush ts' eraserBrush) c
-                      _       -> c
-      _           -> c
-    zcanvas' = withinBounds dimensions <| case action of
-        ZoomIn  -> stepZoom 2 zcanvas
-        ZoomOut -> stepZoom (1 / 2) zcanvas
-        Touches ts -> case mode of
-                         Viewing -> stepMove ts zcanvas
-                         _ -> zcanvas
-        _          -> zcanvas
-  in
-    { zcanvas' | drawing <- canvas'.drawing
-               , history <- canvas'.history }
+    editor' = { editor | windowDims <- windowDims
+                       , minZoom <- max 1 (minScale (float windowDims) (float canvas.dimensions)) }
+  in case action of
+    Undo    -> let (drawing', history') = stepUndo canvas.drawing history
+               in { editor' | canvas <- { canvas | drawing <- drawing' }, history <- history' }
+
+    ZoomIn  -> let zoomed = stepZoom 2 <| getZoomable editor'
+               in {editor' | zoom <- zoomed.zoom, zoomOffset <- zoomed.zoomOffset}
+
+    ZoomOut -> let zoomed = stepZoom (1/2) <| getZoomable editor'
+               in {editor' | zoom <- zoomed.zoom, zoomOffset <- zoomed.zoomOffset}
+
+    View    -> { editor' | mode <- Viewing }
+
+    Draw    -> { editor' | mode <- Drawing }
+
+    Erase   -> { editor' | mode <- Erasing }
+
+    Touches ts -> let ts' = map (scaleTouches absPos zoomOffset zoom) ts
+                  in case mode of
+                    Drawing -> { editor' | canvas <- { canvas | drawing <- addN (applyBrush ts' brush) canvas.drawing }
+                                         , history <- recordDrew ts' history }
+                    Erasing -> let (drawing', history') = stepEraser (applyBrush ts' eraserBrush) canvas.drawing history
+                               in { editor' | canvas <- { canvas | drawing <- drawing'} , history <- history'}
+                    Viewing -> let moved = withinBounds canvas.dimensions <| stepMove ts <| getZoomable editor'
+                               in { editor' | absPos <- moved.absPos, lastMove <- moved.lastMove }
+    None   -> editor'
 
 
 
-canvasState : Signal (Zoomable Canvas)
-canvasState = foldp stepCanvas defaultCanvas input
+editorState : Signal Whiteboard
+editorState = foldp stepEditor defaultEditor input
 
 
 
@@ -158,18 +200,18 @@ canvasState = foldp stepCanvas defaultCanvas input
 
 
 
-display : (Int, Int) -> Zoomable Canvas -> Element
-display (w, h) ({drawing, history, zoom, absPos} as canvas) =
+display : (Int, Int) -> Whiteboard -> Element
+display (w, h) ({canvas, history, zoom, absPos} as board) =
   let
     float (a, b) = (toFloat a, toFloat b)
-    strokes = Dict.values drawing
-    canvas = renderStrokes strokes
+    strokes = Dict.values canvas.drawing
+    displayCanvas = renderStrokes strokes
     toZero zoom (w, h) = (-w * zoom / 2, h * zoom / 2)
     toAbsPos (dx, dy) (x, y) = (x - dx * zoom, y + dy * zoom )
     pos = toAbsPos absPos <| toZero zoom (float (w, h))
-  in collage w h [ scale zoom <| move pos canvas ]
+  in collage w h [ scale zoom <| move pos displayCanvas ]
 
 
 
 main = display <~ Window.dimensions
-                ~ canvasState
+                ~ editorState

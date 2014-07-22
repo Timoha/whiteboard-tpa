@@ -1,7 +1,6 @@
 module Minimap where
 
-import Canvas (Canvas, pointToTuple, thickLine, dot, renderStrokes)
-import Navigation (Zoomable)
+import Canvas (renderStrokes)
 import Window
 import Dict
 import Debug

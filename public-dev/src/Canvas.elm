@@ -7,13 +7,11 @@ import Touch
 
 type Canvas =
   { drawing : Drawing
-  , history : History
   , dimensions : (Int, Int)
   }
 
 
-data Event = Erased [(Int, Stroke)] | Drew Int
-type History = Dict.Dict Int Event
+
 type Drawing = Dict.Dict Int Stroke
 type Brush = { size : Float, color : { red : Int, green : Int, blue : Int, alpha : Float }}
 type Brushed a = { a | brush : Brush }
@@ -41,28 +39,6 @@ line p1 p2 = { p1 = p1, p2 = p2 }
 
 
 -- UPDATE
-
-
-recordDrew : [Touch.Touch] -> History -> History
-recordDrew ts h = foldl (\t -> Dict.insert (abs t.id) (Drew <| abs t.id)) h ts
-
-
-stepUndo : Canvas -> Canvas
-stepUndo ({drawing, history} as c)  =
-  let ids = Dict.keys history
-  in if isEmpty ids
-     then c
-     else
-       let
-         lastId = maximum ids
-         (d, h) = case Dict.get lastId history of
-           Nothing          -> ( Dict.empty, Dict.empty )
-           Just (Drew id)   -> ( Dict.remove id drawing, Dict.remove id history )
-           Just (Erased ss) -> ( foldl (\(id, s) d -> Dict.insert id s d) drawing ss
-                               , foldl (\(id, s) h -> Dict.insert id (Drew id) h)
-                                       (Dict.remove lastId history) ss )
-      in { c | drawing <- d, history <- h }
-
 
 
 applyBrush : [Touch.Touch] -> Brush -> [Brushed Touch.Touch]

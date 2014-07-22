@@ -4,3 +4,4 @@ public
 public-dev/node_modules/
 public-dev/.tmp/
 *.log
+public-dev/src/cache/

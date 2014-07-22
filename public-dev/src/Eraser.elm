@@ -3,6 +3,7 @@ module Eraser where
 import Dict
 import Touch
 import Debug
+import History (History, Drew, Erased, Event)
 import Canvas (..)
 
 
@@ -36,32 +37,30 @@ isLineStrokeIntersect l s =
 
 
 
-removeEraser : Canvas -> Canvas
-removeEraser ({drawing, history} as c) =
-  let
-    ids = Dict.keys history
-    (d, h) = if isEmpty ids
-             then ( Dict.empty,  Dict.empty )
-             else
-               let
-                 lastId = maximum ids
-                 removeLast = Dict.remove lastId
-               in case Dict.get lastId history of
-                 Just (Erased ss) -> if isEmpty ss
-                                     then ( removeLast drawing
-                                          , removeLast history )
-                                     else ( removeLast drawing
-                                          , history )
-                 _                -> ( drawing, history )
-  in { c | drawing <- d, history <- h }
+removeEraser : Drawing -> History -> (Drawing, History)
+removeEraser drawing history =
+  let ids = Dict.keys history
+  in if isEmpty ids
+     then ( Dict.empty,  Dict.empty )
+     else
+       let
+         lastId = maximum ids
+         removeLast = Dict.remove lastId
+       in case Dict.get lastId history of
+         Just (Erased ss) -> if isEmpty ss
+                             then ( removeLast drawing
+                                  , removeLast history )
+                             else ( removeLast drawing
+                                  , history )
+         _                -> ( drawing, history )
 
 
 
 
-stepEraser : [Brushed Touch.Touch] -> Canvas -> Canvas
-stepEraser ts ({drawing, history} as c) =
+stepEraser : [Brushed Touch.Touch] -> Drawing -> History -> (Drawing, History)
+stepEraser ts drawing history =
   if isEmpty ts
-  then removeEraser c
+  then removeEraser drawing history
   else
     let
       t = head ts
@@ -76,7 +75,7 @@ stepEraser ts ({drawing, history} as c) =
                    es = case Dict.get id history of
                      Just (Erased ss) -> ss
                      _                -> []
-                 in {c | drawing <- foldl (\(eid, _) -> Dict.remove eid) drawing' erased
-                       , history <- Dict.insert id (Erased <| erased ++ es) history }
-      Nothing -> {c | drawing <- drawing'
-                    , history <- Dict.insert id (Erased []) history}
+                 in ( foldl (\(eid, _) -> Dict.remove eid) drawing' erased
+                    , Dict.insert id (Erased <| erased ++ es) history )
+      Nothing -> ( drawing'
+                 , Dict.insert id (Erased []) history )

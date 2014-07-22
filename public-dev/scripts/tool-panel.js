@@ -47,8 +47,7 @@ $(document).ready(function() {
 
   var editor = Elm.embed(Elm.Editor, document.getElementById('canvas'),
                          {brushPort: defaultBrush,
-                          modePort: "Drawing",
-                          actionPort: "None"}
+                          actionPort: "Draw"}
                         );
 
   var minimap = Elm.embed(Elm.Minimap, document.getElementById('minimap'),
@@ -89,13 +88,11 @@ $(document).ready(function() {
 
 
   $('#color-tool').on('click', function () {
-    editor.ports.actionPort.send("None");
-    editor.ports.modePort.send("Drawing");
+    editor.ports.actionPort.send("Draw");
   });
 
   $('#eraser-tool').on('click', function () {
-    editor.ports.actionPort.send("None");
-    editor.ports.modePort.send("Erasing");
+    editor.ports.actionPort.send("Erase");
   });
 
 
@@ -110,8 +107,7 @@ $(document).ready(function() {
   });
 
   $('#drag-tool').on('click', function () {
-    editor.ports.actionPort.send("None");
-    editor.ports.modePort.send("Viewing");
+    editor.ports.actionPort.send("View");
   });
 
   $('#zoomIn-tool').on('click', function () {
