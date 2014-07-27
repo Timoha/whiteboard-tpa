@@ -2,6 +2,7 @@ module Canvas where
 
 import Dict
 import Touch
+import Debug
 -- MODEL
 
 
@@ -47,15 +48,14 @@ applyBrush ts b = map (\t -> {t | brush = b}) ts
 
 
 addN : [Brushed Touch.Touch] -> Drawing -> Drawing
-addN ts d = foldl stepStroke d ts
+addN ts d = foldl (\t d' -> stepStroke (abs t.id) {brush = t.brush, x = t.x, y = t.y } d') d ts
 
 
-stepStroke : Brushed Touch.Touch -> Drawing -> Drawing
-stepStroke t d =
+stepStroke : Int -> Brushed Point -> Drawing -> Drawing
+stepStroke id p d =
   let
-    id = abs t.id
-    vs = Dict.getOrElse {brush = t.brush, points = []} id d
-  in Dict.insert id {vs | points <- point t.x t.y :: vs.points} d
+    vs = Dict.getOrElse {brush = p.brush, points = []} id d
+  in Dict.insert id {vs | points <- (point p.x p.y) :: vs.points} d
 
 
 

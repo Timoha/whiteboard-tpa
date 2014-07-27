@@ -6,7 +6,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <title>Whiteboard</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-    <script type="text/javascript" src="//sslstatic.wix.com/services/js-sdk/1.31.0/js/Wix.js"></script>
+<!--     <script type="text/javascript" src="//sslstatic.wix.com/services/js-sdk/1.31.0/js/Wix.js"></script> -->
     <script type="text/javascript" src="http://elm-lang.org/elm-runtime.js"></script>
 
     <!-- build:css({.tmp,app}) styles/app.css -->
@@ -103,12 +103,28 @@
     <!-- Add your site or application content here -->
     <div class="main-body">
         <ul class="tool-panel">
-            <li style="display: none">
+            <li class="viewing tab-open">
+                <button id="start-tool" class="tool-button icon-brush active" style="font-size: 33px">
+                    <div class="tool-background style-border"></div>
+                </button>
+                <div class="tool-tab style-border">
+                    <div class="wrapper">
+                        <input name="first-name" class="user-input" type="text" placeholder="First Name" />
+                        <input name="last-name" class="user-input" type="text" placeholder="Last Name" />
+                        <input name="email" class="user-input" type="text" placeholder="Email" />
+                        <div class="button-wrapper cf">
+                            <button id="start-drawing">Start Drawing</button>
+                        </div>
+                    </div>
+                    <div class="tool-background"></div>
+                </div>
+            </li>
+            <li class="editing">
                 <button class="tool-button icon-check" style="font-size: 38px">
                     <div class="tool-background style-border"></div>
                 </button>
             </li>
-            <li class="tab-open">
+            <li class="editing tab-open">
                 <button id="color-tool" class="tool-button active" style="font-size: 38px">
                     <div id="brush-background" style="border-radius: 14px">
                         <div id="brush" style="background-color: rgba(123, 123, 123, 0.5); width: 8px; height: 8px; border-radius: 8px"></div>
@@ -133,12 +149,12 @@
                 </div>
 
             </li>
-            <li>
+            <li class="editing">
                 <button id="eraser-tool" class="tool-button icon-eraser">
                     <div class="tool-background style-border"></div>
                 </button>
             </li>
-            <li>
+            <li class="editing">
                 <button id="undo-tool" class="tool-button icon-undo">
                     <div class="tool-background style-border"></div>
                 </button>
@@ -147,7 +163,7 @@
                 <button id="drag-tool" class="tool-button icon-hand">
                     <div class="tool-background style-border"></div>
                 </button>
-                <div id="color-tab" class="tool-tab style-border">
+                <div class="tool-tab style-border">
                     <div class="wrapper" style="background-color: white">
                         <div id="minimap"></div>
                     </div>

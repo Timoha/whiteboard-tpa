@@ -75,8 +75,8 @@ stepZoom factor ({windowDims, zoom, minZoom, maxZoom, zoomOffset} as o) =
 
 
 
-scaleTouches : (Float, Float) -> (Float, Float) -> Float -> Touch.Touch -> Touch.Touch
-scaleTouches (x, y) (dx, dy) zoom t =
+scaleTouch : (Float, Float) -> (Float, Float) -> Float -> Touch.Touch -> Touch.Touch
+scaleTouch (x, y) (dx, dy) zoom t =
   let
     float (a, b) = (toFloat a, toFloat b)
     (tx, ty) = float (t.x, t.y)

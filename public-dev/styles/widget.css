@@ -113,6 +113,41 @@ ul, ol, li {
 }
 
 
+.editing {
+/*   display:none; */
+}
+
+
+.user-input {
+  width: 209px;
+  border: none;
+  margin-bottom: 1px;
+  padding: 8px 8px;
+  outline: none;
+}
+
+.button-wrapper {
+  width: 100%;
+  text-align: center;
+  padding-top: 3px;
+}
+
+
+#start-drawing {
+  margin: 3px auto;
+  padding: 5px 15px;
+  background-color: red;
+  border: 1px solid white;
+  outline: none;
+  color: white;
+  text-shadow: 0 0 1px black;
+}
+
+#start-drawing:active {
+  border: 1px solid #999;
+}
+
+
 .tool-tab {
   display: none;
   top: 0;

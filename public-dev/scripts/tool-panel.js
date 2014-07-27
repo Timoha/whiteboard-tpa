@@ -42,12 +42,15 @@ function Brush(size, r, g, b, a) {
 }
 
 $(document).ready(function() {
+  var user = {firstName: "", lastName: "", email: "", drawingId: 0};
 
   var defaultBrush = new Brush(8, 255, 147, 30, 1);
 
   var editor = Elm.embed(Elm.Editor, document.getElementById('canvas'),
-                         {brushPort: defaultBrush,
-                          actionPort: "Draw"}
+                         { brushPort: defaultBrush
+                         , actionPort: "Draw"
+                         , userInfoPort: user
+                         }
                         );
 
   var minimap = Elm.embed(Elm.Minimap, document.getElementById('minimap'),
@@ -63,7 +66,7 @@ $(document).ready(function() {
   });
 
   // open/close tab for following tools
-  $('#color-tool, #drag-tool').on('mousedown', function () {
+  $('#color-tool, #drag-tool, #start-tool').on('mousedown', function () {
     var element = $(this);
     $('.tab-open').not(element.parent()).removeClass('tab-open');
     element.parent().toggleClass('tab-open');
@@ -80,8 +83,29 @@ $(document).ready(function() {
     }
   });
 
+  function checkDrawingMode(isSuccess) {
+    if (isSuccess) {
+      $('.viewing').hide();
+      $('.editing').show();
+    } else {
+      console.log("cannot start drawing")
+    }
+  }
+
+  editor.ports.drawingReadyPort.subscribe(checkDrawingMode);
+
+  $('#start-drawing').on('click', function () {
+    user = {
+      firstName: $( "input[name='first-name']" ).val(),
+      lastName: $( "input[name='last-name']" ).val(),
+      email: $( "input[name='email']" ).val(),
+      drawingId: 0
+    }
+    editor.ports.userInfoPort.send(user);
+  });
+
   // make following tools active on click
-  $('#color-tool, #eraser-tool, #drag-tool, #help-tool').on('click', function () {
+  $('#color-tool, #eraser-tool, #drag-tool, #start-tool').on('click', function () {
     $('.active').toggleClass('active');
     $(this).toggleClass('active');
   });
