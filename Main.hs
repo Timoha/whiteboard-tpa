@@ -1,12 +1,12 @@
 {-# LANGUAGE OverloadedStrings #-}
-import Web.Scotty
+import qualified Web.Scotty as ST
 
 import Data.Char (isPunctuation, isSpace)
 import Data.Monoid (mappend, mconcat)
 import Data.Maybe
 import Data.Unique
 import Data.Time
-import Data.HashMap.Strict as HashMap
+import qualified Data.HashMap.Strict as HashMap
 
 import Control.Exception (fromException, handle)
 import Control.Monad
@@ -25,6 +25,8 @@ import qualified Network.WebSockets as WS
 import qualified Network.Wai
 import qualified Network.Wai.Handler.Warp as Warp
 import qualified Network.Wai.Handler.WebSockets as WaiWS
+
+import Network.Wai.Middleware.Static
 
 import qualified Data.Text.Lazy.IO as TL
 import qualified Data.Text as T
@@ -72,6 +74,8 @@ instance ToJSON HttpType.Status where
 
 type Client = Int
 
+type BoardId = Int
+
 type ServerState = HashMap.HashMap Client WS.Connection
 
 
@@ -92,7 +96,7 @@ instance FromJSON User where
 
 
 instance ToJSON DrawingInfo where
-    toJSON (DrawingInfo drawingId firstName lastName _) =
+    toJSON (DrawingInfo drawingId firstName lastName) =
       object [ "drawingId" .= drawingId
              , "firstName" .= firstName
              , "lastName" .= lastName ]
@@ -111,18 +115,17 @@ data Drawing = Drawing { drawingId :: Int
                        , submitted :: Maybe UTCTime
                        } deriving Show
 
-data DrawingInfo = DrawingInfo (Maybe Int) T.Text T.Text T.Text deriving Show
+data DrawingInfo = DrawingInfo Int T.Text T.Text deriving Show
 
 
 toDrawingInfo :: Drawing -> DrawingInfo
-toDrawingInfo (Drawing did _ _ (User fn ln e) _ _) = DrawingInfo (Just did) fn ln e
+toDrawingInfo (Drawing did _ _ (User fn ln e) _ _) = DrawingInfo did fn ln
 
 instance FromJSON DrawingInfo where
     parseJSON (Object v) = DrawingInfo <$>
-                           v .:? "drawingId" <*>
+                           v .: "drawingId" <*>
                            v .: "firstName" <*>
-                           v .: "lastName" <*>
-                           v .: "email"
+                           v .: "lastName"
     parseJSON _          = mzero
 
 
@@ -130,10 +133,10 @@ instance FromRow Drawing where
     fromRow = Drawing <$> field <*> field <*> field <*> (User <$> field <*> field <*> field) <*> field <*> field
 
 
-insertDrawing :: Connection -> DrawingInfo -> IO [Drawing]
-insertDrawing c (DrawingInfo _ firstName lastName email) =
+insertDrawing :: Connection -> User -> BoardId -> IO [Drawing]
+insertDrawing c (User firstName lastName email) bid =
   let q  = "insert into drawing (board_id, first_name, last_name, email, created) values (?, ?, ?, ?, NOW()) RETURNING *"
-      vs = (1 :: Int, firstName, lastName, email)
+      vs = (bid, firstName, lastName, email)
   in query c q vs
 
 
@@ -142,7 +145,7 @@ newServerState = HashMap.empty
 
 
 numClients :: ServerState -> Int
-numClients = size
+numClients = HashMap.size
 
 addClient :: Int -> WS.Connection -> ServerState -> ServerState
 addClient = HashMap.insert
@@ -155,7 +158,7 @@ removeClient = HashMap.delete
 broadcast :: TL.Text -> ServerState -> IO ()
 broadcast message clients = do
     TL.putStrLn message
-    forM_ (elems clients) $ \c -> forkIO $ WS.sendTextData c message
+    forM_ (HashMap.elems clients) $ \c -> forkIO $ WS.sendTextData c message
 
 broadcastOther :: TL.Text -> Client -> ServerState -> IO ()
 broadcastOther message me clients = broadcast message $ HashMap.filterWithKey (\k _ -> k /= me) clients
@@ -166,7 +169,7 @@ main :: IO ()
 main = do
     putStrLn "http://localhost:9160/"
     state <- newMVar newServerState
-    api <- scottyApp apiApp
+    api <- ST.scottyApp apiApp
     Warp.runSettings (Warp.setPort 9160 Warp.defaultSettings)
        $ WaiWS.websocketsOr WS.defaultConnectionOptions (application state) api
 
@@ -195,9 +198,26 @@ handleMessage msg =
 
 
 
-apiApp :: ScottyM ()
+apiApp :: ST.ScottyM ()
 apiApp = do
-    get "/" $ text "YOLO SWAG"
+
+    ST.middleware $ staticPolicy (noDots >-> addBase "public-dev")
+
+    ST.get "/" $ ST.file "index.html"
+
+
+    ST.post "/api/board/:bid/drawing" $ do
+        bid <- ST.param "bid"
+        b <- ST.jsonData
+        liftIO $ putStrLn $ show b
+        case b of
+          Just usr@(User _ _ _) -> do
+              cdb <- liftIO $ connect dbConnectInfo
+              ds <- liftIO $ insertDrawing cdb usr bid
+              if (not . null) ds
+                  then ST.json $ (TL.decodeUtf8 . encode . toDrawingInfo) (head ds)
+                  else ST.json $ (TL.decodeUtf8 . encode) (ServerError "cannot create drawing" HttpType.internalServerError500)
+          _ -> ST.json $ (TL.decodeUtf8 . encode) (ServerError "invalid message format" HttpType.badRequest400)
 
 application :: MVar ServerState -> WS.ServerApp
 application state pending = do
@@ -227,14 +247,8 @@ talk conn state client = handle catchDisconnect $
     forever $ do
         msg <- WS.receiveData conn
         case decode msg of
-            Just m -> case handleMessage m of
-                Just (NewDrawing d) -> do
-                  cdb <- connect dbConnectInfo
-                  ds <- insertDrawing cdb d
-                  (WS.sendTextData conn . encode) (ClientMessage ((Just . toDrawingInfo) (head ds)) Null "CanDraw")
-                Just NoOp -> return ()
-                _ -> liftIO $ readMVar state >>= broadcastOther (TL.decodeUtf8 msg) client
-            Nothing -> do (WS.sendTextData conn . encode) (ServerError "invalid message format" HttpType.badRequest400)
+            Just (ClientMessage _ _ _)  -> liftIO $ readMVar state >>= broadcastOther (TL.decodeUtf8 msg) client
+            _ -> do (WS.sendTextData conn . encode) (ServerError "invalid message format" HttpType.badRequest400)
     where
         catchDisconnect e =
             case fromException e of

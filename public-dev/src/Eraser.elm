@@ -79,27 +79,26 @@ removeEraser drawing history =
 
 
 
-stepEraser : [Brushed Touch.Touch] -> Drawing -> History -> (Drawing, History, ServerAction)
-stepEraser ts drawing history =
-  if isEmpty ts
+stepEraser : [Brushed (WithId Point)] -> Drawing -> History -> (Drawing, History, ServerAction)
+stepEraser ps drawing history =
+  if isEmpty ps
   then let (drawing', history') = removeEraser drawing history in (drawing', history', NoOpServer)
   else
     let
-      t = head ts
-      id = abs t.id
-      drawing' = stepStroke id {brush = t.brush, x = t.x, y = t.y }  drawing
-    in case Dict.get id drawing of
+      p = head ps
+      drawing' = stepStroke p drawing
+    in case Dict.get p.id drawing of
       Just s  -> let
-                   eraserSeg = line (point t.x t.y) (head s.points)
+                   eraserSeg = line (point p.x p.y) (head s.points)
                    strokes = tail . reverse <| Dict.toList drawing
-                   crossed = filter (\(id, s) -> isLineStrokeIntersect eraserSeg s) strokes
+                   crossed = filter (\(_, s) -> isLineStrokeIntersect eraserSeg s) strokes
                    erased = if isEmpty crossed then [] else [head crossed] -- erase only latest
-                   es = case Dict.get id history of
+                   es = case Dict.get p.id history of
                      Just (Erased ss) -> ss
                      _                -> []
                  in ( foldl (\(eid, _) -> Dict.remove eid) drawing' erased
-                    , Dict.insert id (Erased <| erased ++ es) history
+                    , Dict.insert p.id (Erased <| erased ++ es) history
                     , if isEmpty crossed then NoOpServer else RemoveStroke { strokeId = (fst . head) crossed })
       Nothing -> ( drawing'
-                 , Dict.insert id (Erased []) history
+                 , Dict.insert p.id (Erased []) history
                  , NoOpServer)

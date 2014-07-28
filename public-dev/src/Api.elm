@@ -2,7 +2,7 @@ module Api where
 
 import Json
 import Dict
-import Canvas (Point, Brush, Stroke)
+import Canvas (Point, Brush, Stroke, WithId)
 import JavaScript.Experimental as JS
 
 
@@ -12,12 +12,11 @@ import JavaScript.Experimental as JS
 type DrawingInfo =
   { firstName : String
   , lastName : String
-  , email : String
   , drawingId : Int
   }
 
 
-data ServerAction = AddPoints { brush:Brush, points:[{id:Int, point:Point}] }
+data ServerAction = AddPoints { brush:Brush, points:[WithId Point] }
                   | AddStrokes { strokes:[{id:Int, stroke:Stroke}] }
                   | RemoveStroke { strokeId:Int }
                   | NewClient
@@ -25,27 +24,25 @@ data ServerAction = AddPoints { brush:Brush, points:[{id:Int, point:Point}] }
 
 
 
-isNoOpServer : ServerAction -> Bool
-isNoOpServer m = case m of
-  NoOpServer -> True
-  _          -> False
 
 
+constructMessage : ServerAction -> Maybe DrawingInfo -> String
+constructMessage a u = Json.toString "" <| jsonOfServerAction a u
 
 jsonOfServerAction : ServerAction -> Maybe DrawingInfo -> Json.Value
 jsonOfServerAction action info =
-  let
-    info' = case info of
-        Just d  -> ("drawing", recordToJson d)
-        Nothing -> ("drawing", Json.Null)
-    recordToJson = (JS.toJson . JS.fromRecord)
-    jav = case action of
-        AddPoints ps   -> [("action", Json.String "AddPoints"), ("element", recordToJson ps), info']
-        AddStrokes ss  -> [("action", Json.String "AddStrokes"), ("element", recordToJson ss), info']
-        RemoveStroke s -> [("action", Json.String "RemoveStroke"), ("element", recordToJson s), info']
-        NoOpServer     -> [("action", Json.String "NoOpServer"), ("element", Json.Null), info']
-        NewClient      -> [("action", Json.String "NewClient"), ("element", Json.Null), info']
-  in toJsonObj jav
+  case info of
+    Just d ->
+        let
+          recordToJson = (JS.toJson . JS.fromRecord)
+          jav = case action of
+              AddPoints ps   -> [("action", Json.String "AddPoints"), ("element", recordToJson ps)]
+              AddStrokes ss  -> [("action", Json.String "AddStrokes"), ("element", recordToJson ss)]
+              RemoveStroke s -> [("action", Json.String "RemoveStroke"), ("element", recordToJson s)]
+              NoOpServer     -> [("action", Json.String "NoOpServer"), ("element", Json.Null)]
+              NewClient      -> [("action", Json.String "NewClient"), ("element", Json.Null)]
+        in toJsonObj <| ("drawing", recordToJson d) :: jav
+    Nothing -> toJsonObj <| [("action", Json.String "NewClient"), ("element", Json.Null), ("drawing", Json.Null)]
 
 
 

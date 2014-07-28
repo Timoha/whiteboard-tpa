@@ -12,7 +12,7 @@ type Canvas =
   }
 
 
-
+type WithId a = { a | id : Int }
 type Drawing = Dict.Dict Int Stroke
 type Brush = { size : Float, color : { red : Int, green : Int, blue : Int, alpha : Float }}
 type Brushed a = { a | brush : Brush }
@@ -41,21 +41,24 @@ line p1 p2 = { p1 = p1, p2 = p2 }
 
 -- UPDATE
 
+touchToPoint : Touch.Touch -> WithId Point
+touchToPoint t = { id = abs t.id, x = t.x, y = t.y }
 
-applyBrush : [Touch.Touch] -> Brush -> [Brushed Touch.Touch]
-applyBrush ts b = map (\t -> {t | brush = b}) ts
-
-
-
-addN : [Brushed Touch.Touch] -> Drawing -> Drawing
-addN ts d = foldl (\t d' -> stepStroke (abs t.id) {brush = t.brush, x = t.x, y = t.y } d') d ts
+applyBrush : [WithId Point] -> Brush -> [Brushed (WithId Point)]
+applyBrush ps b = map (\p -> {p | brush = b}) ps
 
 
-stepStroke : Int -> Brushed Point -> Drawing -> Drawing
-stepStroke id p d =
+
+addN : [Brushed (WithId Point)] -> Drawing -> Drawing
+addN ps d = foldl stepStroke d ps
+
+
+
+stepStroke : Brushed (WithId Point) -> Drawing -> Drawing
+stepStroke p d =
   let
-    vs = Dict.getOrElse {brush = p.brush, points = []} id d
-  in Dict.insert id {vs | points <- (point p.x p.y) :: vs.points} d
+    vs = Dict.getOrElse {brush = p.brush, points = []} p.id d
+  in Dict.insert p.id {vs | points <- (point p.x p.y) :: vs.points} d
 
 
 

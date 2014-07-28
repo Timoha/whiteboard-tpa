@@ -30,7 +30,6 @@ data Action = Undo
             | View
             | Draw
             | Erase
-            | CanDraw DrawingInfo
             | FinishDrawing
 
 
@@ -83,7 +82,7 @@ defaultOther = Dict.empty
 
 port brushPort : Signal { size : Float, color : { red : Int, green : Int, blue : Int, alpha : Float }  }
 port actionPort : Signal String
-port userInfoPort : Signal (Maybe { firstName : String, lastName : String, email : String, drawingId : Int })
+port userInfoPort : Signal (Maybe { drawingId : Int, firstName : String, lastName : String})
 
 
 portToAction : String -> Action
@@ -105,25 +104,23 @@ withinWindowDims ts (w, h) =
   in filter within ts
 
 
-serverToAction : String -> Action
+serverToAction : String -> (ServerAction, DrawingInfo)
 serverToAction r =
   case Json.fromString r of
     Just v  -> let
                  res = (JS.toRecord . JS.fromJson) v
                in case res.action of
-                  "CanDraw" -> CanDraw res.drawing
-                  _         -> NoOp
-    Nothing -> NoOp
+                  "AddPoints"    -> (AddPoints res.element, res.drawing)
+                  "AddStrokes"   -> (AddStrokes res.element, res.drawing)
+                  "RemoveStroke" -> (RemoveStroke res.element, res.drawing)
+                  _              -> (NoOpServer, res.drawing)
+    Nothing -> (NoOpServer, {firstName = "", lastName = "", drawingId = 0}) -- throw error instead
 
 
-isDrawingReady : Action -> Bool
-isDrawingReady a = case a of
-  CanDraw _ -> True
-  _         -> False
-
-
-constructMessage : ServerAction -> Maybe DrawingInfo -> String
-constructMessage a u = Json.toString "" <| jsonOfServerAction a u
+isNoOpServer : ServerAction -> Bool
+isNoOpServer m = case m of
+  NoOpServer -> True
+  _          -> False
 
 
 brodcast : Signal ServerAction
@@ -131,15 +128,14 @@ brodcast =  dropRepeats . dropIf isNoOpServer NewClient  <| .lastMessage  <~ edi
 
 
 outgoing : Signal String
-outgoing = Debug.log "req" <~ (constructMessage <~ brodcast ~ (dropRepeats <| .user <~ userInfoPort) )
+outgoing = Debug.log "req" <~ dropRepeats (constructMessage <~ brodcast ~ userInfoPort )
 
 
 incoming : Signal String
 incoming = WebSocket.connect "ws://localhost:9160" outgoing
 
 
-serverMessage
-serverMessage = Debug.log "server" <~ ((serverToAction . Debug.log "server") <~ incoming)
+serverMessage = Debug.log "serverAction" <~ dropRepeats ((serverToAction . Debug.log "server") <~ incoming)
 
 
 --toolActions : Input Action
@@ -183,8 +179,7 @@ getZoomable w = { canvas = w.canvas
                 , maxZoom = w.maxZoom
                 , absPos = w.absPos
                 , zoomOffset = w.zoomOffset
-                , lastMove = w.lastMove
-                , user = w.user }
+                , lastMove = w.lastMove }
 
 
 stepMode : Action -> Mode -> Mode
@@ -233,15 +228,15 @@ stepEditor {action, brush, canvasDims, windowDims}
       { editor' | mode <- Erasing }
 
     Touches ts ->
-      let ts' = map (scaleTouch absPos zoomOffset zoom) ts
+      let ps = map (touchToPoint . (scaleTouch absPos zoomOffset zoom)) ts
       in case mode of
         Drawing ->
-          { editor' | canvas <- { canvas | drawing <- addN (applyBrush ts' brush) canvas.drawing }
-                    , history <- recordDrew ts' history
-                    , lastMessage <- AddPoints { brush = brush, points = map (\t -> {id = abs t.id, point = point t.x t.y}) ts' } }
+          { editor' | canvas <- { canvas | drawing <- addN (applyBrush ps brush) canvas.drawing }
+                    , history <- recordDrew ps history
+                    , lastMessage <- AddPoints { brush = brush, points = ps } }
 
         Erasing ->
-          let (drawing', history', message) = stepEraser (applyBrush ts' eraserBrush) canvas.drawing history
+          let (drawing', history', message) = stepEraser (applyBrush ps eraserBrush) canvas.drawing history
           in { editor' | canvas <- { canvas | drawing <- drawing'} , history <- history', lastMessage <- message}
 
         Viewing ->
@@ -255,8 +250,16 @@ editorState : Signal (Realtime Whiteboard)
 editorState = foldp stepEditor defaultEditor input
 
 
-stepOthers : Action -> OtherDrawings -> OtherDrawings
-stepOthers a c = c
+stepOthers : (ServerAction, DrawingInfo) -> OtherDrawings -> OtherDrawings
+stepOthers (a, d) c =
+  let
+    drawing = Dict.getOrElse Dict.empty d.drawingId c
+    drawing' = case a of
+      AddPoints ps   -> addN (applyBrush ps.points ps.brush) drawing
+      AddStrokes ss  -> foldl (\s -> Dict.insert s.id s.stroke) drawing ss.strokes
+      RemoveStroke s -> Dict.remove s.strokeId drawing
+      _              -> drawing
+  in Dict.insert d.drawingId drawing' c
 
 othersState : Signal OtherDrawings
 othersState = foldp stepOthers defaultOther serverMessage
@@ -266,12 +269,13 @@ othersState = foldp stepOthers defaultOther serverMessage
 
 
 
-display : (Int, Int) -> Realtime Whiteboard -> Element
-display (w, h) ({canvas, history, zoom, absPos} as board) =
+display : (Int, Int) -> Realtime Whiteboard -> OtherDrawings -> Element
+display (w, h) ({canvas, history, zoom, absPos} as board) o =
   let
     float (a, b) = (toFloat a, toFloat b)
     strokes = Dict.values canvas.drawing
-    displayCanvas = renderStrokes strokes
+    withOtherStrokes = foldl (\d ss -> (Dict.values d) ++ ss) strokes (Dict.values o)
+    displayCanvas = renderStrokes withOtherStrokes
     toZero zoom (w, h) = (-w * zoom / 2, h * zoom / 2)
     toAbsPos (dx, dy) (x, y) = (x - dx * zoom, y + dy * zoom )
     pos = toAbsPos absPos <| toZero zoom (float (w, h))
@@ -281,3 +285,4 @@ display (w, h) ({canvas, history, zoom, absPos} as board) =
 
 main = display <~ Window.dimensions
                 ~ editorState
+                ~ othersState

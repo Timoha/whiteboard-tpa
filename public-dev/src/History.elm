@@ -2,7 +2,7 @@ module History where
 
 import Dict
 import Touch
-import Canvas (Stroke, Drawing)
+import Canvas (Stroke, Drawing, WithId, Point)
 import Api (..)
 
 data Event = Erased [(Int, Stroke)]
@@ -13,8 +13,8 @@ type History = Dict.Dict Int Event
 type Undoable a = { a | history : History }
 
 
-recordDrew : [Touch.Touch] -> History -> History
-recordDrew ts h = foldl (\t -> Dict.insert (abs t.id) (Drew <| abs t.id)) h ts
+recordDrew : [WithId Point] -> History -> History
+recordDrew ps h = foldl (\p -> Dict.insert p.id (Drew p.id)) h ps
 
 
 

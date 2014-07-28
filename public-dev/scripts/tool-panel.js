@@ -42,14 +42,13 @@ function Brush(size, r, g, b, a) {
 }
 
 $(document).ready(function() {
-  var user = {firstName: "", lastName: "", email: "", drawingId: 0};
 
   var defaultBrush = new Brush(8, 255, 147, 30, 1);
 
   var editor = Elm.embed(Elm.Editor, document.getElementById('canvas'),
                          { brushPort: defaultBrush
                          , actionPort: "Draw"
-                         , userInfoPort: user
+                         , userInfoPort: null
                          }
                         );
 
@@ -83,25 +82,27 @@ $(document).ready(function() {
     }
   });
 
-  function checkDrawingMode(isSuccess) {
-    if (isSuccess) {
-      $('.viewing').hide();
-      $('.editing').show();
-    } else {
-      console.log("cannot start drawing")
-    }
-  }
-
-  editor.ports.drawingReadyPort.subscribe(checkDrawingMode);
 
   $('#start-drawing').on('click', function () {
-    user = {
+    var user = {
       firstName: $( "input[name='first-name']" ).val(),
       lastName: $( "input[name='last-name']" ).val(),
       email: $( "input[name='email']" ).val(),
-      drawingId: 0
     }
-    editor.ports.userInfoPort.send(user);
+
+    $.ajax({
+      type: 'POST',
+      url:  'http://localhost:9160/api/board/1/drawing',
+      dataType: 'json',
+      data: JSON.stringify(user),
+      success: function( data ) {
+        editor.ports.userInfoPort.send(JSON.parse(data));
+        editor.ports.actionPort.send("Draw");
+        $(".viewing").hide();
+        $(".editing").show();
+      }
+    });
+
   });
 
   // make following tools active on click
