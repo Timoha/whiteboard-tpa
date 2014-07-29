@@ -12,11 +12,12 @@ type Canvas =
   }
 
 
+type Timed a = { a | t0 : Time }
 type WithId a = { a | id : Int }
 type Drawing = Dict.Dict Int Stroke
 type Brush = { size : Float, color : { red : Int, green : Int, blue : Int, alpha : Float }}
 type Brushed a = { a | brush : Brush }
-type Stroke = { points : [Point], brush : Brush }
+type Stroke = { points : [Point], brush : Brush, t0 : Time }
 type Point = { x : Int, y : Int }
 type Line = { p1 : Point, p2 : Point }
 
@@ -41,23 +42,22 @@ line p1 p2 = { p1 = p1, p2 = p2 }
 
 -- UPDATE
 
-touchToPoint : Touch.Touch -> WithId Point
-touchToPoint t = { id = abs t.id, x = t.x, y = t.y }
+touchToPoint : Touch.Touch -> Timed (WithId Point)
+touchToPoint t = { id = abs t.id, x = t.x, y = t.y, t0 = t.t0 }
 
-applyBrush : [WithId Point] -> Brush -> [Brushed (WithId Point)]
+applyBrush : [a] -> Brush -> [Brushed a]
 applyBrush ps b = map (\p -> {p | brush = b}) ps
 
 
-
-addN : [Brushed (WithId Point)] -> Drawing -> Drawing
+addN : [Brushed (Timed (WithId Point))] -> Drawing -> Drawing
 addN ps d = foldl stepStroke d ps
 
 
 
-stepStroke : Brushed (WithId Point) -> Drawing -> Drawing
+stepStroke : Brushed (Timed (WithId Point)) -> Drawing -> Drawing
 stepStroke p d =
   let
-    vs = Dict.getOrElse {brush = p.brush, points = []} p.id d
+    vs = Dict.getOrElse { brush = p.brush, points = [], t0 = p.t0 } p.id d
   in Dict.insert p.id {vs | points <- (point p.x p.y) :: vs.points} d
 
 

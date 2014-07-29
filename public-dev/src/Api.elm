@@ -2,7 +2,7 @@ module Api where
 
 import Json
 import Dict
-import Canvas (Point, Brush, Stroke, WithId)
+import Canvas (Point, Brush, Stroke, WithId, Timed)
 import JavaScript.Experimental as JS
 
 
@@ -16,8 +16,8 @@ type DrawingInfo =
   }
 
 
-data ServerAction = AddPoints { brush:Brush, points:[WithId Point] }
-                  | AddStrokes { strokes:[{id:Int, stroke:Stroke}] }
+data ServerAction = AddPoints { brush:Brush, points:[Timed (WithId Point)] }
+                  | AddStrokes { strokes:[WithId Stroke] }
                   | RemoveStroke { strokeId:Int }
                   | NewClient
                   | NoOpServer
@@ -145,55 +145,3 @@ extractPoint jv =
 
 
 
-extractColor jv =
-  extractDict jv >>= (\d ->
-  (Dict.get "red" d >>= extractFloat) >>= (\red ->
-  (Dict.get "green" d >>= extractFloat) >>= (\green ->
-  (Dict.get "blue" d >>= extractFloat) >>= (\blue ->
-  (Dict.get "alpha" d >>= extractFloat) >>= (\alpha ->
-  Just { red = round red, green = round green, blue = round blue, alpha = alpha } )))))
-
-extractBrush : Json.Value -> Maybe Brush
-extractBrush jv =
-  extractDict jv >>= (\d ->
-  (Dict.get "size" d >>= extractFloat) >>= (\size ->
-  (Dict.get "color" d >>= extractColor) >>= (\color ->
-  Just { size = size, color = color })))
-
-
-extractAddPoints : Json.Value -> Maybe (Brush, [(Int, Point)])
-extractAddPoints jv =
-  extractDict jv >>= (\d ->
-  (Dict.get "brush" d >>= extractBrush) >>= (\brush ->
-  (case Dict.get "points" d of
-    Just (Json.Array jps) -> Just . justs <| map extractPoint jps
-    _                     -> Nothing ) >>= (\points ->
-  Just (brush, points) )))
-
-
-extractRemoveStroke : Json.Value -> Maybe Int
-extractRemoveStroke jv =
-  extractFloat jv >>= (\sId ->
-  Just (round sId))
-
-extractList : Json.Value -> [Json.Value]
-extractList (Json.Array list) = list
-
-extractStroke : Json.Value -> Maybe (Int, Stroke)
-extractStroke jv =
-  let withoutId p = case p of
-    Just (sid, p) -> Just p
-    _ -> Nothing
-  in extractDict jv >>= (\d ->
-  (Dict.get "id" d >>= extractFloat) >>= (\sid ->
-  (Dict.get "brush" d >>= extractBrush) >>= (\brush ->
-  (case Dict.get "points" d of
-    Just (Json.Array jps) -> Just . justs <| map (withoutId . extractPoint) jps
-    _                     -> Nothing ) >>= (\points ->
-  Just (round sid, { brush = brush, points = points }) ))))
-
-
-extractAddStrokes : Json.Value -> Maybe [(Int, Stroke)]
-extractAddStrokes jv = case jv of
-  Json.Array jss -> Just . justs <| map extractStroke jss
-  _ -> Nothing

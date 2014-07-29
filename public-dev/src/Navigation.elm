@@ -8,29 +8,29 @@ type Zoomable a = { a | windowDims : (Int, Int)
                       , maxZoom : Float
                       , absPos : (Float, Float)
                       , zoomOffset : (Float, Float)
-                      , lastMove : Maybe (Int, Int) }
+                      , lastPosition : Maybe (Int, Int) }
 
 
 
 stepMove : [Touch.Touch] -> Zoomable a -> Zoomable a
-stepMove ts ({lastMove, zoom, absPos} as o) =
+stepMove ts ({lastPosition, zoom, absPos} as o) =
   let
     (x, y) = absPos
   in if isEmpty ts
-  then { o | lastMove <- Nothing }
+  then { o | lastPosition <- Nothing }
   else
     let
       t = head ts
       float (a, b) = (toFloat a, toFloat b)
-    in case lastMove of
+    in case lastPosition of
        Just (tx, ty) ->
          let
             (dx, dy) = float ((tx - t.x), (ty - t.y))
             x' = x + dx / zoom
             y' = y + dy / zoom
-         in { o | lastMove <- Just (t.x, t.y)
+         in { o | lastPosition <- Just (t.x, t.y)
                 , absPos  <- (x', y')}
-       Nothing -> { o | lastMove <- Just (t.x, t.y) }
+       Nothing -> { o | lastPosition <- Just (t.x, t.y) }
 
 
 

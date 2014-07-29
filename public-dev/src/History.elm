@@ -2,7 +2,7 @@ module History where
 
 import Dict
 import Touch
-import Canvas (Stroke, Drawing, WithId, Point)
+import Canvas (Stroke, Drawing, WithId, Point, Timed)
 import Api (..)
 
 data Event = Erased [(Int, Stroke)]
@@ -13,7 +13,7 @@ type History = Dict.Dict Int Event
 type Undoable a = { a | history : History }
 
 
-recordDrew : [WithId Point] -> History -> History
+recordDrew : [Timed (WithId Point)] -> History -> History
 recordDrew ps h = foldl (\p -> Dict.insert p.id (Drew p.id)) h ps
 
 
@@ -33,4 +33,4 @@ stepUndo drawing history  =
            Just (Erased ss) -> ( foldl (\(id, s) d -> Dict.insert id s d) drawing ss
                                , foldl (\(id, s) h -> Dict.insert id (Drew id) h)
                                        (Dict.remove lastId history) ss
-                               , AddStrokes { strokes = map (\(id, s) -> {id = id, stroke = s}) ss } )
+                               , AddStrokes { strokes = map (\(id, s) -> { s | id = id }) ss } )

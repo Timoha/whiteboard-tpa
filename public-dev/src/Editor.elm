@@ -70,7 +70,7 @@ defaultEditor =
   , zoomOffset = (0, 0)
   , absPos = (0, 0)
   , windowDims = (0, 0)
-  , lastMove = Nothing
+  , lastPosition = Nothing
   , lastMessage = NoOpServer
   }
 
@@ -157,14 +157,14 @@ input = Input <~ actions
 
 
 getDrawing : Realtime Whiteboard -> Maybe ({ absPos : (Float, Float), zoomOffset : (Float, Float), zoom : Float, dimensions : (Int, Int), windowDims : (Int, Int)
-                                  , drawing : [{points:[{ x:Int, y:Int }], brush:{ size:Float, color:{ red:Int, green:Int, blue:Int, alpha:Float }}}]})
+                                  , drawing : [{t0:Float, points:[{ x:Int, y:Int }], brush:{ size:Float, color:{ red:Int, green:Int, blue:Int, alpha:Float }}}]})
 getDrawing {mode, canvas, absPos, zoomOffset, zoom, windowDims} =
   case mode of
     Viewing -> Just {drawing = Dict.values canvas.drawing, absPos = absPos, zoomOffset = zoomOffset, zoom = zoom, dimensions = canvas.dimensions, windowDims = windowDims}
     _ -> Nothing
 
 port canvasOut : Signal (Maybe { absPos : (Float, Float), zoomOffset : (Float, Float), zoom : Float, dimensions : (Int, Int), windowDims : (Int, Int)
-                        , drawing : [{ points:[{ x:Int, y:Int }], brush:{ size:Float, color:{ red:Int, green:Int, blue:Int, alpha:Float }}}]})
+                        , drawing : [{t0:Float,  points:[{ x:Int, y:Int }], brush:{ size:Float, color:{ red:Int, green:Int, blue:Int, alpha:Float }}}]})
 port canvasOut = getDrawing <~ editorState
 
 
@@ -179,7 +179,7 @@ getZoomable w = { canvas = w.canvas
                 , maxZoom = w.maxZoom
                 , absPos = w.absPos
                 , zoomOffset = w.zoomOffset
-                , lastMove = w.lastMove }
+                , lastPosition = w.lastPosition }
 
 
 stepMode : Action -> Mode -> Mode
@@ -241,7 +241,7 @@ stepEditor {action, brush, canvasDims, windowDims}
 
         Viewing ->
           let moved = withinBounds canvas.dimensions <| stepMove ts <| getZoomable { editor' - lastMessage }
-          in { editor' | absPos <- moved.absPos, lastMove <- moved.lastMove }
+          in { editor' | absPos <- moved.absPos, lastPosition <- moved.lastPosition }
 
     NoOp    -> editor'
 
@@ -256,7 +256,7 @@ stepOthers (a, d) c =
     drawing = Dict.getOrElse Dict.empty d.drawingId c
     drawing' = case a of
       AddPoints ps   -> addN (applyBrush ps.points ps.brush) drawing
-      AddStrokes ss  -> foldl (\s -> Dict.insert s.id s.stroke) drawing ss.strokes
+      AddStrokes ss  -> foldl (\s -> Dict.insert s.id { s - id }) drawing ss.strokes
       RemoveStroke s -> Dict.remove s.strokeId drawing
       _              -> drawing
   in Dict.insert d.drawingId drawing' c
@@ -274,7 +274,7 @@ display (w, h) ({canvas, history, zoom, absPos} as board) o =
   let
     float (a, b) = (toFloat a, toFloat b)
     strokes = Dict.values canvas.drawing
-    withOtherStrokes = foldl (\d ss -> (Dict.values d) ++ ss) strokes (Dict.values o)
+    withOtherStrokes = sortBy .t0 <| foldl (\d ss -> (Dict.values d) ++ ss) strokes (Dict.values o)
     displayCanvas = renderStrokes withOtherStrokes
     toZero zoom (w, h) = (-w * zoom / 2, h * zoom / 2)
     toAbsPos (dx, dy) (x, y) = (x - dx * zoom, y + dy * zoom )

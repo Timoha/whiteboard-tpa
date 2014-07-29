@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE FlexibleInstances #-}
 import qualified Web.Scotty as ST
 
 import Data.Char (isPunctuation, isSpace)
@@ -17,6 +18,8 @@ import Control.Monad.IO.Class (liftIO)
 import Data.Aeson
 import Database.PostgreSQL.Simple
 import Database.PostgreSQL.Simple.FromRow
+import Database.PostgreSQL.Simple.ToRow
+import Database.PostgreSQL.Simple.ToField
 
 
 import Network.Wai.Middleware.RequestLogger
@@ -76,6 +79,8 @@ type Client = Int
 
 type BoardId = Int
 
+type DrawingId = Int
+
 type ServerState = HashMap.HashMap Client WS.Connection
 
 
@@ -93,6 +98,73 @@ instance FromJSON User where
                            v .: "lastName" <*>
                            v .: "email"
     parseJSON _          = mzero
+
+
+data Color =  Color { red :: Int
+                    , green :: Int
+                    , blue :: Int
+                    , alpha :: Float
+                    } deriving (Eq, Show)
+
+instance FromJSON Color where
+    parseJSON (Object v) = Color <$>
+                           v .: "red" <*>
+                           v .: "green" <*>
+                           v .: "blue" <*>
+                           v .: "alpha"
+    parseJSON _          = mzero
+
+
+instance ToJSON Color where
+    toJSON (Color r g b a) =
+        object [ "red" .= r
+               , "green" .= g
+               , "blue" .= b
+               , "alpha" .= a ]
+
+data Brush = Brush { color :: Color
+                   , size :: Int
+                   } deriving (Eq, Show)
+
+
+instance FromJSON Brush where
+    parseJSON (Object v) = Brush <$>
+                           v .: "color" <*>
+                           v .: "size"
+    parseJSON _          = mzero
+
+
+instance ToJSON Brush where
+    toJSON (Brush c s) =
+        object [ "color" .= c
+               , "size" .= s ]
+
+
+data Stroke = Stroke { t0 :: Int
+                     , points :: [Object]
+                     , brush :: Brush
+                     } deriving (Eq, Show)
+
+
+instance Ord Stroke where
+  (Stroke t01 _ _) `compare` (Stroke t02 _ _) = t01 `compare` t02
+
+
+instance FromJSON Stroke where
+    parseJSON (Object v) = Stroke <$>
+                           v .: "t0" <*>
+                           v .: "points" <*>
+                           v .: "brush"
+    parseJSON _          = mzero
+
+instance ToJSON Stroke where
+    toJSON (Stroke t0 ps b) =
+        object [ "t0" .= t0
+               , "points" .= ps
+               , "brush" .= b ]
+
+instance ToField [Stroke] where
+  toField ss = toJSONField ss
 
 
 instance ToJSON DrawingInfo where
@@ -133,12 +205,18 @@ instance FromRow Drawing where
     fromRow = Drawing <$> field <*> field <*> field <*> (User <$> field <*> field <*> field) <*> field <*> field
 
 
-insertDrawing :: Connection -> User -> BoardId -> IO [Drawing]
-insertDrawing c (User firstName lastName email) bid =
-  let q  = "insert into drawing (board_id, first_name, last_name, email, created) values (?, ?, ?, ?, NOW()) RETURNING *"
-      vs = (bid, firstName, lastName, email)
-  in query c q vs
+createDrawing :: Connection -> User -> BoardId -> IO [Drawing]
+createDrawing c (User firstName lastName email) bid =
+    let q  = "insert into drawing (board_id, first_name, last_name, email, created) values (?, ?, ?, ?, NOW()) RETURNING *"
+        vs = (bid, firstName, lastName, email)
+    in query c q vs
 
+
+submitDrawing :: Connection -> [Stroke] -> DrawingId -> IO [Drawing]
+submitDrawing c ss did =
+    let q  = "update drawing set strokes = ?, submitted = NOW() where drawing_id = ? RETURNING *"
+        vs = (ss, did)
+    in query c q vs
 
 newServerState :: ServerState
 newServerState = HashMap.empty
@@ -213,11 +291,33 @@ apiApp = do
         case b of
           Just usr@(User _ _ _) -> do
               cdb <- liftIO $ connect dbConnectInfo
-              ds <- liftIO $ insertDrawing cdb usr bid
+              ds <- liftIO $ createDrawing cdb usr bid
               if (not . null) ds
                   then ST.json $ (TL.decodeUtf8 . encode . toDrawingInfo) (head ds)
                   else ST.json $ (TL.decodeUtf8 . encode) (ServerError "cannot create drawing" HttpType.internalServerError500)
           _ -> ST.json $ (TL.decodeUtf8 . encode) (ServerError "invalid message format" HttpType.badRequest400)
+
+    ST.post "/api/drawing/:did/submit" $ do
+        did <- ST.param "did"
+        b <- ST.jsonData
+        liftIO $ putStrLn $ show b
+        cdb <- liftIO $ connect dbConnectInfo
+        ds <- liftIO $ submitDrawing cdb b did
+        ST.json $ (TL.decodeUtf8 . encode) HttpType.ok200
+
+
+    -- get all styling settings with drawings, mode
+    ST.get "/api/board/:bid" $ ST.text "board"
+
+    -- get settings for settings panel - list of boards for this instance, no drawings
+    ST.get "/api/settings/:compId" $ ST.text "sett get"
+
+    -- save settings: board name, mode, printing size (i.e. ISO-A4), border-width
+    ST.put "/api/settings/:compId" $ ST.text "sett put"
+
+
+
+
 
 application :: MVar ServerState -> WS.ServerApp
 application state pending = do

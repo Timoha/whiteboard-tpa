@@ -79,7 +79,7 @@ removeEraser drawing history =
 
 
 
-stepEraser : [Brushed (WithId Point)] -> Drawing -> History -> (Drawing, History, ServerAction)
+stepEraser : [Brushed (Timed (WithId Point))] -> Drawing -> History -> (Drawing, History, ServerAction)
 stepEraser ps drawing history =
   if isEmpty ps
   then let (drawing', history') = removeEraser drawing history in (drawing', history', NoOpServer)

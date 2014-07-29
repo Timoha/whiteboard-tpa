@@ -113,11 +113,6 @@ ul, ol, li {
 }
 
 
-.editing {
-   display:none; 
-}
-
-
 .user-input {
   width: 209px;
   border: none;
