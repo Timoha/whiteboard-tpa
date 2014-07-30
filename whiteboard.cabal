@@ -30,4 +30,5 @@ executable whiteboard
                      , wai-middleware-static
                      , wai-extra
                      , time
+                     , split
                      , unordered-containers
