@@ -55,7 +55,7 @@ type OtherDrawings = Dict.Dict Int Drawing
 defaultCanvas : Canvas
 defaultCanvas =
   { drawing = Dict.empty
-  , dimensions = (2000, 1300)
+  , dimensions = (0, 0)
   }
 
 
@@ -83,6 +83,11 @@ defaultOther = Dict.empty
 port brushPort : Signal { size : Float, color : { red : Int, green : Int, blue : Int, alpha : Float }  }
 port actionPort : Signal String
 port userInfoPort : Signal (Maybe { drawingId : Int, firstName : String, lastName : String})
+port canvasSizePort : Signal { width : Int, height : Int }
+port boardInfoPort : Signal {instance : String, componentId : String, boardId : Int}
+
+canvasSizePortToTuple : { width : Int, height : Int } -> (Int, Int)
+canvasSizePortToTuple {width, height} = (width, height)
 
 
 portToAction : String -> Action
@@ -128,7 +133,7 @@ brodcast =  dropRepeats . dropIf isNoOpServer NewClient  <| .lastMessage  <~ edi
 
 
 outgoing : Signal String
-outgoing = Debug.log "req" <~ dropRepeats (constructMessage <~ brodcast ~ userInfoPort )
+outgoing = Debug.log "req" <~ dropRepeats (constructMessage <~ brodcast ~ userInfoPort ~ boardInfoPort)
 
 
 incoming : Signal String
@@ -151,7 +156,7 @@ actions = merges [ Touches <~ (withinWindowDims <~ Touch.touches ~ Window.dimens
 input : Signal Input
 input = Input <~ actions
                ~ brushPort
-               ~ constant (2000, 1300)-- for now
+               ~ (canvasSizePortToTuple <~ canvasSizePort)
                ~ Window.dimensions
 -- OUTPUT
 
@@ -204,6 +209,7 @@ stepEditor {action, brush, canvasDims, windowDims}
     float (a, b) = (toFloat a, toFloat b)
     editor' = { editor | windowDims <- windowDims
                        , minZoom <- max 1 <| minScale (float windowDims) (float canvas.dimensions)
+                       , canvas <- { canvas | dimensions <- canvasDims }
                        , lastMessage <- NoOpServer }
   in case action of
     Undo ->

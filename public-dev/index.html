@@ -6,8 +6,8 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <title>Whiteboard</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-<!--     <script type="text/javascript" src="//sslstatic.wix.com/services/js-sdk/1.31.0/js/Wix.js"></script> -->
-    <script type="text/javascript" src="http://elm-lang.org/elm-runtime.js"></script>
+    <script type="text/javascript" src="//sslstatic.wix.com/services/js-sdk/1.31.0/js/Wix.js"></script>
+    <script type="text/javascript" src="scripts/elm-runtime.js"></script>
 
     <!-- build:css({.tmp,app}) styles/app.css -->
     <link rel="stylesheet" href="bower_components/normalize-css/normalize.css">
@@ -16,77 +16,37 @@
     <link rel="stylesheet" href="styles/brush-controls.css">
     <!-- endbuild -->
     <style wix-style>
-      .dropper {
-        border-color: {{style.borderColor color-3}};
-        color: {{style.bodyColor color-15}};
-        {{style.bodyFont Body-M}}
+      .main-body {
+        border-color: {{style.borderColor white}};
       }
 
-      .dropping {
-        background-color: {{style.fillColor color-8}};
-        color: {{style.bodyColor color-15}};
-        {{style.bodyFont Body-M}}
-      }
-      .popup {
-        border-color: {{style.borderColor color-3}};
-        color: {{style.bodyColor color-15}};
-        {{style.bodyFont Body-M}}
-        background-color: {{style.fillColor color-1}};
-      }
-      .block {
-        border-color: {{style.borderColor color-3}};
-        color: {{style.bodyColor color-15}};
-        {{style.bodyFont Body-M}}
-        background-color: {{style.backgroundColor color-1}};
+      #canvas, #minimap {
+        background-color: {{style.canvasColor white}};
       }
 
-      .block input {
-        background-color: {{style.backgroundColor color-1}};
+
+      .tool-button, .tool-tab {
+        background-color: {{style.fillColor color-18}};
+        color: {{style.iconColor color-5}};
       }
 
-      .form-input-label {
-        color: {{style.bodyColor color-15}};
-        {{style.bodyFont Body-M}}
+      .sliders .slider {
+        color: {{style.iconColor color-5}};
       }
 
-      .form-input:focus + label {
-        color: {{style.bodyColor color-15}}
+      .rangeslider, .rangeslider-fill {
+        background-color:  {{style.iconColor color-5}};
       }
 
-      .block textarea {
-        background-color: {{style.backgroundColor color-1}};
+      .active .tool-background, .tool-button:hover .style-border, .tool-tab .tool-background {
+        border-right-color: {{style.secondaryColor color-15}}
       }
 
-      .end-blocks {
-        background-color: {{style.fillColor color-8}};
+      .control-button {
+        background-color: {{style.secondaryColor color-15}}
       }
-      .buttons {
-        background-color: {{style.buttonColor color-17}};
-        color: {{style.buttonTextColor color-25}};
-        {{style.buttonFont Body-M}}
-      }
-      .buttons[disabled] {
-        background-color: {{style.buttonColor color-17}};
-        color: {{style.buttonTextColor color-25}};
-      }
-      .title {
-        color: {{style.titleColor color-25}};
-        {{style.titleFont Heading-M}}
-      }
-      .description {
-        color: {{style.descriptionColor color-25}};
-        {{style.descriptionFont Body-M}}
-      }
-      .file-text {
-        border-color: {{style.borderColor color-3}};
-      }
-      .progress-text {
-        {{style.bodyFont Body-M}}
-        color: {{style.bodyColor color-15}};
-      }
-      .submit {
-        border-color: {{style.borderColor color-3}};
-      }
+
+
     </style>
 </head>
 <body>
@@ -102,6 +62,7 @@
 
     <!-- Add your site or application content here -->
     <div class="main-body">
+        <div id="loading"><span>Loading Awesomeness...<span></div>
         <ul class="tool-panel">
             <li class="viewing tab-open">
                 <button id="start-tool" class="tool-button icon-brush active" style="font-size: 33px">
@@ -113,7 +74,7 @@
                         <input name="last-name" class="user-input" type="text" placeholder="Last Name" />
                         <input name="email" class="user-input" type="text" placeholder="Email" />
                         <div class="button-wrapper cf">
-                            <button id="start-drawing">Start Drawing</button>
+                            <button id="start-drawing" class="control-button">Start Drawing</button>
                         </div>
                     </div>
                     <div class="tool-background"></div>
@@ -202,8 +163,6 @@
 <script src="scripts/Minimap.js"></script>
 <script src="scripts/brush-controls.js"></script>
 <script src="scripts/tool-panel.js"></script>
-<!--     <script src="scripts/services/wix.js"></script> -->
-<!--     <script src="scripts/controllers/widget.js"></script> -->
 <!-- endbuild -->
 
 <!-- process:remove -->

@@ -11,7 +11,7 @@ cabal-version:       >=1.8
 
 executable whiteboard
   main-is:             Main.hs
-  build-depends:       base ==4.6.*
+  build-depends:       base == 4.7.*
                      , wai
                      , warp
                      , wai-websockets
@@ -32,3 +32,6 @@ executable whiteboard
                      , time
                      , split
                      , unordered-containers
+                     , base64-bytestring
+                     , cryptohash
+                     , stringsearch

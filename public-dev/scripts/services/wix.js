@@ -1,6 +1,6 @@
 'use strict';
 
-angular.module('whiteboard').factory('$wix', function ($window, $log) {
+angular.module('whiteboard').service('$wix', function ($window, $log) {
   if ('Wix' in $window) {
     return $window.Wix;
   } else {

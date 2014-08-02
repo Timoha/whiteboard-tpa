@@ -32,7 +32,8 @@ import qualified Network.HTTP.Types as HttpType
 
 --------------- ClientMessage ------------------
 
-data ClientMessage = ClientMessage { drawing :: Maybe DrawingInfo
+data ClientMessage = ClientMessage { board :: 
+                                   , drawing :: Maybe DrawingInfo
                                    , element :: Value
                                    , action :: T.Text
                                    } deriving Show
@@ -54,7 +55,7 @@ instance FromJSON ClientMessage where
 
 
 
-data Message = NewClient
+data Message = NewClient BoardId
              | NewDrawing DrawingInfo
 --             | RemoveStroke Stroke User
 --             | AddPoints [Points] User
@@ -65,48 +66,63 @@ data Message = NewClient
 
 
 type Client = Int
-
-
-type ServerState = HashMap.HashMap Client WS.Connection
+type ClientState = HashMap.HashMap Client WS.Connection
+type ServerState = HashMap.HashMap BoardId ClientState
 
 
 
 defaultServerState :: ServerState
 defaultServerState = HashMap.empty
 
+defaultClientState :: ClientState
+defaultClientState = HashMap.empty
+
+
 
 numClients :: ServerState -> Int
-numClients = HashMap.size
+numClients = foldl ((+) . HashMap.size) 0
 
 
-addClient :: Int -> WS.Connection -> ServerState -> ServerState
-addClient = HashMap.insert
+addClient :: BoardId -> Client -> WS.Connection -> ServerState -> ServerState
+addClient b c w = HashMap.insert b clients
+    where clients =
+        case HashMap.lookup b of
+            Just cs -> HashMap.insert c w cs
+            Nothing -> HashMap.insert c w defaultClientState
 
 
-removeClient :: Int -> ServerState -> ServerState
-removeClient = HashMap.delete
+
+removeClient :: BoardId -> Client -> ServerState -> ServerState
+removeClient b c = HashMap.adjust (HashMap.delete c) b
 
 
-broadcast :: TL.Text -> ServerState -> IO ()
+broadcast :: TL.Text -> ClientState -> IO ()
 broadcast message clients = do
     TL.putStrLn message
     forM_ (HashMap.elems clients) $ \c -> forkIO $ WS.sendTextData c message
 
 
-broadcastOther :: TL.Text -> Client -> ServerState -> IO ()
-broadcastOther message me clients = broadcast message $ HashMap.filterWithKey (\k _ -> k /= me) clients
+broadcastBoard :: BoardId -> TL.Text -> (TL.Text -> ClientState -> IO ()) -> ServerState -> IO ()
+broadcastBoard b m f bs =
+    case HashMap.lookup b bs of
+        Just cs -> f m cs
+        Nothing -> putStrLn "Couldn't find board"
 
+
+broadcastOther :: Client -> TL.Text -> ClientState -> IO ()
+broadcastOther me message clients = broadcast message $ HashMap.filterWithKey (\k _ -> k /= me) clients
 
 
 
 handleMessage :: ClientMessage -> Maybe Message
 handleMessage msg =
     case action msg of
-        "NewClient" -> Just NewClient
+        "NewClient" -> Just NewClient bid
         "NewDrawing" -> fmap NewDrawing d
         "NoOpServer" -> Just NoOp
         _ -> Nothing
     where
+        bid = boardId $ board msg
         d = drawing msg
 
 
@@ -114,33 +130,33 @@ handleMessage msg =
 
 application :: MVar ServerState -> WS.ServerApp
 application state pending = do
-    putStrLn $ show $ WS.requestPath $ WS.pendingRequest pending
     clientUnique <- newUnique
     let client = hashUnique clientUnique
     conn <- WS.acceptRequest pending
     msg <- WS.receiveData conn
-    clients <- liftIO $ readMVar state
+    putStrLn $ show $ msg
+    boards <- liftIO $ readMVar state
     case decode msg of
         Just m -> case handleMessage m of
-            Just NewClient -> do
-                broadcast "new client joined" clients
+            Just NewClient bid -> do
+                broadcastBoard bid "new client joined" broadcast boards
                 WS.sendTextData conn ("hi new" :: T.Text)
                 liftIO $ modifyMVar_ state $ \s -> do
-                    let s' = addClient client conn s
+                    let s' = addClient bid client conn s
                     putStrLn $ show $ numClients s'
                     return s'
-                talk conn state client
+                talk conn state bid client
             _           -> return ()
         Nothing -> do (WS.sendTextData conn . encode) (ServerError "invalid message format" HttpType.badRequest400)
 
 
 
-talk :: WS.Connection -> MVar ServerState -> Client -> IO ()
+talk :: WS.Connection -> MVar ServerState -> BoardId -> Client -> IO ()
 talk conn state client = handle catchDisconnect $
     forever $ do
         msg <- WS.receiveData conn
         case decode msg of
-            Just (ClientMessage _ _ _)  -> liftIO $ readMVar state >>= broadcastOther (TL.decodeUtf8 msg) client
+            Just (ClientMessage _ _ _)  -> liftIO $ readMVar state >>= broadcastBoard bid (TL.decodeUtf8 msg) (broadcastOther client)
             _ -> do (WS.sendTextData conn . encode) (ServerError "invalid message format" HttpType.badRequest400)
     where
         catchDisconnect e =
@@ -149,6 +165,6 @@ talk conn state client = handle catchDisconnect $
                 _ -> liftIO disconnectClient
             where disconnectClient = modifyMVar_ state $ \s -> do
                     putStrLn $ show e
-                    let s' = removeClient client s
-                    broadcast "disconnected" s'
+                    let s' = removeClient bid client s
+                    broadcastBoard bid "disconnected" broadcast s'
                     return s'

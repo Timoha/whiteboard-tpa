@@ -3,21 +3,12 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 
 module Drawing
-( Drawing
-, DrawingInfo
-, DrawingId
-, BoardId
-, Color
-, Brush
-, Stroke
-, toDrawingInfo
-, create
-, submit
-) where
+where
 
 
 import User
 
+import Data.Maybe
 import Data.Time
 import Control.Applicative
 import Control.Monad
@@ -43,13 +34,14 @@ type BoardId = Int
 --------------- Drawing ------------------
 
 
-data Drawing = Drawing { drawingId :: DrawingId
-                       , boardId :: BoardId
-                       , strokes :: Maybe T.Text
-                       , user :: User
-                       , created :: UTCTime
-                       , submitted :: Maybe UTCTime
-                       } deriving Show
+data Drawing = Drawing
+    { drawingId :: DrawingId
+    , boardId :: BoardId
+    , strokes :: Maybe T.Text
+    , user :: User
+    , created :: UTCTime
+    , submitted :: Maybe UTCTime
+    } deriving Show
 
 
 instance FromRow Drawing where
@@ -73,9 +65,9 @@ instance FromJSON DrawingInfo where
 
 instance ToJSON DrawingInfo where
     toJSON (DrawingInfo drawingId firstName lastName) =
-      object [ "drawingId" .= drawingId
-             , "firstName" .= firstName
-             , "lastName" .= lastName ]
+        object [ "drawingId" .= drawingId
+               , "firstName" .= firstName
+               , "lastName" .= lastName ]
 
 
 
@@ -87,11 +79,12 @@ toDrawingInfo (Drawing did _ _ (User fn ln e) _ _) = DrawingInfo did fn ln
 
 --------------- Color ------------------
 
-data Color =  Color { red :: Int
-                    , green :: Int
-                    , blue :: Int
-                    , alpha :: Float
-                    } deriving (Typeable, Eq, Show)
+data Color =  Color
+    { red :: Int
+    , green :: Int
+    , blue :: Int
+    , alpha :: Float
+    } deriving (Typeable, Eq, Show)
 
 
 instance FromJSON Color where
@@ -116,12 +109,15 @@ instance FromField Color where
 
 
 instance ToField Color where
-    toField c = toJSONField c
+    toField = toJSONField
+
+
 --------------- Brush ------------------
 
-data Brush = Brush { color :: Color
-                   , size :: Int
-                   } deriving (Eq, Show)
+data Brush = Brush
+    { color :: Color
+    , size :: Int
+    } deriving (Eq, Show)
 
 
 instance FromJSON Brush where
@@ -140,15 +136,15 @@ instance ToJSON Brush where
 
 --------------- Stroke ------------------
 
-
-data Stroke = Stroke { t0 :: Int
-                     , points :: [Object]
-                     , brush :: Brush
-                     } deriving (Eq, Show)
+data Stroke = Stroke
+    { t0 :: Int
+    , points :: [Object]
+    , brush :: Brush
+    } deriving (Eq, Show)
 
 
 instance Ord Stroke where
-  (Stroke t01 _ _) `compare` (Stroke t02 _ _) = t01 `compare` t02
+    (Stroke t01 _ _) `compare` (Stroke t02 _ _) = t01 `compare` t02
 
 
 instance FromJSON Stroke where
@@ -158,29 +154,31 @@ instance FromJSON Stroke where
                            v .: "brush"
     parseJSON _          = mzero
 
+
 instance ToJSON Stroke where
     toJSON (Stroke t0 ps b) =
         object [ "t0" .= t0
                , "points" .= ps
                , "brush" .= b ]
 
+
 instance ToField [Stroke] where
-  toField ss = toJSONField ss
+    toField = toJSONField
 
 
 
 
 --------------- Database ------------------
 
-create :: Connection -> User -> BoardId -> IO [Drawing]
+create :: Connection -> User -> BoardId -> IO (Maybe Drawing)
 create c (User firstName lastName email) bid =
     let q  = "insert into drawing (board_id, first_name, last_name, email, created) values (?, ?, ?, ?, NOW()) RETURNING *"
         vs = (bid, firstName, lastName, email)
-    in query c q vs
+    in fmap listToMaybe (query c q vs)
 
 
-submit :: Connection -> [Stroke] -> DrawingId -> IO [Drawing]
+submit :: Connection -> [Stroke] -> DrawingId -> IO (Maybe Drawing)
 submit c ss did =
     let q  = "update drawing set strokes = ?, submitted = NOW() where drawing_id = ? RETURNING *"
         vs = (ss, did)
-    in query c q vs
+    in fmap listToMaybe (query c q vs)

@@ -2,18 +2,18 @@
   'use strict';
 
   var colors = [
-    {red: '255', green: '147', blue: '30',  name: "orange"},
-    {red: '237', green: '28', blue: '36',   name: "red"},
-    {red: '255', green: '123', blue: '172', name: "pink" },
-    {red: '41', green: '171', blue: '226',  name: "blue"},
-    {red: '46', green: '49', blue: '146',   name: "dark blue"},
-    {red: '102', green: '45', blue: '145',  name: "purple"},
-    {red: '252', green: '238', blue: '33',  name: "yellow"},
-    {red: '140', green: '198', blue: '63',  name: "green"},
-    {red: '0', green: '104', blue: '55',    name: "dark green"},
-    {red: '255', green: '255', blue: '255', name: "white"},
-    {red: '117', green: '76', blue: '36',   name: "brown"},
-    {red: '0', green: '0', blue: '0',       name: "black"}
+    {red: '255', green: '147', blue: '30',  name: 'orange'},
+    {red: '237', green: '28', blue: '36',   name: 'red'},
+    {red: '255', green: '123', blue: '172', name: 'pink' },
+    {red: '41', green: '171', blue: '226',  name: 'blue'},
+    {red: '46', green: '49', blue: '146',   name: 'dark blue'},
+    {red: '102', green: '45', blue: '145',  name: 'purple'},
+    {red: '252', green: '238', blue: '33',  name: 'yellow'},
+    {red: '140', green: '198', blue: '63',  name: 'green'},
+    {red: '0', green: '104', blue: '55',    name: 'dark green'},
+    {red: '255', green: '255', blue: '255', name: 'white'},
+    {red: '117', green: '76', blue: '36',   name: 'brown'},
+    {red: '0', green: '0', blue: '0',       name: 'black'}
   ];
 
 
@@ -21,8 +21,8 @@
 
   $.constructColor = function (color) {
     color.rgb = [color.red, color.green, color.blue].join(',');
-    var rgb = "rgb(" + color.rgb + ")";
-    return $( "<option>", {
+    var rgb = 'rgb(' + color.rgb + ')';
+    return $( '<option>', {
       value: rgb,
       text: color.name,
     });
@@ -32,12 +32,12 @@
   $.initColorPicker = function ($colorPicker, $brush) {
     var newColor = $colorPicker.val();
     $brush.css('background-color', newColor);
-    currBrush.fromRGBColorString(newColor);
+    currBrush.color.fromRGBColorString(newColor);
 
     $colorPicker.simplecolorpicker({theme: 'cf'}).on('change', function() {
       newColor = $colorPicker.val();
       $brush.css('background-color', newColor);
-      currBrush.fromRGBColorString(newColor);
+      currBrush.color.fromRGBColorString(newColor);
       $brush.trigger('brush_change', [currBrush]);
     });
   };
@@ -65,7 +65,7 @@
       pxValue = value + 'px';
       $brush.css({'width': pxValue, 'height': pxValue, 'border-radius': pxValue});
       pxValue = (value + 6) + 'px';
-      $brush.parent().css({'width': pxValue, 'height': pxValue, 'border-radius': pxValue})
+      $brush.parent().css({'width': pxValue, 'height': pxValue, 'border-radius': pxValue});
       currBrush.setSize(value);
     });
 
@@ -73,7 +73,7 @@
     $('#opacity').on('change',  function (e) {
       opacity = Number(e.target.value) / 100;
       $brush.css({'opacity': opacity});
-      currBrush.setA(opacity);
+      currBrush.color.setA(opacity);
     });
 
   };
