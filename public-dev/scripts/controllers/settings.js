@@ -127,7 +127,30 @@ angular.module('whiteboard')
   };
 
 
-  var setSettings = function(settings) {
+  function getIndexOfPaperType(paperType) {
+    var i;
+    for (i = 0; i < ANSI.length; i++) {
+      if (ANSI.value === paperType || ISO.value === paperType) {
+        return i;
+      }
+    }
+
+    return -1;
+  }
+
+
+  function setAvailablePaperSizes(settings, isEmpty) {
+    if(!isEmpty) {
+      var indexOfCurrType = getIndexOfPaperType(settings.dimensions.paperType);
+      ANSI = ANSI.slice(indexOfCurrType);
+      ISO = ISO.slice(indexOfCurrType);
+    }
+  }
+
+
+  var setSettings = function(data) {
+    var settings = data.settings;
+    setAvailablePaperSizes(settings, data.empty);
     boardSettings = settings;
     boardSettings.paperTypeANSI = settings.dimensions.paperType;
     boardSettings.paperTypeISO = settings.dimensions.paperType;
@@ -154,7 +177,7 @@ angular.module('whiteboard')
     server.getSettings()
       .then(function (response) {
         $log.info('got settings');
-        var paperStandard = response.dimensions.paperType.split('_')[0];
+        var paperStandard = response.settings.dimensions.paperType.split('_')[0];
         setSettings(response);
       }, function(response) {
         $log.warn('rejected');

@@ -3,7 +3,9 @@
 module Realtime (application, defaultServerState) where
 
 import Drawing
+import WixInstance
 import Api (ServerError (..))
+import Board
 
 
 import Data.Maybe
@@ -21,6 +23,7 @@ import qualified Data.Text.Encoding as T
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.IO as TL
 import qualified Data.Text.Lazy.Encoding as TL
+import qualified Data.ByteString.Lazy.Char8 as BLC8
 import qualified Data.HashMap.Strict as HashMap
 
 import Data.Aeson
@@ -32,21 +35,29 @@ import qualified Network.HTTP.Types as HttpType
 
 --------------- ClientMessage ------------------
 
-data ClientMessage = ClientMessage { board :: 
-                                   , drawing :: Maybe DrawingInfo
-                                   , element :: Value
-                                   , action :: T.Text
-                                   } deriving Show
+data ClientMessage = ClientMessage
+    { board :: BoardInfoUnparsed
+    , drawing :: Maybe DrawingInfo
+    , element :: Value
+    , action :: T.Text
+    } deriving Show
+
+
+
 
 instance ToJSON ClientMessage where
-    toJSON (ClientMessage drawing element action) =
+    toJSON (ClientMessage board drawing element action) =
         object [ "drawing" .= drawing
                , "element" .= element
-               , "action" .= action ]
+               , "action" .= action
+               , "board" .=  board ]
+
+
 
 
 instance FromJSON ClientMessage where
     parseJSON (Object v) = ClientMessage <$>
+                           v .: "board" <*>
                            v .: "drawing" <*>
                            v .: "element" <*>
                            v .: "action"
@@ -79,14 +90,14 @@ defaultClientState = HashMap.empty
 
 
 
-numClients :: ServerState -> Int
-numClients = foldl ((+) . HashMap.size) 0
+--numClients :: ServerState -> Int
+--numClients = HashMap.foldl' ((+) HashMap.size) 0
 
 
 addClient :: BoardId -> Client -> WS.Connection -> ServerState -> ServerState
-addClient b c w = HashMap.insert b clients
-    where clients =
-        case HashMap.lookup b of
+addClient b c w bs = HashMap.insert b clients bs
+    where
+        clients = case HashMap.lookup b bs of
             Just cs -> HashMap.insert c w cs
             Nothing -> HashMap.insert c w defaultClientState
 
@@ -117,12 +128,15 @@ broadcastOther me message clients = broadcast message $ HashMap.filterWithKey (\
 handleMessage :: ClientMessage -> Maybe Message
 handleMessage msg =
     case action msg of
-        "NewClient" -> Just NewClient bid
+        "NewClient" -> case wixInst of
+            Just _ -> Just (NewClient bid)
+            Nothing -> Nothing
         "NewDrawing" -> fmap NewDrawing d
         "NoOpServer" -> Just NoOp
         _ -> Nothing
     where
-        bid = boardId $ board msg
+        (BoardInfoUnparsed bid inst cid) = board msg
+        wixInst = parseInstance (BLC8.pack "e5e44072-34f2-43cc-ba7d-82962348d57f") (TL.encodeUtf8 (TL.fromStrict inst))
         d = drawing msg
 
 
@@ -138,12 +152,11 @@ application state pending = do
     boards <- liftIO $ readMVar state
     case decode msg of
         Just m -> case handleMessage m of
-            Just NewClient bid -> do
+            Just (NewClient bid) -> do
                 broadcastBoard bid "new client joined" broadcast boards
                 WS.sendTextData conn ("hi new" :: T.Text)
                 liftIO $ modifyMVar_ state $ \s -> do
                     let s' = addClient bid client conn s
-                    putStrLn $ show $ numClients s'
                     return s'
                 talk conn state bid client
             _           -> return ()
@@ -152,11 +165,11 @@ application state pending = do
 
 
 talk :: WS.Connection -> MVar ServerState -> BoardId -> Client -> IO ()
-talk conn state client = handle catchDisconnect $
+talk conn state bid client = handle catchDisconnect $
     forever $ do
         msg <- WS.receiveData conn
         case decode msg of
-            Just (ClientMessage _ _ _)  -> liftIO $ readMVar state >>= broadcastBoard bid (TL.decodeUtf8 msg) (broadcastOther client)
+            Just (ClientMessage _ _ _ _)  -> liftIO $ readMVar state >>= broadcastBoard bid (TL.decodeUtf8 msg) (broadcastOther client)
             _ -> do (WS.sendTextData conn . encode) (ServerError "invalid message format" HttpType.badRequest400)
     where
         catchDisconnect e =

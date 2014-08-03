@@ -140,6 +140,14 @@ data BoardSettings = BoardSettings
     } deriving (Show)
 
 
+data BoardInfo = BoardInfo
+    { widget :: WixWidget
+    , whiteboard :: BoardId
+    }
+
+data BoardInfoUnparsed = BoardInfoUnparsed BoardId T.Text ComponentId deriving (Show)
+
+
 
 defaultSettings :: BoardSettings
 defaultSettings = BoardSettings (T.pack "Untitled")
@@ -160,6 +168,20 @@ instance FromJSON BoardSettings where
                            v .: "design"
     parseJSON _          = mzero
 
+
+instance FromJSON BoardInfoUnparsed where
+    parseJSON (Object v) = BoardInfoUnparsed <$>
+                           v .: "boardId" <*>
+                           v .: "instance" <*>
+                           v .: "componentId"
+    parseJSON _          = mzero
+
+
+instance ToJSON BoardInfoUnparsed where
+    toJSON (BoardInfoUnparsed bid inst cid) =
+        object [ "boardId" .= bid
+               , "instance" .= inst
+               , "componentId" .= cid ]
 
 instance ToJSON Board where
     toJSON (Board boardId _ (BoardSettings name paperType locked backgroundPicture backgroundColor design) _) =

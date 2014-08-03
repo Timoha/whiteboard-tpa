@@ -19,7 +19,6 @@ import qualified Data.Text.Lazy.IO as TL
 import qualified Data.Text.Lazy.Encoding as TL
 import qualified Data.ByteString.Lazy.Char8 as BLC8
 
-
 import Web.Scotty
 import Data.Aeson (ToJSON, toJSON, object, (.=), encode)
 import Database.PostgreSQL.Simple
@@ -33,6 +32,22 @@ data ServerError = ServerError { error :: T.Text
                                } deriving Show
 
 
+data WidgetJson = WidgetJson Board.Board [Drawing.Stroke] deriving Show
+
+data SettingsPanelJson = SettingsPanelJson Board.Board Bool deriving Show
+
+
+instance ToJSON WidgetJson where
+    toJSON (WidgetJson ss ds) =
+        object [ "settings" .= ss
+               , "drawings" .= ds ]
+
+instance ToJSON SettingsPanelJson where
+    toJSON (SettingsPanelJson ss empty) =
+        object [ "settings" .= ss
+               , "empty" .= empty ]
+
+
 instance ToJSON ServerError where
     toJSON (ServerError error status) =
         object [ "error" .= error
@@ -43,6 +58,8 @@ instance ToJSON HttpType.Status where
     toJSON (HttpType.Status statusCode statusMessage) =
         object [ "code" .= statusCode
                , "message" .= (T.decodeUtf8 statusMessage) ]
+
+
 
 
 
@@ -102,10 +119,29 @@ apiApp = do
         board <- liftIO $ case widget of
             Just w -> Board.getOrCreate cdb Board.defaultSettings w
             Nothing -> return Nothing
+
         liftIO $ putStrLn $ show board
         liftIO $ putStrLn $ show widget
         case board of
-            Just b -> json $ (TL.decodeUtf8 . encode) b
+            Just b -> do
+                drawing <- liftIO $ Drawing.getSubmittedByBoard cdb (Board.boardId b)
+                json $ (TL.decodeUtf8 . encode) $ WidgetJson b (Drawing.sortStrokes drawing)
+            Nothing -> json $ (TL.decodeUtf8 . encode) (ServerError "cannot get board" HttpType.internalServerError500)
+
+
+    get "/api/board/:compId/settings" $ do
+        widget <- getWixWidget
+        cdb   <- liftIO $ connect dbConnectInfo
+        board <- liftIO $ case widget of
+            Just w -> Board.get cdb w
+            Nothing -> return Nothing
+
+        liftIO $ putStrLn $ show board
+        liftIO $ putStrLn $ show widget
+        case board of
+            Just b -> do
+                num <- liftIO $ Drawing.countAllByBoard cdb (Board.boardId b)
+                json $ (TL.decodeUtf8 . encode) $ SettingsPanelJson b (num == 0)
             Nothing -> json $ (TL.decodeUtf8 . encode) (ServerError "cannot get board" HttpType.internalServerError500)
 
 

@@ -8,6 +8,7 @@ where
 
 import User
 
+import Data.List
 import Data.Maybe
 import Data.Time
 import Control.Applicative
@@ -27,7 +28,6 @@ import qualified Data.Text.Encoding as T
 
 type DrawingId = Int
 
-
 type BoardId = Int
 
 
@@ -37,7 +37,7 @@ type BoardId = Int
 data Drawing = Drawing
     { drawingId :: DrawingId
     , boardId :: BoardId
-    , strokes :: Maybe T.Text
+    , strokes :: Maybe [Stroke]
     , user :: User
     , created :: UTCTime
     , submitted :: Maybe UTCTime
@@ -140,7 +140,7 @@ data Stroke = Stroke
     { t0 :: Int
     , points :: [Object]
     , brush :: Brush
-    } deriving (Eq, Show)
+    } deriving (Eq, Show, Typeable)
 
 
 instance Ord Stroke where
@@ -166,6 +166,16 @@ instance ToField [Stroke] where
     toField = toJSONField
 
 
+instance FromField [Stroke] where
+    fromField = fromJSONField
+
+
+sortStrokes :: [Drawing] -> [Stroke]
+sortStrokes ds = sort $ foldl (\ss d -> (getStrokes d) ++ ss) [] ds
+    where
+        getStrokes d = case strokes d of
+            Just ss -> ss
+            Nothing -> []
 
 
 --------------- Database ------------------
@@ -175,6 +185,20 @@ create c (User firstName lastName email) bid =
     let q  = "insert into drawing (board_id, first_name, last_name, email, created) values (?, ?, ?, ?, NOW()) RETURNING *"
         vs = (bid, firstName, lastName, email)
     in fmap listToMaybe (query c q vs)
+
+
+getSubmittedByBoard :: Connection -> BoardId -> IO [Drawing]
+getSubmittedByBoard c bid =
+    let q = "select * from drawing where board_id = ? and strokes is not null and submitted is not null"
+        vs = (Only bid)
+    in query c q vs
+
+
+countAllByBoard :: Connection -> BoardId -> IO Int
+countAllByBoard c bid =
+    let q = "select * from drawing where board_id = ?"
+        vs = (Only bid)
+    in fmap length ((query c q vs) :: IO [Drawing])
 
 
 submit :: Connection -> [Stroke] -> DrawingId -> IO (Maybe Drawing)

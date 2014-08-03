@@ -85,10 +85,14 @@ port actionPort : Signal String
 port userInfoPort : Signal (Maybe { drawingId : Int, firstName : String, lastName : String})
 port canvasSizePort : Signal { width : Int, height : Int }
 port boardInfoPort : Signal {instance : String, componentId : String, boardId : Int}
+port submittedDrawingsPort : Signal [{t0:Float,  points:[{ x:Int, y:Int }], brush:{ size:Float, color:{ red:Int, green:Int, blue:Int, alpha:Float }}}]
 
 canvasSizePortToTuple : { width : Int, height : Int } -> (Int, Int)
 canvasSizePortToTuple {width, height} = (width, height)
 
+
+submittedDrawings : [Stroke] -> Form
+submittedDrawings ss = renderStrokes ss
 
 portToAction : String -> Action
 portToAction s =
@@ -133,14 +137,14 @@ brodcast =  dropRepeats . dropIf isNoOpServer NewClient  <| .lastMessage  <~ edi
 
 
 outgoing : Signal String
-outgoing = Debug.log "req" <~ dropRepeats (constructMessage <~ brodcast ~ userInfoPort ~ boardInfoPort)
+outgoing = dropRepeats (constructMessage <~ brodcast ~ userInfoPort ~ boardInfoPort)
 
 
 incoming : Signal String
 incoming = WebSocket.connect "ws://localhost:9160" outgoing
 
 
-serverMessage = Debug.log "serverAction" <~ dropRepeats ((serverToAction . Debug.log "server") <~ incoming)
+serverMessage = dropRepeats (serverToAction <~ incoming)
 
 
 --toolActions : Input Action
@@ -275,13 +279,13 @@ othersState = foldp stepOthers defaultOther serverMessage
 
 
 
-display : (Int, Int) -> Realtime Whiteboard -> OtherDrawings -> Element
-display (w, h) ({canvas, history, zoom, absPos} as board) o =
+display : (Int, Int) -> Realtime Whiteboard -> OtherDrawings -> Form -> Element
+display (w, h) ({canvas, history, zoom, absPos} as board) o submitted =
   let
     float (a, b) = (toFloat a, toFloat b)
-    strokes = Dict.values canvas.drawing
-    withOtherStrokes = sortBy .t0 <| foldl (\d ss -> (Dict.values d) ++ ss) strokes (Dict.values o)
-    displayCanvas = renderStrokes withOtherStrokes
+    thisStrokes = renderStrokes <| Dict.values canvas.drawing
+    --withOtherStrokes = sortBy .t0 <| foldl (\d ss -> (Dict.values d) ++ ss) strokes (Dict.values o)
+    displayCanvas = group <| submitted :: thisStrokes :: (map (\d -> renderStrokes (Dict.values d)) (Dict.values o))
     toZero zoom (w, h) = (-w * zoom / 2, h * zoom / 2)
     toAbsPos (dx, dy) (x, y) = (x - dx * zoom, y + dy * zoom )
     pos = toAbsPos absPos <| toZero zoom (float (w, h))
@@ -292,3 +296,4 @@ display (w, h) ({canvas, history, zoom, absPos} as board) o =
 main = display <~ Window.dimensions
                 ~ editorState
                 ~ othersState
+                ~ (submittedDrawings <~ dropRepeats submittedDrawingsPort)

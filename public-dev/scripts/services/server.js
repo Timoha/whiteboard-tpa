@@ -22,7 +22,7 @@ angular.module('whiteboard')
 
 
   // var getBoardThumbsURL = '/GetSettingsSettings/' + compId;
-  var getSettingsURL = '/api/board/' + compId;
+  var getSettingsURL = '/api/board/' + compId + '/settings';
   var saveSettingsURL = '/api/board/' + compId + '/settings';
   var instanceHeader = {'X-Wix-Instance' : instance};
 

@@ -32,6 +32,7 @@ executable whiteboard
                      , time
                      , split
                      , unordered-containers
+                     , containers
                      , base64-bytestring
                      , cryptohash
                      , stringsearch

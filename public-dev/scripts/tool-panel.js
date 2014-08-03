@@ -146,8 +146,10 @@ $(document).ready(function() {
   });
 
 
-  function setupBoard(settings) {
+  function setupBoard(data) {
 
+    var settings = data.settings;
+    var drawings = data.drawings;
 
     var dimensions = settings.dimensions;
     delete dimensions.paperType;
@@ -168,6 +170,7 @@ $(document).ready(function() {
       , userInfoPort: null
       , canvasSizePort: dimensions
       , boardInfoPort: boardInfo
+      , submittedDrawingsPort: drawings
       });
 
 
