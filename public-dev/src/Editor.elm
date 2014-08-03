@@ -85,14 +85,20 @@ port actionPort : Signal String
 port userInfoPort : Signal (Maybe { drawingId : Int, firstName : String, lastName : String})
 port canvasSizePort : Signal { width : Int, height : Int }
 port boardInfoPort : Signal {instance : String, componentId : String, boardId : Int}
-port submittedDrawingsPort : Signal [{t0:Float,  points:[{ x:Int, y:Int }], brush:{ size:Float, color:{ red:Int, green:Int, blue:Int, alpha:Float }}}]
+port submittedDrawingsPort : Signal [{drawingId:Int, firstName:String, lastName:String, strokes:Maybe [{t0:Float,  points:[{ x:Int, y:Int }], brush:{ size:Float, color:{ red:Int, green:Int, blue:Int, alpha:Float }}}]}]
 
 canvasSizePortToTuple : { width : Int, height : Int } -> (Int, Int)
 canvasSizePortToTuple {width, height} = (width, height)
 
 
-submittedDrawings : [Stroke] -> Form
-submittedDrawings ss = renderStrokes ss
+submittedDrawings : [DrawingInfo] -> Form
+submittedDrawings ds =
+  let
+    getStrokes ds = case ds.strokes of
+      Just ss -> ss
+      Nothing -> []
+    strokes = foldl (\d ss -> (getStrokes d) ++ ss) [] ds
+  in renderStrokes <| sortBy .t0 strokes
 
 portToAction : String -> Action
 portToAction s =
@@ -123,7 +129,7 @@ serverToAction r =
                   "AddStrokes"   -> (AddStrokes res.element, res.drawing)
                   "RemoveStroke" -> (RemoveStroke res.element, res.drawing)
                   _              -> (NoOpServer, res.drawing)
-    Nothing -> (NoOpServer, {firstName = "", lastName = "", drawingId = 0}) -- throw error instead
+    Nothing -> (NoOpServer, {firstName = "", lastName = "", drawingId = 0, strokes = Nothing}) -- throw error instead
 
 
 isNoOpServer : ServerAction -> Bool
@@ -136,8 +142,14 @@ brodcast : Signal ServerAction
 brodcast =  dropRepeats . dropIf isNoOpServer NewClient  <| .lastMessage  <~ editorState
 
 
+userInfoPortToDrawingInfo : Maybe { drawingId : Int, firstName : String, lastName : String} -> Maybe DrawingInfo
+userInfoPortToDrawingInfo user =
+  case user of
+    Just u -> Just {u | strokes = Nothing}
+    Nothing -> Nothing
+
 outgoing : Signal String
-outgoing = dropRepeats (constructMessage <~ brodcast ~ userInfoPort ~ boardInfoPort)
+outgoing = dropRepeats (constructMessage <~ brodcast ~ (userInfoPortToDrawingInfo <~ userInfoPort) ~ boardInfoPort)
 
 
 incoming : Signal String

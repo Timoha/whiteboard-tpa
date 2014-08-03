@@ -79,7 +79,41 @@ angular.module('whiteboard')
     {value: 'ISO_A0', name: 'A0 - 841 × 1189 mm'},
   ];
 
+  var modalFooter = "<div style='display: table; width: 100%;'>\
+    <div style='display: table-cell; float:right;'>\
+      <a href='#' style='color: red; vertical-align: bottom; line-height: 30px; text-decoration: underline; margin-right: 6px;'>Reset Board</a> \
+      <button class='uilib-btn close-popup' id='done-editing'>Save</button>\
+    </div>\
+  </div>";
 
+  var modal;
+  jQuery('#edit-drawings').on('click', function(evt){
+    modal = Wix.UI.create({
+      ctrl: 'Popup',
+      options: {
+        modal: true,
+        fixed: true,
+        title: boardSettings.boardName,
+        footer: modalFooter,
+        width: 800,
+        onopen: function() {initModeratingBoard(boardSettings.boardId);}
+      }
+    });
+
+      evt.stopPropagation();
+      modal.getCtrl().open();
+  });
+
+
+
+  function initModeratingBoard(boardId) {
+    server.getDrawings(boardId)
+      .then(function (response) {
+        $log.info('got drawings');
+      }, function(response) {
+        $log.warn('rejected');
+      });
+  }
 
 
   var whiteColor = new Color(255, 255, 255, 1);
@@ -106,7 +140,7 @@ angular.module('whiteboard')
       boardSettings['paperType'] = value.value;
       break;
     case 'borderWidth':
-      boardSettings.design = JSON.stringify({borderWidth: value});
+      boardSettings.design = {borderWidth: value};
       break;
     case 'boardMode':
       boardSettings.locked = value.value === 'locked'
@@ -161,7 +195,7 @@ angular.module('whiteboard')
     boardSettings.paperStandard = paperStandard;
 
 
-    boardSettings.borderWidth = JSON.parse(settings.design).borderWidth;
+    boardSettings.borderWidth = settings.design.borderWidth;
 
     $timeout(function() {
       $scope.paperStandard = paperStandard;

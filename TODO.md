@@ -13,6 +13,7 @@
 - min zoom to view the whole board
 - heroku deployment
 ^^^^^^^ Wednesday ^^^^^^^^
+- check for OWNER permissions for settings pannel requests
 - post contact info to wix
 - add tooltips
 - liking/reporting drawings

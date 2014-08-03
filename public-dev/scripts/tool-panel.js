@@ -117,7 +117,7 @@ $(document).ready(function() {
       $('#start-tool').parent().show();
     }
 
-    var borderWidth = JSON.parse(settings.design).borderWidth;
+    var borderWidth = settings.design.borderWidth;
     $('.main-body').css({
       'border-width': borderWidth + 'px'
     });

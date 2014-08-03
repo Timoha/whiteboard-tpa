@@ -13,6 +13,7 @@ type DrawingInfo =
   { firstName : String
   , lastName : String
   , drawingId : Int
+  , strokes : Maybe [Stroke]
   }
 
 type BoardInfo =

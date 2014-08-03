@@ -136,7 +136,7 @@ data BoardSettings = BoardSettings
     , locked :: Bool
     , backgroundPicture :: Maybe T.Text
     , backgroundColor :: Color
-    , design :: T.Text
+    , design :: Value
     } deriving (Show)
 
 
@@ -155,7 +155,7 @@ defaultSettings = BoardSettings (T.pack "Untitled")
                                 False
                                 Nothing
                                 (Color 255 255 255 1.0)
-                                (T.pack "{}")
+                                (object [])
 
 
 instance FromJSON BoardSettings where

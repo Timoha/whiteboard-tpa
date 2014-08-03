@@ -24,7 +24,33 @@ angular.module('whiteboard')
   // var getBoardThumbsURL = '/GetSettingsSettings/' + compId;
   var getSettingsURL = '/api/board/' + compId + '/settings';
   var saveSettingsURL = '/api/board/' + compId + '/settings';
+  var getSubmittedUrl = '/api/board/' + compId + '/drawings?boardId=';
   var instanceHeader = {'X-Wix-Instance' : instance};
+
+
+  var getDrawings = function(boardId) {
+    var deferred = $q.defer();
+    $http({
+      method: 'GET',
+      url: getSubmittedUrl + boardId,
+      headers: instanceHeader,
+      timeout: 15000
+    }).success(function (data, status) {
+      if (status === 200) {
+        var response = JSON.parse(JSON.parse(data));
+        deferred.resolve(response);
+        console.log('Got drawings ', response);
+      } else {
+        console.log('The server is returning an incorrect status.');
+        deferred.reject({});
+      }
+    }).error(function (message, status) {
+      console.error(message, status);
+      deferred.reject({});
+    });
+
+    return deferred.promise;
+  }
 
 
   var getSettings = function() {
@@ -50,6 +76,7 @@ angular.module('whiteboard')
 
     return deferred.promise;
   };
+
 
 
   var saveSettings = function(settings) {
@@ -78,6 +105,7 @@ angular.module('whiteboard')
 
 
   return {
+    getDrawings: getDrawings,
     getSettings: getSettings,
     saveSettings: saveSettings
   };

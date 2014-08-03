@@ -51,28 +51,30 @@ instance FromRow Drawing where
 
 --------------- DrawingInfo ------------------
 
-data DrawingInfo = DrawingInfo DrawingId T.Text T.Text deriving Show
+data DrawingInfo = DrawingInfo DrawingId T.Text T.Text (Maybe [Stroke]) deriving Show
 
 
 instance FromJSON DrawingInfo where
     parseJSON (Object v) = DrawingInfo <$>
                            v .: "drawingId" <*>
                            v .: "firstName" <*>
-                           v .: "lastName"
+                           v .: "lastName" <*>
+                           v .:? "strokes"
     parseJSON _          = mzero
 
 
 
 instance ToJSON DrawingInfo where
-    toJSON (DrawingInfo drawingId firstName lastName) =
+    toJSON (DrawingInfo drawingId firstName lastName ss) =
         object [ "drawingId" .= drawingId
                , "firstName" .= firstName
-               , "lastName" .= lastName ]
+               , "lastName" .= lastName
+               , "strokes" .= ss ]
 
 
 
 toDrawingInfo :: Drawing -> DrawingInfo
-toDrawingInfo (Drawing did _ _ (User fn ln e) _ _) = DrawingInfo did fn ln
+toDrawingInfo (Drawing did _ ss (User fn ln e) _ _) = DrawingInfo did fn ln ss
 
 
 

@@ -32,7 +32,7 @@ data ServerError = ServerError { error :: T.Text
                                } deriving Show
 
 
-data WidgetJson = WidgetJson Board.Board [Drawing.Stroke] deriving Show
+data WidgetJson = WidgetJson Board.Board [Drawing.DrawingInfo] deriving Show
 
 data SettingsPanelJson = SettingsPanelJson Board.Board Bool deriving Show
 
@@ -113,6 +113,32 @@ apiApp = do
             Nothing -> json $ (TL.decodeUtf8 . encode) (ServerError "cannot find drawing" HttpType.badRequest400)
 
 
+    get "/api/board/:compId/drawings" $ do
+        bid <- param "boardId"
+        widget <- getWixWidget
+        cdb   <- liftIO $ connect dbConnectInfo
+
+        liftIO $ putStrLn $ show widget
+        case widget of
+            Just w -> do
+                drawings <- liftIO $ Drawing.getSubmittedByBoard cdb bid
+                json $ (TL.decodeUtf8 . encode) $ map Drawing.toDrawingInfo drawings
+            Nothing -> json $ (TL.decodeUtf8 . encode) (ServerError "cannot get drawings" HttpType.internalServerError500)
+
+
+    put "/api/board/:compId/drawings/deleteByIds" $ do
+        bid <- param "boardId"
+        widget <- getWixWidget
+        cdb   <- liftIO $ connect dbConnectInfo
+
+        liftIO $ putStrLn $ show widget
+        case widget of
+            Just w -> do
+                drawings <- liftIO $ Drawing.getSubmittedByBoard cdb bid
+                json $ (TL.decodeUtf8 . encode) $ map Drawing.toDrawingInfo drawings
+            Nothing -> json $ (TL.decodeUtf8 . encode) (ServerError "cannot get drawings" HttpType.internalServerError500)
+
+
     get "/api/board/:compId" $ do
         widget <- getWixWidget
         cdb   <- liftIO $ connect dbConnectInfo
@@ -124,8 +150,8 @@ apiApp = do
         liftIO $ putStrLn $ show widget
         case board of
             Just b -> do
-                drawing <- liftIO $ Drawing.getSubmittedByBoard cdb (Board.boardId b)
-                json $ (TL.decodeUtf8 . encode) $ WidgetJson b (Drawing.sortStrokes drawing)
+                drawings <- liftIO $ Drawing.getSubmittedByBoard cdb (Board.boardId b)
+                json $ (TL.decodeUtf8 . encode) $ WidgetJson b (map Drawing.toDrawingInfo drawings)
             Nothing -> json $ (TL.decodeUtf8 . encode) (ServerError "cannot get board" HttpType.internalServerError500)
 
 
