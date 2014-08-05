@@ -1,63 +1,10 @@
 'use strict';
 
-function Color(r, g, b, a) {
+var drawingsIdsToDelete = [];
 
-  this.red = r;
-  this.green = g;
-  this.blue = b;
-  this.alpha = a;
-
-  this.setR = function (r) {
-    this.red = r;
-  };
-
-  this.setG = function (g) {
-    this.green = g;
-  };
-
-  this.setB = function (b) {
-    this.blue = b;
-  };
-
-  this.setA = function (a) {
-    this.alpha = a;
-  };
-
-  this.toRGBColorString = function () {
-    var color = [this.red, this.green, this.blue];
-    return 'rgb(' + color.join(',')  +  ')';
-  };
-
-  this.toRGBAColorString = function () {
-    var color = [this.red, this.green, this.blue, this.alpha];
-    return 'rgba(' + color.join(',')  +  ')';
-  };
-
-  this.fromRGBColorString = function (rgb) {
-    var color = rgb.slice(4, rgb.length - 1).split(',');
-    this.red = parseInt(color[0], 10);
-    this.green = parseInt(color[1], 10);
-    this.blue = parseInt(color[2], 10);
-  };
-
-  this.fromRGBAColorString = function (rgba) {
-    var color = rgba.slice(5, rgba.length - 1).split(',');
-    this.red = parseInt(color[0], 10);
-    this.green = parseInt(color[1], 10);
-    this.blue = parseInt(color[2], 10);
-    this.alpha = parseInt(color[3], 10);
-  };
-
-  this.getColor = function () {
-    return {
-      red: this.red,
-      green: this.green,
-      blue: this.blue,
-      alpha: this.alpha
-    }
-  }
+function setDeleteDrawingsIds(ids) {
+  drawingsIdsToDelete = ids;
 }
-
 
 angular.module('whiteboard')
   .controller('SettingsCtrl', function ($wix, server, $timeout, $log, $scope) {
@@ -79,12 +26,16 @@ angular.module('whiteboard')
     {value: 'ISO_A0', name: 'A0 - 841 × 1189 mm'},
   ];
 
+ // <a href='#' style='color: red; vertical-align: bottom; line-height: 30px; text-decoration: underline; margin-right: 6px;'>Clear Board</a> \
+
   var modalFooter = "<div style='display: table; width: 100%;'>\
     <div style='display: table-cell; float:right;'>\
-      <a href='#' style='color: red; vertical-align: bottom; line-height: 30px; text-decoration: underline; margin-right: 6px;'>Reset Board</a> \
-      <button class='uilib-btn close-popup' id='done-editing'>Save</button>\
+      <button class='uilib-btn close-popup' id='done-editing'>Save Board</button>\
     </div>\
   </div>";
+
+
+  var modalContent = '<iframe src="' + server.iframeUrl + '" width="530" height="400" style="border: 1px solid #ddd" ></iframe>';
 
   var modal;
   jQuery('#edit-drawings').on('click', function(evt){
@@ -95,15 +46,15 @@ angular.module('whiteboard')
         fixed: true,
         title: boardSettings.boardName,
         footer: modalFooter,
-        width: 800,
-        onopen: function() {initModeratingBoard(boardSettings.boardId);}
+        content: modalContent,
+        width: 550,
+        onopen: function() { initModeratingBoard(boardSettings.boardId); },
+        onclose: function() { server.deleteDrawings(drawingsIdsToDelete, boardSettings.boardId); }
       }
     });
-
-      evt.stopPropagation();
-      modal.getCtrl().open();
+    evt.stopPropagation();
+    modal.getCtrl().open();
   });
-
 
 
   function initModeratingBoard(boardId) {

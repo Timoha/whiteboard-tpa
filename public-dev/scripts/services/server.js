@@ -25,7 +25,32 @@ angular.module('whiteboard')
   var getSettingsURL = '/api/board/' + compId + '/settings';
   var saveSettingsURL = '/api/board/' + compId + '/settings';
   var getSubmittedUrl = '/api/board/' + compId + '/drawings?boardId=';
+  var deleteDrawingsByIdsUrl = '/api/board/' + compId + '/drawings/deleteByIds?boardId=';
   var instanceHeader = {'X-Wix-Instance' : instance};
+  var iframeUrl = 'moderating.html?instance=' + instance + '&compId=' + compId;
+
+
+
+  function deleteDrawings(ids, boardId) {
+    if($wix.Utils.getPermissions() !== 'OWNER') {
+      console.error('invalid permissions');
+      return null;
+    }
+    console.log('deleteting drawings', ids);
+
+    $http({
+        method: 'PUT',
+        url: deleteDrawingsByIdsUrl + boardId,
+        timeout: 15000,
+        headers: instanceHeader,
+        data: JSON.stringify(ids)
+      }).success(function (data, status) {
+        var data = JSON.parse(data);
+        console.log('deleted drawings', data);
+      }).error(function (message, status) {
+        console.error('cannot delete drawings', message, status);
+      });
+  }
 
 
   var getDrawings = function(boardId) {
@@ -105,8 +130,10 @@ angular.module('whiteboard')
 
 
   return {
+    deleteDrawings: deleteDrawings,
     getDrawings: getDrawings,
     getSettings: getSettings,
-    saveSettings: saveSettings
+    saveSettings: saveSettings,
+    iframeUrl: iframeUrl
   };
 });

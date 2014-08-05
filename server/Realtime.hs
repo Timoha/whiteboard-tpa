@@ -176,7 +176,8 @@ talk conn state bid client = handle catchDisconnect $
             case fromException e of
                 Just WS.ConnectionClosed -> liftIO disconnectClient
                 _ -> liftIO disconnectClient
-            where disconnectClient = modifyMVar_ state $ \s -> do
+            where
+                disconnectClient = modifyMVar_ state $ \s -> do
                     putStrLn $ show e
                     let s' = removeClient bid client s
                     broadcastBoard bid "disconnected" broadcast s'

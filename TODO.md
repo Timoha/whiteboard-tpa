@@ -21,6 +21,8 @@
 - Pull other boards of this instance and be able to set them to current
 
 #### Future:
+- verify instance of board on drawings delete
+- refactor moderation (create a separate module instead of adding it to Editor?)
 - improve performance
 - board's design field to json
 - what to do when window dimensions greater than canvas dimensions? for now, give zoomed in.

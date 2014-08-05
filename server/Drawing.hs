@@ -54,6 +54,14 @@ instance FromRow Drawing where
 data DrawingInfo = DrawingInfo DrawingId T.Text T.Text (Maybe [Stroke]) deriving Show
 
 
+
+data DrawingsDelete = DrawingsDelete [DrawingId]
+
+instance FromJSON DrawingsDelete where
+  parseJSON (Object v) = DrawingsDelete <$>
+                         v .: "drawingIds"
+  parseJSON _          = mzero
+
 instance FromJSON DrawingInfo where
     parseJSON (Object v) = DrawingInfo <$>
                            v .: "drawingId" <*>
@@ -208,3 +216,10 @@ submit c ss did =
     let q  = "update drawing set strokes = ?, submitted = NOW() where drawing_id = ? RETURNING *"
         vs = (ss, did)
     in fmap listToMaybe (query c q vs)
+
+
+deleteByIds :: Connection -> [DrawingId] -> BoardId -> IO [Drawing]
+deleteByIds c dids bid =
+    let q  = "delete from drawing where board_id = ? and drawing_id in ? RETURNING *"
+        vs = (bid, In dids)
+    in query c q vs

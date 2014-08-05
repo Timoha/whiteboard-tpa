@@ -2,8 +2,7 @@ module Eraser where
 
 import Dict
 import Touch
-import Debug
-import History (History, Drew, Erased, Event)
+import History (History, Drew, Erased, Event, ErasedDrawings)
 import Canvas (..)
 import Api (..)
 import JavaScript.Experimental as JS
@@ -74,6 +73,11 @@ removeEraser drawing history =
                                   , removeLast history )
                              else ( removeLast drawing
                                   , history )
+         Just (ErasedDrawings ds) -> if isEmpty ds
+                             then ( removeLast drawing
+                                  , removeLast history )
+                             else ( removeLast drawing
+                                  , history )
          _                -> ( drawing, history )
 
 
@@ -102,3 +106,31 @@ stepEraser ps drawing history =
       Nothing -> ( drawing'
                  , Dict.insert p.id (Erased []) history
                  , NoOpServer)
+
+
+stepModerating : [Brushed (Timed (WithId Point))] -> Drawing -> [DrawingInfo] -> History -> (Drawing, [DrawingInfo], History)
+stepModerating ps drawing submitted history =
+  if isEmpty ps
+  then let (drawing', history') = removeEraser drawing history in (drawing', submitted, history')
+  else
+    let
+      p = head ps
+      drawing' = stepStroke p drawing
+    in case Dict.get p.id drawing of
+      Just s  -> let
+                   eraserSeg = line (point p.x p.y) (head s.points)
+                   isInsersect d = case d.strokes of
+                      Just ss -> any (isLineStrokeIntersect eraserSeg) ss
+                      Nothing -> False
+                   crossed = filter isInsersect submitted
+                   erased = if isEmpty crossed then [] else [head crossed] -- erase only latest
+                   ed = case Dict.get p.id history of
+                     Just (ErasedDrawings ds) -> ds
+                     _                        -> []
+                 in ( drawing'
+                    , if isEmpty crossed then submitted else filter (\d -> d.drawingId /= (head erased).drawingId) submitted
+                    , Dict.insert p.id (ErasedDrawings <| erased ++ ed) history )
+      Nothing -> ( drawing'
+                 , submitted
+                 , Dict.insert p.id (ErasedDrawings []) history )
+

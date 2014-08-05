@@ -12,6 +12,7 @@ import Control.Applicative
 import Control.Monad
 import Control.Monad.IO.Class (liftIO)
 
+import Data.List
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import qualified Data.Text.Lazy as TL
@@ -123,20 +124,25 @@ apiApp = do
             Just w -> do
                 drawings <- liftIO $ Drawing.getSubmittedByBoard cdb bid
                 json $ (TL.decodeUtf8 . encode) $ map Drawing.toDrawingInfo drawings
-            Nothing -> json $ (TL.decodeUtf8 . encode) (ServerError "cannot get drawings" HttpType.internalServerError500)
+            Nothing -> json $ (TL.decodeUtf8 . encode) (ServerError "invalid instance" HttpType.badRequest400)
 
 
     put "/api/board/:compId/drawings/deleteByIds" $ do
         bid <- param "boardId"
         widget <- getWixWidget
+        drawingIds  <- jsonData
         cdb   <- liftIO $ connect dbConnectInfo
 
-        liftIO $ putStrLn $ show widget
+        liftIO $ putStrLn $ show drawingIds
         case widget of
             Just w -> do
-                drawings <- liftIO $ Drawing.getSubmittedByBoard cdb bid
-                json $ (TL.decodeUtf8 . encode) $ map Drawing.toDrawingInfo drawings
-            Nothing -> json $ (TL.decodeUtf8 . encode) (ServerError "cannot get drawings" HttpType.internalServerError500)
+                drawings <- liftIO $ Drawing.deleteByIds cdb drawingIds bid
+                liftIO $ putStrLn $ show drawings
+
+                if length drawingIds == length drawings
+                    then json $ (TL.decodeUtf8 . encode) HttpType.ok200
+                    else json $ (TL.decodeUtf8 . encode) (ServerError "cannot delete drawings" HttpType.badRequest400)
+            Nothing -> json $ (TL.decodeUtf8 . encode) (ServerError "invalid instance" HttpType.badRequest400)
 
 
     get "/api/board/:compId" $ do

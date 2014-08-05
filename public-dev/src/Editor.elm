@@ -1,12 +1,13 @@
 module Editor where
 
 import Dict
+import Set
 import Touch
 import Window
 import Debug
 import Navigation (..)
 import Canvas (..)
-import Eraser (stepEraser)
+import Eraser (stepEraser, stepModerating)
 import History (..)
 import Api (..)
 import JavaScript.Experimental as JS
@@ -30,25 +31,28 @@ data Action = Undo
             | View
             | Draw
             | Erase
+            | Moderate
             | FinishDrawing
 
 
 data Mode = Drawing
           | Erasing
           | Viewing
+          | Moderating
 
 type Input =
   { action     : Action
   , brush      : Brush
   , canvasDims : (Int, Int)
   , windowDims : (Int, Int)
+  , submittedInput : [DrawingInfo]
   }
 
 type Whiteboard =  Zoomable (Undoable Editor)
 
 type Editor = { mode : Mode, canvas : Canvas }
 
-type Realtime a = {a | lastMessage : ServerAction }
+type Realtime a = {a | lastMessage : ServerAction, submitted : [DrawingInfo] }
 
 type OtherDrawings = Dict.Dict Int Drawing
 
@@ -72,6 +76,7 @@ defaultEditor =
   , windowDims = (0, 0)
   , lastPosition = Nothing
   , lastMessage = NoOpServer
+  , submitted = []
   }
 
 
@@ -91,8 +96,8 @@ canvasSizePortToTuple : { width : Int, height : Int } -> (Int, Int)
 canvasSizePortToTuple {width, height} = (width, height)
 
 
-submittedDrawings : [DrawingInfo] -> Form
-submittedDrawings ds =
+renderSubmittedDrawings : [DrawingInfo] -> Form
+renderSubmittedDrawings ds =
   let
     getStrokes ds = case ds.strokes of
       Just ss -> ss
@@ -103,13 +108,14 @@ submittedDrawings ds =
 portToAction : String -> Action
 portToAction s =
   case s of
-    "Draw"    -> Draw
-    "View"    -> View
-    "Erase"   -> Erase
-    "Undo"    -> Undo
-    "ZoomIn"  -> ZoomIn
-    "ZoomOut" -> ZoomOut
-    "NoOp"    -> NoOp
+    "Draw"     -> Draw
+    "View"     -> View
+    "Erase"    -> Erase
+    "Undo"     -> Undo
+    "Moderate" -> Moderate
+    "ZoomIn"   -> ZoomIn
+    "ZoomOut"  -> ZoomOut
+    "NoOp"     -> NoOp
     "FinishDrawing" -> FinishDrawing
 
 
@@ -171,9 +177,10 @@ actions = merges [ Touches <~ (withinWindowDims <~ Touch.touches ~ Window.dimens
 
 input : Signal Input
 input = Input <~ actions
-               ~ brushPort
-               ~ (canvasSizePortToTuple <~ canvasSizePort)
-               ~ Window.dimensions
+               ~ dropRepeats brushPort
+               ~ (canvasSizePortToTuple <~ dropRepeats canvasSizePort)
+               ~ dropRepeats Window.dimensions
+               ~ dropRepeats submittedDrawingsPort
 -- OUTPUT
 
 
@@ -188,10 +195,21 @@ port canvasOut : Signal (Maybe { absPos : (Float, Float), zoomOffset : (Float, F
                         , drawing : [{t0:Float,  points:[{ x:Int, y:Int }], brush:{ size:Float, color:{ red:Int, green:Int, blue:Int, alpha:Float }}}]})
 port canvasOut = getDrawing <~ editorState
 
+port erasedDrawingIdsOut : Signal [Int]
+port erasedDrawingIdsOut = dropRepeats (getErased <~ submittedDrawingsPort ~ (.submitted <~ editorState))
+
+
+getErased : [DrawingInfo] -> [DrawingInfo] -> [Int]
+getErased orig current =
+  let
+    origIds = map .drawingId orig |> Set.fromList
+    currIds = map .drawingId current |> Set.fromList
+  in Set.diff origIds currIds |> Set.toList
+
 
 -- UPDATE
 
-getZoomable : Whiteboard -> Zoomable Editor
+getZoomable : Realtime Whiteboard -> Zoomable Editor
 getZoomable w = { canvas = w.canvas
                 , mode = w.mode
                 , windowDims = w.windowDims
@@ -219,25 +237,26 @@ eraserBrush = { size = 15, color = toRgb (rgba 0 0 0 0.1) }
 
 
 stepEditor : Input -> Realtime Whiteboard -> Realtime Whiteboard
-stepEditor {action, brush, canvasDims, windowDims}
-           ({mode, canvas, history, zoom, absPos, zoomOffset} as editor) =
+stepEditor {action, brush, canvasDims, windowDims, submittedInput}
+           ({mode, canvas, history, zoom, absPos, zoomOffset, submitted} as editor) =
   let
     float (a, b) = (toFloat a, toFloat b)
     editor' = { editor | windowDims <- windowDims
                        , minZoom <- max 1 <| minScale (float windowDims) (float canvas.dimensions)
                        , canvas <- { canvas | dimensions <- canvasDims }
+                       , submitted <- if isEmpty submitted then submittedInput else submitted
                        , lastMessage <- NoOpServer }
   in case action of
     Undo ->
-      let (drawing', history', message) = stepUndo canvas.drawing history
-      in { editor' | canvas <- { canvas | drawing <- drawing' }, history <- history', lastMessage <- message}
+      let (drawing', submitted', history', message) = stepUndo canvas.drawing submitted history
+      in { editor' | canvas <- { canvas | drawing <- drawing' }, history <- history', lastMessage <- message, submitted <- submitted'}
 
     ZoomIn ->
-      let zoomed = stepZoom 2 <| getZoomable { editor' - lastMessage }
+      let zoomed = stepZoom 2 <| getZoomable editor'
       in { editor' | zoom <- zoomed.zoom, zoomOffset <- zoomed.zoomOffset }
 
     ZoomOut ->
-      let zoomed = stepZoom (1/2) <| getZoomable { editor' - lastMessage }
+      let zoomed = stepZoom (1/2) <| getZoomable editor'
       in { editor' | zoom <- zoomed.zoom, zoomOffset <- zoomed.zoomOffset }
 
     View ->
@@ -248,6 +267,9 @@ stepEditor {action, brush, canvasDims, windowDims}
 
     Erase ->
       { editor' | mode <- Erasing }
+
+    Moderate ->
+      { editor' | mode <- Moderating }
 
     Touches ts ->
       let ps = map (touchToPoint . (scaleTouch absPos zoomOffset zoom)) ts
@@ -261,8 +283,12 @@ stepEditor {action, brush, canvasDims, windowDims}
           let (drawing', history', message) = stepEraser (applyBrush ps eraserBrush) canvas.drawing history
           in { editor' | canvas <- { canvas | drawing <- drawing'} , history <- history', lastMessage <- message}
 
+        Moderating ->
+          let (drawing', submitted', history') = stepModerating (applyBrush ps eraserBrush) canvas.drawing submitted history
+          in { editor' | canvas <- { canvas | drawing <- drawing'} , history <- history', submitted <- submitted'}
+
         Viewing ->
-          let moved = withinBounds canvas.dimensions <| stepMove ts <| getZoomable { editor' - lastMessage }
+          let moved = withinBounds canvas.dimensions <| stepMove ts <| getZoomable editor'
           in { editor' | absPos <- moved.absPos, lastPosition <- moved.lastPosition }
 
     NoOp    -> editor'
@@ -291,13 +317,13 @@ othersState = foldp stepOthers defaultOther serverMessage
 
 
 
-display : (Int, Int) -> Realtime Whiteboard -> OtherDrawings -> Form -> Element
-display (w, h) ({canvas, history, zoom, absPos} as board) o submitted =
+display : (Int, Int) -> Realtime Whiteboard -> OtherDrawings -> Element
+display (w, h) ({canvas, history, zoom, absPos, submitted } as board) o =
   let
     float (a, b) = (toFloat a, toFloat b)
     thisStrokes = renderStrokes <| Dict.values canvas.drawing
     --withOtherStrokes = sortBy .t0 <| foldl (\d ss -> (Dict.values d) ++ ss) strokes (Dict.values o)
-    displayCanvas = group <| submitted :: thisStrokes :: (map (\d -> renderStrokes (Dict.values d)) (Dict.values o))
+    displayCanvas = group <| (renderSubmittedDrawings submitted) :: thisStrokes :: (map (\d -> renderStrokes (Dict.values d)) (Dict.values o))
     toZero zoom (w, h) = (-w * zoom / 2, h * zoom / 2)
     toAbsPos (dx, dy) (x, y) = (x - dx * zoom, y + dy * zoom )
     pos = toAbsPos absPos <| toZero zoom (float (w, h))
@@ -308,4 +334,3 @@ display (w, h) ({canvas, history, zoom, absPos} as board) o submitted =
 main = display <~ Window.dimensions
                 ~ editorState
                 ~ othersState
-                ~ (submittedDrawings <~ dropRepeats submittedDrawingsPort)
