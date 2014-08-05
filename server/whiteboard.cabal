@@ -1,0 +1,38 @@
+name:                Whiteboard
+version:             0.0.1
+synopsis:            Whiteboard Wix app
+homepage:            https://github.com/andreywix/whiteboard-tpa
+license:             MIT
+author:              Andrey Elenskiy
+maintainer:          andreye@wix.com
+category:            Web
+build-type:          Simple
+cabal-version:       >=1.8
+
+executable whiteboard
+  main-is:             Main.hs
+  build-depends:       base == 4.7.*
+                     , wai
+                     , warp
+                     , wai-websockets
+                     , websockets
+                     , scotty
+                     , postgresql-simple
+                     , aeson
+                     , http-types
+                     , resourcet
+                     , text
+                     , network
+                     , bytestring
+                     , monad-logger
+                     , heroku
+                     , transformers
+                     , wai-middleware-static
+                     , wai-extra
+                     , time
+                     , split
+                     , unordered-containers
+                     , containers
+                     , base64-bytestring
+                     , cryptohash
+                     , stringsearch

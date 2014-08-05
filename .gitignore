@@ -5,3 +5,8 @@ public-dev/node_modules/
 public-dev/.tmp/
 *.log
 public-dev/src/cache/
+.cabal-sandbox/
+
+cabal.sandbox.config
+dist/
+public-dev/src/elm_dependencies/

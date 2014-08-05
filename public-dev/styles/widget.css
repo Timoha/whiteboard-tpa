@@ -19,6 +19,26 @@ ul, ol, li {
   margin: 0;
 }
 
+
+#loading {
+  position: absolute;
+  z-index: 100;
+  width: 100%;
+  height: 100%;
+  display: table;
+  text-align: center;
+  font-size: 23px;
+}
+
+
+#loading > span {
+  display: table-cell;
+  vertical-align: middle;
+  font-weight: bold;
+  background-color: rgba(255, 255, 255, 0.5);
+}
+
+
 #canvas {
   height: 100%;
 }
@@ -35,15 +55,19 @@ ul, ol, li {
 }
 
 
-.main-body {
+.main-body{
+  border-width: 0;
+  border-style: solid;
+  border-color: black;
 	position: absolute;
   top: 0; right: 0; bottom: 0; left: 0;
-  min-width: 600px;
+  min-width: 400px;
   min-height: 400px;
 }
 
 
 .tool-panel {
+  display: none;
   position: absolute;
   top: 10%;
   left: 0;
@@ -79,6 +103,7 @@ ul, ol, li {
   float: left;
   border: 1px solid rgba(0, 0, 0, 0.3);
   border-left: none;
+  border-bottom: none;
 }
 
 .zoom-buttons .last {
@@ -110,6 +135,40 @@ ul, ol, li {
 
 .tool-button:hover .style-border {
     border-right: 5px solid red;
+}
+
+
+.user-input {
+  width: 209px;
+  border: none;
+  margin-bottom: 1px;
+  padding: 8px 8px;
+  outline: none;
+  color: black;
+}
+
+.button-wrapper {
+  width: 100%;
+  text-align: center;
+  padding-top: 3px;
+}
+
+
+#start-drawing {
+  margin: 3px auto;
+  padding: 5px 15px;
+  border: 1px solid white;
+  outline: none;
+  color: white;
+  text-shadow: 0 0 1px black;
+}
+
+.control-button {
+  background-color: red;
+}
+
+#start-drawing:active {
+  border: 1px solid #999;
 }
 
 

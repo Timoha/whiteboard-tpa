@@ -5,6 +5,8 @@
     "license": "BSD3",
     "exposed-modules": [],
     "elm-version": "0.12.3",
-    "dependencies": {},
+    "dependencies": {
+        "maxsnew/Lazy": "0.2"
+    },
     "repository": "https://github.com/USER/PROJECT.git"
 }

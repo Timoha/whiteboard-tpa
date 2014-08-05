@@ -2,6 +2,7 @@ module Canvas where
 
 import Dict
 import Touch
+import Debug
 -- MODEL
 
 
@@ -11,11 +12,12 @@ type Canvas =
   }
 
 
-
+type Timed a = { a | t0 : Time }
+type WithId a = { a | id : Int }
 type Drawing = Dict.Dict Int Stroke
 type Brush = { size : Float, color : { red : Int, green : Int, blue : Int, alpha : Float }}
 type Brushed a = { a | brush : Brush }
-type Stroke = { points : [Point], brush : Brush }
+type Stroke = { points : [Point], brush : Brush, t0 : Time }
 type Point = { x : Int, y : Int }
 type Line = { p1 : Point, p2 : Point }
 
@@ -40,22 +42,23 @@ line p1 p2 = { p1 = p1, p2 = p2 }
 
 -- UPDATE
 
+touchToPoint : Touch.Touch -> Timed (WithId Point)
+touchToPoint t = { id = abs t.id, x = t.x, y = t.y, t0 = t.t0 }
 
-applyBrush : [Touch.Touch] -> Brush -> [Brushed Touch.Touch]
-applyBrush ts b = map (\t -> {t | brush = b}) ts
-
-
-
-addN : [Brushed Touch.Touch] -> Drawing -> Drawing
-addN ts d = foldl stepStroke d ts
+applyBrush : [a] -> Brush -> [Brushed a]
+applyBrush ps b = map (\p -> {p | brush = b}) ps
 
 
-stepStroke : Brushed Touch.Touch -> Drawing -> Drawing
-stepStroke t d =
+addN : [Brushed (Timed (WithId Point))] -> Drawing -> Drawing
+addN ps d = foldl stepStroke d ps
+
+
+
+stepStroke : Brushed (Timed (WithId Point)) -> Drawing -> Drawing
+stepStroke p d =
   let
-    id = abs t.id
-    vs = Dict.getOrElse {brush = t.brush, points = []} id d
-  in Dict.insert id {vs | points <- point t.x t.y :: vs.points} d
+    vs = Dict.getOrElse { brush = p.brush, points = [], t0 = p.t0 } p.id d
+  in Dict.insert p.id {vs | points <- (point p.x p.y) :: vs.points} d
 
 
 

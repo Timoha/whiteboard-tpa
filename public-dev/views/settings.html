@@ -16,19 +16,22 @@
                         <div wix-model="boardName" wix-ctrl="Input" wix-options="{placeholder: 'Enter Board Name'}"></div>
                     </li>
                     <li wix-label="Board Mode">
-                        <div wix-model="canvasStatus" wix-ctrl="ButtonGroup">
-						    <button value="active">Drawable</button>
-						    <button value="closed">Locked</button>
+                        <div wix-model="boardMode" wix-ctrl="ButtonGroup">
+						    <button value="drawable">Drawable</button>
+						    <button value="locked">Locked</button>
 						</div>
                     </li>
-	        		<li wix-label="Moderation">
+	        		<!-- <li wix-label="Moderation">
                         <span class="uilib-text" style="margin-right: 4px">Remove drawing after</span>
                         <div wix-model="numReports" wix-ctrl="Spinner" wix-options="{value: 5, minValue: 2, maxValue:15 }"></div>
                         <span class="uilib-text" style="margin-left: 4px">complaints.</span>
-			        </li>
-                    <li wix-label="New Board">
-                        <button class="uilib-btn btn-black-text btn-small"><strong>+</strong> Start New Board</button>
+			        </li> -->
+                    <li wix-label="Moderation">
+                        <button class="uilib-btn btn-black-text btn-small" id="edit-drawings"><i class="icon-edit"></i>Edit Drawings</button>
                     </li>
+                    <!-- <li wix-label="New Board">
+                        <button class="uilib-btn btn-black-text btn-small"><strong>+</strong> Start New Board</button>
+                    </li> -->
 		        </ul>
 
 	        </div>
@@ -42,33 +45,25 @@
 						    <button value="ANSI">US</button>
 						    <button value="ISO">EU</button>
 						</div>
-                        <div ng-show="settings.paperStandard == 'ANSI'" wix-model="canvasSize" wix-ctrl="Dropdown" wix-options="{width: 145}" >
-                            <div value="ANSI-A">A (Letter) - 8.5 × 11 in</div>
-                            <div value="ANSI-B">B (Tabloid) - 11 × 17 in</div>
-                            <div value="ANSI-C">C - 17 × 22 in</div>
-                            <div value="ANSI-D">D - 22 × 34 in</div>
-                            <div value="ANSI-E">E - 34 × 44 in</div>
+                        <div ng-show="paperStandard == 'ANSI'" wix-model="paperTypeANSI" wix-ctrl="Dropdown" wix-options="{width: 145}" >
+                            <div ng-repeat="pType in paperTypes.ANSI" value={{pType.value}}>{{pType.name}}</div>
                         </div>
-                        <div ng-show="settings.paperStandard == 'ISO'" wix-model="canvasSize" wix-ctrl="Dropdown" wix-options="{width: 145}" >
-                            <div value="ISO-A4">A4 - 210 × 297 mm</div>
-                            <div value="ISO-A3">A3 - 148 × 210 mm</div>
-                            <div value="ISO-A2">A2 - 420 × 594 mm</div>
-                            <div value="ISO-A1">A1 - 594 × 841 mm</div>
-                            <div value="ISO-A0">A0 - 841 × 1189 mm</div>
+                        <div ng-show="paperStandard == 'ISO'" wix-model="paperTypeISO" wix-ctrl="Dropdown" wix-options="{width: 145}" >
+                            <div ng-repeat="pType in paperTypes.ISO" value={{pType.value}}>{{pType.name}}</div>
                         </div>
 			        </li>
                     <li wix-label="Background Color">
-		        		<div wix-model="canvasColor" wix-ctrl="ColorPickerWithOpacity" wix-options="{startWithColor: 'color-15', startWithOpacity:100}"></div>
+		        		<div wix-model="canvasColor" wix-param="canvasColor" wix-ctrl="ColorPickerWithOpacity" wix-options="{startWithColor: 'color-A', startWithOpacity:100}"></div>
 		        	</li>
+                    <!-- <li wix-label="Background Picture">
+                        <button class="uilib-btn btn-small">Upload Picture</button>
+                    </li> -->
                     <li wix-label="Border Color">
-		        		<div wix-model="borderColor" wix-ctrl="ColorPickerWithOpacity" wix-options="{startWithColor: 'color-15', startWithOpacity:100}"></div>
+		        		<div wix-model="borderColor" wix-param="borderColor" wix-ctrl="ColorPickerWithOpacity" wix-options="{startWithColor: 'color-A', startWithOpacity:100}"></div>
 		        	</li>
                     <li wix-label="Border Width">
-                        <div  wix-model="borderWidth" wix-ctrl="Slider" wix-options="{maxValue:10, preLabel: '0', postLabel: '10', toolTip: true}"></div>
+                        <div wix-model="borderWidth" wix-ctrl="Slider" wix-options="{maxValue:10, preLabel: '0', postLabel: '10', toolTip: true}"></div>
 		        	</li>
-			        <li wix-label="Background Picture">
-                        <button class="uilib-btn btn-small">Upload Picture</button>
-			        </li>
 		        </ul>
 	        </div>
 	    </div>
@@ -77,13 +72,13 @@
 	        <div class="acc-content">
 	        	<ul class="list">
 		        	<li wix-label="Fill Color &amp; Opacity">
-		        		<div wix-param="fillColor" wix-ctrl="ColorPickerWithOpacity" wix-options="{startWithColor: 'color-7', startWithOpacity:100}"></div>
+		        		<div wix-param="fillColor" wix-ctrl="ColorPickerWithOpacity" wix-options="{startWithColor: 'color-18', startWithOpacity:100}"></div>
 		        	</li>
 		        	<li wix-label="Icons Color">
-		        		<div wix-param="borderColor" wix-ctrl="ColorPicker" wix-options="{startWithColor: 'color-5'}"></div>
+		        		<div wix-param="iconColor" wix-ctrl="ColorPicker" wix-options="{startWithColor: 'color-5'}"></div>
 		        	</li>
                     <li wix-label="Secondary Color">
-		        		<div wix-param="secondaryColor" wix-ctrl="ColorPicker" wix-options="{startWithColor: 'color-3'}"></div>
+		        		<div wix-param="secondaryColor" wix-ctrl="ColorPicker" wix-options="{startWithColor: 'color-15'}"></div>
 		        	</li>
 	        	</ul>
 	        </div>
