@@ -36,7 +36,7 @@ $(document).ready(function() {
   function setupBoard(data) {
 
     var settings = data.settings;
-    var drawings = data.drawings;
+    var drawings = data.submitted;
 
     $('#board-title').text(settings.boardName);
 

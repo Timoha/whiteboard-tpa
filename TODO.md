@@ -1,7 +1,5 @@
 # TODO:
 
-- delete drawing if disconnected and not submitted? Nope, always keep it <- Way to cancel drawing (Maybe for now)
-- validate email and name on drawing start, add some animation?
 - Figure out why sometimes wix settings are not loaded
 - heroku deployment
 - board resetting
@@ -14,6 +12,7 @@
 - add tooltips
 
 #### Future:
+- disconnection handling - think of something
 - Remove drawing signal for handling disconnection?
 - refactor server signals
 - liking/reporting drawings

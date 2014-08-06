@@ -151,28 +151,72 @@ $(document).ready(function () {
 
     var drawingInfo = {};
 
-    $('#start-drawing').on('click', function () {
-      var user = {
-        firstName: $( "input[name='first-name']" ).val(),
-        lastName: $( "input[name='last-name']" ).val(),
-        email: $( "input[name='email']" ).val()
-      };
 
-      $.ajax({
-        type: 'POST',
-        url:  'http://localhost:9160/api/board/' + boardSettings.boardId + '/drawing',
-        dataType: 'json',
-        data: JSON.stringify(user),
-        success: function( data ) {
-          drawingInfo = JSON.parse(data);
-          editor.ports.userInfoPort.send(drawingInfo);
-          editor.ports.actionPort.send('Draw');
-          $('.viewing').hide();
-          $('.editing').show();
-          $('#colors').initColorPanel('#brush', defaultBrush);
-        }
-      });
+    function isEmail(email) {
+      var regex = /^([a-zA-Z0-9_.+-])+\@(([a-zA-Z0-9-])+\.)+([a-zA-Z0-9]{2,4})+$/;
+      return regex.test(email);
+    }
+
+
+    $( "input[name='first-name'], input[name='last-name']" ).keyup(function () {
+      var elem = $(this);
+      if(elem.val()) {
+        elem.removeClass('invalid');
+      } else {
+        elem.addClass('invalid');
+      }
     });
+
+
+    $( "input[name='email']" ).keyup(function () {
+      var elem = $(this);
+      if(isEmail(elem.val())) {
+        elem.removeClass('invalid');
+      } else {
+        elem.addClass('invalid');
+      }
+    });
+
+
+    // refactor this
+    $('#start-drawing').on('click', function () {
+
+      if(!$( "input[name='first-name']" ).val()) {
+        $( "input[name='first-name']" ).addClass('invalid');
+      }
+
+      if(!$( "input[name='last-name']" ).val()) {
+        $( "input[name='last-name']" ).addClass('invalid');
+      }
+
+      if(!isEmail($( "input[name='email']" ).val())) {
+        $( "input[name='email']" ).addClass('invalid');
+      }
+
+      var isValidInfo = !($( "input[name='email'], input[name='first-name'], input[name='last-name']" ).is('.invalid'));
+      if (isValidInfo) {
+        var user = {
+          firstName: $( "input[name='first-name']" ).val(),
+          lastName: $( "input[name='last-name']" ).val(),
+          email: $( "input[name='email']" ).val()
+        };
+        $.ajax({
+          type: 'POST',
+          url:  'http://localhost:9160/api/board/' + boardSettings.boardId + '/drawing',
+          dataType: 'json',
+          data: JSON.stringify(user),
+          success: function( data ) {
+            drawingInfo = JSON.parse(data);
+            editor.ports.userInfoPort.send(drawingInfo);
+            editor.ports.actionPort.send('Draw');
+            $('.viewing').hide();
+            $('.editing').show();
+            $('#colors').initColorPanel('#brush', defaultBrush);
+          }
+        });
+      }
+    });
+
 
     function submitDrawing(drawing) {
       console.log("submit", drawing);

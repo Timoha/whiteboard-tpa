@@ -81,7 +81,7 @@ getWixWidget = do
 apiApp :: Acid.AcidState BoardsState -> ScottyM ()
 apiApp acid = do
 
-    middleware $ staticPolicy (noDots >-> addBase "public-dev")
+    middleware $ staticPolicy (noDots >-> addBase "public")
     middleware logStdoutDev
 
 

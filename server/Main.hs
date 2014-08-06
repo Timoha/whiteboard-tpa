@@ -3,6 +3,7 @@ import Web.Scotty (scottyApp)
 import Realtime (application, defaultServerState)
 import Api (apiApp)
 import DrawingProgress
+import System.Directory
 
 import Data.Acid (openLocalState)
 
@@ -16,6 +17,8 @@ import Control.Concurrent (newMVar)
 
 main :: IO ()
 main = do
+    dir <- getCurrentDirectory
+    putStrLn $ show dir
     putStrLn "http://localhost:9160/"
     state <- newMVar defaultServerState
     acid <- openLocalState (BoardsState fixtures)
