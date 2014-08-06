@@ -18,7 +18,10 @@ executable whiteboard
                      , websockets
                      , scotty
                      , postgresql-simple
+                     , acid-state
+                     , safecopy
                      , aeson
+                     , mtl
                      , http-types
                      , resourcet
                      , text

@@ -26,6 +26,7 @@ type BoardInfo =
 data ServerAction = AddPoints { brush:Brush, points:[Timed (WithId Point)] }
                   | AddStrokes { strokes:[WithId Stroke] }
                   | RemoveStroke { strokeId:Int }
+                  | AddDrawings { online:[DrawingInfo]}
                   | NewClient
                   | NoOpServer
 

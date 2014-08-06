@@ -1,8 +1,13 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE FlexibleInstances #-}
+--{-# LANGUAGE DeriveGeneric #-}
+--import GHC.Generics
+
 
 module Realtime (application, defaultServerState) where
 
 import Drawing
+import DrawingProgress
 import WixInstance
 import Api (ServerError (..))
 import Board
@@ -26,10 +31,13 @@ import qualified Data.Text.Lazy.Encoding as TL
 import qualified Data.ByteString.Lazy.Char8 as BLC8
 import qualified Data.HashMap.Strict as HashMap
 
+import Data.Acid as Acid
 import Data.Aeson
+import Data.Aeson.Types
 import qualified Network.WebSockets as WS
 import qualified Network.Wai.Handler.WebSockets as WaiWS
 import qualified Network.HTTP.Types as HttpType
+
 
 
 
@@ -64,14 +72,32 @@ instance FromJSON ClientMessage where
     parseJSON _          = mzero
 
 
+instance FromJSON (Int, Stroke) where
+    parseJSON (Object v) = (,) <$>
+                           v .: "id" <*>
+                           (Stroke <$>
+                               v .: "t0" <*>
+                               v .: "points" <*>
+                               v .: "brush")
+    parseJSON _          = mzero
 
+
+--instance FromJSON AddStrokes where
+--    parseJSON (Object v) = AddStrokes <$>
+--                           v .: "strokes"
+--    parseJSON _          = mzero
+
+
+instance FromJSON ReceivedPoint where
+    parseJSON (Object v) = ReceivedPoint <$> v .: "t0" <*> v .: "id" <*> (Point <$> v .: "x" <*> v .: "y")
+    parseJSON _          = mzero
 
 data Message = NewClient BoardId
-             | NewDrawing DrawingInfo
---             | RemoveStroke Stroke User
---             | AddPoints [Points] User
---             | AddStrokes [Stroke] User
+             | AddPoints DrawingInfo Brush [ReceivedPoint]
+             | AddStrokes DrawingInfo [(Int, Stroke)]
+             | RemoveStroke DrawingInfo StrokeId
              | NoOp
+             deriving (Show)
 
 
 
@@ -128,22 +154,23 @@ broadcastOther me message clients = broadcast message $ HashMap.filterWithKey (\
 handleMessage :: ClientMessage -> Maybe Message
 handleMessage msg =
     case action msg of
-        "NewClient" -> case wixInst of
-            Just _ -> Just (NewClient bid)
-            Nothing -> Nothing
-        "NewDrawing" -> fmap NewDrawing d
+        "NewClient"  -> wixInst >>= (\w -> Just $ NewClient bid) -- check wix instance only for new client, after that it doesn't matter what she sends
+        "AddPoints"  -> d >>= \d' -> flip parseMaybe e $ \obj -> AddPoints d' <$> obj .: "brush" <*> obj .: "points"
+        "AddStrokes" -> d >>= \d' -> flip parseMaybe e $ \obj -> AddStrokes d' <$> obj .: "strokes"
+        "RemoveStroke" -> d >>= \d' -> flip parseMaybe e $ \obj -> RemoveStroke d' <$> obj .: "strokeId"
         "NoOpServer" -> Just NoOp
         _ -> Nothing
     where
         (BoardInfoUnparsed bid inst cid) = board msg
         wixInst = parseInstance (BLC8.pack "e5e44072-34f2-43cc-ba7d-82962348d57f") (TL.encodeUtf8 (TL.fromStrict inst))
         d = drawing msg
+        Object e = element msg
 
 
 
 
-application :: MVar ServerState -> WS.ServerApp
-application state pending = do
+application :: MVar ServerState -> Acid.AcidState BoardsState -> WS.ServerApp
+application state acid pending = do
     clientUnique <- newUnique
     let client = hashUnique clientUnique
     conn <- WS.acceptRequest pending
@@ -158,18 +185,28 @@ application state pending = do
                 liftIO $ modifyMVar_ state $ \s -> do
                     let s' = addClient bid client conn s
                     return s'
-                talk conn state bid client
+                talk conn state acid bid client
             _           -> return ()
         Nothing -> do (WS.sendTextData conn . encode) (ServerError "invalid message format" HttpType.badRequest400)
 
 
 
-talk :: WS.Connection -> MVar ServerState -> BoardId -> Client -> IO ()
-talk conn state bid client = handle catchDisconnect $
+talk :: WS.Connection -> MVar ServerState -> Acid.AcidState BoardsState -> BoardId -> Client -> IO ()
+talk conn state acid bid client = handle catchDisconnect $
     forever $ do
         msg <- WS.receiveData conn
         case decode msg of
-            Just (ClientMessage _ _ _ _)  -> liftIO $ readMVar state >>= broadcastBoard bid (TL.decodeUtf8 msg) (broadcastOther client)
+            Just m@(ClientMessage _ _ _ _)  -> case handleMessage m of
+                Just (AddPoints d b ps) -> do
+                    liftIO $ Acid.update acid $ AddNewPoints bid d (map (applyBrush b) ps)
+                    liftIO $ readMVar state >>= broadcastBoard bid (TL.decodeUtf8 msg) (broadcastOther client)
+                Just (AddStrokes d ss) -> do
+                    liftIO $ Acid.update acid $ AddNewStrokes bid d ss
+                    liftIO $ readMVar state >>= broadcastBoard bid (TL.decodeUtf8 msg) (broadcastOther client)
+                Just s@(RemoveStroke d sid) -> do
+                    liftIO $ Acid.update acid $ RemoveOldStroke bid d sid
+                    liftIO $ readMVar state >>= broadcastBoard bid (TL.decodeUtf8 msg) (broadcastOther client)
+                _ -> liftIO $ readMVar state >>= broadcastBoard bid (TL.decodeUtf8 msg) (broadcastOther client)
             _ -> do (WS.sendTextData conn . encode) (ServerError "invalid message format" HttpType.badRequest400)
     where
         catchDisconnect e =

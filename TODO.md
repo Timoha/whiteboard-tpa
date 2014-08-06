@@ -21,6 +21,7 @@
 - Pull other boards of this instance and be able to set them to current
 
 #### Future:
+- Point is also a stroke, might have a prettier way to write logic
 - verify instance of board on drawings delete
 - refactor moderation (create a separate module instead of adding it to Editor?)
 - improve performance

@@ -134,6 +134,7 @@ serverToAction r =
                   "AddPoints"    -> (AddPoints res.element, res.drawing)
                   "AddStrokes"   -> (AddStrokes res.element, res.drawing)
                   "RemoveStroke" -> (RemoveStroke res.element, res.drawing)
+                  "AddDrawings"  -> (AddDrawings res.element, {firstName = "", lastName = "", drawingId = 0, strokes = Nothing})
                   _              -> (NoOpServer, res.drawing)
     Nothing -> (NoOpServer, {firstName = "", lastName = "", drawingId = 0, strokes = Nothing}) -- throw error instead
 
@@ -168,8 +169,11 @@ serverMessage = dropRepeats (serverToAction <~ incoming)
 --toolActions : Input Action
 --toolActions = Input.input NoOp
 
+sortTouches : [Touch.Touch] -> [Touch.Touch]
+sortTouches ts = reverse <| sortBy .t0 ts -- temp solution for zombie touches
+
 actions : Signal Action
-actions = merges [ Touches <~ (withinWindowDims <~ Touch.touches ~ Window.dimensions)
+actions = merges [ Touches <~ (withinWindowDims <~ (Touch.touches) ~ Window.dimensions)
                  , portToAction <~ actionPort
                  --, toolActions.signal
                  ]

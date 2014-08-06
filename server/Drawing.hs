@@ -16,6 +16,7 @@ import Control.Monad
 
 import Data.Typeable
 import Data.Aeson
+import Data.SafeCopy
 import Database.PostgreSQL.Simple
 import Database.PostgreSQL.Simple.FromRow
 import Database.PostgreSQL.Simple.ToRow
@@ -51,7 +52,7 @@ instance FromRow Drawing where
 
 --------------- DrawingInfo ------------------
 
-data DrawingInfo = DrawingInfo DrawingId T.Text T.Text (Maybe [Stroke]) deriving Show
+data DrawingInfo = DrawingInfo DrawingId T.Text T.Text (Maybe [Stroke]) deriving (Show, Typeable)
 
 
 
@@ -80,13 +81,37 @@ instance ToJSON DrawingInfo where
                , "strokes" .= ss ]
 
 
+instance SafeCopy DrawingInfo where
+     putCopy (DrawingInfo did fstN lstN ss) = contain $ do safePut did; safePut fstN; safePut lstN; safePut ss
+     getCopy = contain $ DrawingInfo <$> safeGet <*> safeGet <*> safeGet <*> safeGet
+
 
 toDrawingInfo :: Drawing -> DrawingInfo
 toDrawingInfo (Drawing did _ ss (User fn ln e) _ _) = DrawingInfo did fn ln ss
 
 
+--------------- Point ------------------
+
+data Point = Point
+  { x :: Int
+  , y :: Int
+  } deriving (Typeable, Eq, Show)
+
+instance FromJSON Point where
+    parseJSON (Object v) = Point <$>
+                           v .: "x" <*>
+                           v .: "y"
+    parseJSON _          = mzero
 
 
+instance ToJSON Point where
+    toJSON (Point x y) =
+        object [ "x" .= x
+               , "y" .= y ]
+
+instance SafeCopy Point where
+     putCopy (Point x y) = contain $ do safePut x; safePut y
+     getCopy = contain $ Point <$> safeGet <*> safeGet
 --------------- Color ------------------
 
 data Color =  Color
@@ -121,6 +146,10 @@ instance FromField Color where
 instance ToField Color where
     toField = toJSONField
 
+instance SafeCopy Color where
+     putCopy (Color r g b a) = contain $ do safePut r; safePut g; safePut b; safePut a;
+     getCopy = contain $ Color <$> safeGet <*> safeGet <*> safeGet <*> safeGet
+
 
 --------------- Brush ------------------
 
@@ -142,13 +171,15 @@ instance ToJSON Brush where
         object [ "color" .= c
                , "size" .= s ]
 
-
+instance SafeCopy Brush where
+     putCopy (Brush c s) = contain $ do safePut c; safePut s;
+     getCopy = contain $ Brush <$> safeGet <*> safeGet
 
 --------------- Stroke ------------------
 
 data Stroke = Stroke
     { t0 :: Int
-    , points :: [Object]
+    , points :: [Point]
     , brush :: Brush
     } deriving (Eq, Show, Typeable)
 
@@ -170,6 +201,10 @@ instance ToJSON Stroke where
         object [ "t0" .= t0
                , "points" .= ps
                , "brush" .= b ]
+
+instance SafeCopy Stroke where
+     putCopy (Stroke t0 ps b) = contain $ do safePut t0; safePut ps; safePut b;
+     getCopy = contain $ Stroke <$> safeGet <*> safeGet <*> safeGet
 
 
 instance ToField [Stroke] where
