@@ -28,7 +28,7 @@ import qualified Data.Text.Encoding as T
 
 
 type DrawingId = Int
-
+type StrokeId = Int
 type BoardId = Int
 
 
@@ -178,18 +178,20 @@ instance SafeCopy Brush where
 --------------- Stroke ------------------
 
 data Stroke = Stroke
-    { t0 :: Int
+    { strokeId :: StrokeId
+    , t0 :: Int
     , points :: [Point]
     , brush :: Brush
     } deriving (Eq, Show, Typeable)
 
 
 instance Ord Stroke where
-    (Stroke t01 _ _) `compare` (Stroke t02 _ _) = t01 `compare` t02
+    (Stroke t01 _ _ _) `compare` (Stroke t02 _ _ _) = t01 `compare` t02
 
 
 instance FromJSON Stroke where
     parseJSON (Object v) = Stroke <$>
+                           v .: "id" <*>
                            v .: "t0" <*>
                            v .: "points" <*>
                            v .: "brush"
@@ -197,14 +199,15 @@ instance FromJSON Stroke where
 
 
 instance ToJSON Stroke where
-    toJSON (Stroke t0 ps b) =
-        object [ "t0" .= t0
+    toJSON (Stroke sid t0 ps b) =
+        object [ "id" .= sid
+               , "t0" .= t0
                , "points" .= ps
                , "brush" .= b ]
 
 instance SafeCopy Stroke where
-     putCopy (Stroke t0 ps b) = contain $ do safePut t0; safePut ps; safePut b;
-     getCopy = contain $ Stroke <$> safeGet <*> safeGet <*> safeGet
+     putCopy (Stroke sid t0 ps b) = contain $ do safePut sid; safePut t0; safePut ps; safePut b;
+     getCopy = contain $ Stroke <$> safeGet <*> safeGet <*> safeGet <*> safeGet
 
 
 instance ToField [Stroke] where

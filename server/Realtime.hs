@@ -72,14 +72,6 @@ instance FromJSON ClientMessage where
     parseJSON _          = mzero
 
 
-instance FromJSON (Int, Stroke) where
-    parseJSON (Object v) = (,) <$>
-                           v .: "id" <*>
-                           (Stroke <$>
-                               v .: "t0" <*>
-                               v .: "points" <*>
-                               v .: "brush")
-    parseJSON _          = mzero
 
 
 --instance FromJSON AddStrokes where
@@ -94,7 +86,7 @@ instance FromJSON ReceivedPoint where
 
 data Message = NewClient BoardId
              | AddPoints DrawingInfo Brush [ReceivedPoint]
-             | AddStrokes DrawingInfo [(Int, Stroke)]
+             | AddStrokes DrawingInfo [Stroke]
              | RemoveStroke DrawingInfo StrokeId
              | NoOp
              deriving (Show)
@@ -181,7 +173,8 @@ application state acid pending = do
         Just m -> case handleMessage m of
             Just (NewClient bid) -> do
                 broadcastBoard bid "new client joined" broadcast boards
-                WS.sendTextData conn ("hi new" :: T.Text)
+                online <- liftIO $ Acid.query acid (GetDrawings bid)
+                WS.sendTextData conn $ encode (ClientMessage (board m) (drawing m) (object ["online" .= online]) "AddDrawings")
                 liftIO $ modifyMVar_ state $ \s -> do
                     let s' = addClient bid client conn s
                     return s'

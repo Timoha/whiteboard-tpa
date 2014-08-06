@@ -19,7 +19,7 @@ main = do
     putStrLn "http://localhost:9160/"
     state <- newMVar defaultServerState
     acid <- openLocalState (BoardsState fixtures)
-    api <- scottyApp (apiApp acid)
+    api <- scottyApp apiApp
     Warp.runSettings ((Warp.setTimeout 3600 . Warp.setPort 9160) Warp.defaultSettings)
        $ WaiWS.websocketsOr WS.defaultConnectionOptions (application state acid) api
 

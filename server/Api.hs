@@ -23,7 +23,6 @@ import qualified Data.Text.Lazy.IO as TL
 import qualified Data.Text.Lazy.Encoding as TL
 import qualified Data.ByteString.Lazy.Char8 as BLC8
 
-import Data.Acid as Acid
 import Web.Scotty
 import Data.Aeson (ToJSON, toJSON, object, (.=), encode)
 import Database.PostgreSQL.Simple
@@ -37,16 +36,15 @@ data ServerError = ServerError { error :: T.Text
                                } deriving Show
 
 
-data WidgetJson = WidgetJson Board.Board [Drawing.DrawingInfo] [Drawing.DrawingInfo] deriving Show
+data WidgetJson = WidgetJson Board.Board [Drawing.DrawingInfo] deriving Show
 
 data SettingsPanelJson = SettingsPanelJson Board.Board Bool deriving Show
 
 
 instance ToJSON WidgetJson where
-    toJSON (WidgetJson ss submitted online) =
+    toJSON (WidgetJson ss submitted) =
         object [ "settings" .= ss
-               , "submitted" .= submitted
-               , "online" .=  online]
+               , "submitted" .= submitted ]
 
 instance ToJSON SettingsPanelJson where
     toJSON (SettingsPanelJson ss empty) =
@@ -79,8 +77,8 @@ getWixWidget = do
     return $ fmap (Board.WixWidget componentId) widget
 
 
-apiApp :: Acid.AcidState BoardsState -> ScottyM ()
-apiApp acid = do
+apiApp :: ScottyM ()
+apiApp = do
 
     middleware $ staticPolicy (noDots >-> addBase "public-dev")
     middleware logStdoutDev
@@ -161,9 +159,8 @@ apiApp acid = do
         liftIO $ putStrLn $ show widget
         case board of
             Just b -> do
-                online <- liftIO $ Acid.query acid (GetDrawings (Board.boardId b))
                 drawings <- liftIO $ Drawing.getSubmittedByBoard cdb (Board.boardId b)
-                json $ (TL.decodeUtf8 . encode) $ WidgetJson b (map Drawing.toDrawingInfo drawings) online
+                json $ (TL.decodeUtf8 . encode) $ WidgetJson b (map Drawing.toDrawingInfo drawings)
             Nothing -> json $ (TL.decodeUtf8 . encode) (ServerError "cannot get board" HttpType.internalServerError500)
 
 

@@ -25,8 +25,8 @@ import qualified Data.Map as Map
 
 stepStroke :: Strokes -> BrushedReceivedPoint -> Strokes
 stepStroke d (b, (ReceivedPoint t0 sid p))  =
-    Map.insert sid (Stroke t0 (p:ps) b) d
-        where Stroke _ ps _ = Map.findWithDefault (Stroke t0 [] b) sid d
+    Map.insert sid (Stroke sid t0 (p:ps) b) d
+        where Stroke _ _ ps _ = Map.findWithDefault (Stroke sid t0 [] b) sid d
 
 
 addNPoints :: [BrushedReceivedPoint] -> Strokes -> Strokes
@@ -37,8 +37,8 @@ applyBrush :: Brush -> ReceivedPoint -> BrushedReceivedPoint
 applyBrush = (,)
 
 
-addStrokes :: [(StrokeId, Stroke)] -> Strokes -> Strokes
-addStrokes ss d = foldl (\d (sid, s) -> Map.insert sid s d) d ss
+addStrokes :: [Stroke] -> Strokes -> Strokes
+addStrokes ss d = foldl (\d s -> Map.insert (strokeId s) s d) d ss
 
 
 removeStroke :: StrokeId -> Strokes -> Strokes
@@ -46,9 +46,8 @@ removeStroke = Map.delete
 
 
 collectDrawings :: Drawings -> [DrawingInfo]
-collectDrawings ds = map (\(did, ss) -> DrawingInfo did "" "" (Just (Map.toList ss))) $ Map.toList ds
+collectDrawings ds = map (\(did, ss) -> DrawingInfo did "" "" (Just (Map.elems ss))) $ Map.toList ds
 
-type StrokeId = Int
 type Drawings = Map.Map DrawingId Strokes
 type Strokes = Map.Map StrokeId Stroke
 type TouchTime = Int
@@ -88,7 +87,7 @@ addNewPoints bid d ps = do
     BoardsState bs <- S.get
     S.put (BoardsState (updateDrawing (addNPoints ps) d bid bs))
 
-addNewStrokes :: BoardId -> DrawingInfo -> [(StrokeId, Stroke)] -> Update BoardsState ()
+addNewStrokes :: BoardId -> DrawingInfo -> [Stroke] -> Update BoardsState ()
 addNewStrokes bid d ss = do
     BoardsState bs <- S.get
     S.put (BoardsState (updateDrawing (addStrokes ss) d bid bs))
