@@ -7,9 +7,9 @@
     <title>Whiteboard</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
     <script type="text/javascript" src="//sslstatic.wix.com/services/js-sdk/1.31.0/js/Wix.js"></script>
-    <script type="text/javascript" src="scripts/elm-runtime.js"></script>
+    <script type="text/javascript" src="http://elm-lang.org/elm-runtime.js"></script>
 
-    <!-- build:css({.tmp,app}) styles/app.css -->
+    <!-- build:css styles/app.css -->
     <link rel="stylesheet" href="bower_components/normalize-css/normalize.css">
     <link rel="stylesheet" href="styles/font-styles.css">
     <link rel="stylesheet" href="styles/widget.css">
@@ -147,18 +147,20 @@
 
 
 </body>
-<!-- build:js scripts/plugins.js -->
 <script src="bower_components/jquery/dist/jquery.js"></script>
 <script src="bower_components/rangeslider.js/dist/rangeslider.js"></script>
 <script src="bower_components/jquery-simplecolorpicker/jquery.simplecolorpicker.js"></script>
-<!-- endbuild -->
-<!-- build:js({.tmp,app}) scripts/index.js -->
-<!--     <script src="scripts/app.js"></script> -->
+<!-- build:js scripts/elm-modules.js -->
 <script src="scripts/Editor.js"></script>
 <script src="scripts/Minimap.js"></script>
-<script src="scripts/color.js"></script>
-<script src="scripts/api.js"></script>
+<!-- endbuild -->
+<!-- build:js scripts/utils.js -->
+<script type="text/javascript" src="scripts/color.js"></script>
+<!-- endbuild -->
+
+<!-- build:js scripts/index.js -->
 <script src="scripts/brush-controls.js"></script>
+<script src="scripts/api.js"></script>
 <script src="scripts/tool-panel.js"></script>
 <!-- endbuild -->
 

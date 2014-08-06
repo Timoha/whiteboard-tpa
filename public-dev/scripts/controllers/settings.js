@@ -28,11 +28,11 @@ angular.module('whiteboard')
 
  // <a href='#' style='color: red; vertical-align: bottom; line-height: 30px; text-decoration: underline; margin-right: 6px;'>Clear Board</a> \
 
-  var modalFooter = "<div style='display: table; width: 100%;'>\
-    <div style='display: table-cell; float:right;'>\
-      <button class='uilib-btn close-popup' id='done-editing'>Save Board</button>\
-    </div>\
-  </div>";
+  var modalFooter = '<div style="display: table; width: 100%;"> \
+    <div style="display: table-cell; float:right;"> \
+      <button class="uilib-btn close-popup" id="done-editing">Save Board</button> \
+    </div> \
+  </div>';
 
 
   var modalContent = '<iframe src="' + server.iframeUrl + '" width="530" height="400" style="border: 1px solid #ddd" ></iframe>';
@@ -77,7 +77,7 @@ angular.module('whiteboard')
 
     switch(key) {
     case 'canvasColor':
-      whiteColor.fromRGBAColorString(value.rgba)
+      whiteColor.fromRGBAColorString(value.rgba);
       boardSettings.backgroundColor = whiteColor.getColor();
       break;
     case 'paperStandard':
@@ -85,16 +85,16 @@ angular.module('whiteboard')
       $scope.$apply();
       break;
     case 'paperTypeANSI':
-      boardSettings['paperType'] = value.value;
+      boardSettings.paperType = value.value;
       break;
     case 'paperTypeISO':
-      boardSettings['paperType'] = value.value;
+      boardSettings.paperType = value.value;
       break;
     case 'borderWidth':
       boardSettings.design = {borderWidth: value};
       break;
     case 'boardMode':
-      boardSettings.locked = value.value === 'locked'
+      boardSettings.locked = value.value === 'locked';
       break;
     default:
       boardSettings[key] = value;
@@ -140,7 +140,7 @@ angular.module('whiteboard')
     boardSettings.paperTypeANSI = settings.dimensions.paperType;
     boardSettings.paperTypeISO = settings.dimensions.paperType;
     boardSettings.paperType = settings.dimensions.paperType;
-    boardSettings.boardMode = (settings.locked) ? 'locked' : 'drawable'
+    boardSettings.boardMode = (settings.locked) ? 'locked' : 'drawable';
 
     var paperStandard = settings.dimensions.paperType.split('_')[0];
     boardSettings.paperStandard = paperStandard;
@@ -154,7 +154,7 @@ angular.module('whiteboard')
       $scope.paperTypes.ISO = ISO;
       $scope.$apply();
       $wix.UI.initialize(boardSettings);
-    })
+    });
   };
 
   $scope.paperTypes = ANSI.concat(ISO);
@@ -185,7 +185,9 @@ angular.module('whiteboard')
           func.apply();
         }
       }, wait);
-      if (immediate && !timeout) func.apply();
+      if (immediate && !timeout) {
+        func.apply();
+      }
     };
   };
 

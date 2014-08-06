@@ -88,6 +88,7 @@ data Message = NewClient BoardId
              | AddPoints DrawingInfo Brush [ReceivedPoint]
              | AddStrokes DrawingInfo [Stroke]
              | RemoveStroke DrawingInfo StrokeId
+             | NewDrawing DrawingInfo
              | NoOp
              deriving (Show)
 
@@ -95,7 +96,8 @@ data Message = NewClient BoardId
 
 
 type Client = Int
-type ClientState = HashMap.HashMap Client WS.Connection
+data ClientInfo = ClientInfo WS.Connection (Maybe Drawing.DrawingInfo)
+type ClientState = HashMap.HashMap Client ClientInfo
 type ServerState = HashMap.HashMap BoardId ClientState
 
 
@@ -112,12 +114,29 @@ defaultClientState = HashMap.empty
 --numClients = HashMap.foldl' ((+) HashMap.size) 0
 
 
-addClient :: BoardId -> Client -> WS.Connection -> ServerState -> ServerState
-addClient b c w bs = HashMap.insert b clients bs
+addClient :: BoardId -> Client -> ClientInfo -> ServerState -> ServerState
+addClient b c info bs = HashMap.insert b clients bs
     where
         clients = case HashMap.lookup b bs of
-            Just cs -> HashMap.insert c w cs
-            Nothing -> HashMap.insert c w defaultClientState
+            Just cs -> HashMap.insert c info cs
+            Nothing -> HashMap.insert c info defaultClientState
+
+
+updateClient :: BoardId -> Client -> (ClientInfo -> ClientInfo) -> ServerState -> ServerState
+updateClient b c f bs = HashMap.insert b clients bs
+    where
+        clients = case HashMap.lookup b bs of
+            Just cs -> HashMap.adjust f c cs
+            Nothing -> defaultClientState -- think more about this
+
+
+lookupClient :: BoardId -> Client -> ServerState -> Maybe ClientInfo
+lookupClient bid cid bs = HashMap.lookup bid bs >>= HashMap.lookup cid
+
+setClientDrawing :: DrawingInfo -> ClientInfo -> ClientInfo
+setClientDrawing d (ClientInfo conn drawing) = ClientInfo conn (Just d)
+
+
 
 
 
@@ -128,7 +147,7 @@ removeClient b c = HashMap.adjust (HashMap.delete c) b
 broadcast :: TL.Text -> ClientState -> IO ()
 broadcast message clients = do
     TL.putStrLn message
-    forM_ (HashMap.elems clients) $ \c -> forkIO $ WS.sendTextData c message
+    forM_ (HashMap.elems clients) $ \(ClientInfo c _) -> forkIO $ WS.sendTextData c message
 
 
 broadcastBoard :: BoardId -> TL.Text -> (TL.Text -> ClientState -> IO ()) -> ServerState -> IO ()
@@ -151,6 +170,7 @@ handleMessage msg =
         "AddStrokes" -> d >>= \d' -> flip parseMaybe e $ \obj -> AddStrokes d' <$> obj .: "strokes"
         "RemoveStroke" -> d >>= \d' -> flip parseMaybe e $ \obj -> RemoveStroke d' <$> obj .: "strokeId"
         "NoOpServer" -> Just NoOp
+        "NewDrawing" -> d >>= Just . NewDrawing
         _ -> Nothing
     where
         (BoardInfoUnparsed bid inst cid) = board msg
@@ -164,7 +184,7 @@ handleMessage msg =
 application :: MVar ServerState -> Acid.AcidState BoardsState -> WS.ServerApp
 application state acid pending = do
     clientUnique <- newUnique
-    let client = hashUnique clientUnique
+    let clientId = hashUnique clientUnique
     conn <- WS.acceptRequest pending
     msg <- WS.receiveData conn
     putStrLn $ show $ msg
@@ -176,9 +196,8 @@ application state acid pending = do
                 online <- liftIO $ Acid.query acid (GetDrawings bid)
                 WS.sendTextData conn $ encode (ClientMessage (board m) (drawing m) (object ["online" .= online]) "AddDrawings")
                 liftIO $ modifyMVar_ state $ \s -> do
-                    let s' = addClient bid client conn s
-                    return s'
-                talk conn state acid bid client
+                    return $ addClient bid clientId (ClientInfo conn Nothing) s
+                talk conn state acid bid clientId
             _           -> return ()
         Nothing -> do (WS.sendTextData conn . encode) (ServerError "invalid message format" HttpType.badRequest400)
 
@@ -189,17 +208,19 @@ talk conn state acid bid client = handle catchDisconnect $
     forever $ do
         msg <- WS.receiveData conn
         case decode msg of
-            Just m@(ClientMessage _ _ _ _)  -> case handleMessage m of
-                Just (AddPoints d b ps) -> do
-                    liftIO $ Acid.update acid $ AddNewPoints bid d (map (applyBrush b) ps)
-                    liftIO $ readMVar state >>= broadcastBoard bid (TL.decodeUtf8 msg) (broadcastOther client)
-                Just (AddStrokes d ss) -> do
-                    liftIO $ Acid.update acid $ AddNewStrokes bid d ss
-                    liftIO $ readMVar state >>= broadcastBoard bid (TL.decodeUtf8 msg) (broadcastOther client)
-                Just s@(RemoveStroke d sid) -> do
-                    liftIO $ Acid.update acid $ RemoveOldStroke bid d sid
-                    liftIO $ readMVar state >>= broadcastBoard bid (TL.decodeUtf8 msg) (broadcastOther client)
-                _ -> liftIO $ readMVar state >>= broadcastBoard bid (TL.decodeUtf8 msg) (broadcastOther client)
+            Just m@(ClientMessage board drawing _ _)  -> do
+                liftIO $ readMVar state >>= broadcastBoard bid (TL.decodeUtf8 msg) (broadcastOther client)
+                case handleMessage m of
+                    Just (AddPoints d b ps) -> do
+                        liftIO $ Acid.update acid $ AddNewPoints bid d (map (applyBrush b) ps)
+                    Just (AddStrokes d ss) -> do
+                        liftIO $ Acid.update acid $ AddNewStrokes bid d ss
+                    Just s@(RemoveStroke d sid) -> do
+                        liftIO $ Acid.update acid $ RemoveOldStroke bid d sid
+                    Just (NewDrawing d) -> do
+                        liftIO $ modifyMVar_ state $ \s -> do
+                            return $ updateClient bid client (setClientDrawing d) s
+                    _ -> return ()
             _ -> do (WS.sendTextData conn . encode) (ServerError "invalid message format" HttpType.badRequest400)
     where
         catchDisconnect e =
@@ -209,6 +230,11 @@ talk conn state acid bid client = handle catchDisconnect $
             where
                 disconnectClient = modifyMVar_ state $ \s -> do
                     putStrLn $ show e
+                    case lookupClient bid client s of
+                        Just (ClientInfo _ (Just drawing)) -> do
+                            liftIO $ putStrLn $ show drawing
+                            liftIO $ Acid.update acid $ RemoveDrawing bid drawing
+                        _ -> return ()
                     let s' = removeClient bid client s
                     broadcastBoard bid "disconnected" broadcast s'
                     return s'

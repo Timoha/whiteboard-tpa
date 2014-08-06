@@ -36,10 +36,6 @@ module.exports = function (grunt) {
         files: ['{.tmp,<%= yeoman.app %>}/styles/{,*/}*.css'],
         tasks: ['copy:styles', 'autoprefixer']
       },
-      stylus: {
-        files: ['<%= yeoman.app %>/styles/{,*/}*.styl'],
-        tasks: ['stylus', 'autoprefixer']
-      },
       gruntfile: {
         files: ['Gruntfile.js']
       },
@@ -124,7 +120,10 @@ module.exports = function (grunt) {
               '!<%= yeoman.dist %>/.git*'
             ]
           }
-        ]
+        ],
+        options: {
+          force: true
+        }
       },
       server: '.tmp'
     },
@@ -146,18 +145,6 @@ module.exports = function (grunt) {
       }
     },
 
-    stylus: {
-      compile: {
-        files: [{
-          expand: true,
-          cwd: '<%= yeoman.app %>/styles',
-          src: [ '**/*.styl' ],
-          dest: '.tmp/styles',
-          ext: '.css'
-        }]
-      }
-    },
-
     rev: {
       dist: {
         files: {
@@ -165,7 +152,6 @@ module.exports = function (grunt) {
             '<%= yeoman.dist %>/scripts/{,*/}*.js',
             '<%= yeoman.dist %>/styles/{,*/}*.css',
             '<%= yeoman.dist %>/images/{,*/}*.{png,jpg,jpeg,gif,webp,svg}',
-            '<%= yeoman.dist %>/styles/fonts/*'
           ]
         }
       }
@@ -176,7 +162,7 @@ module.exports = function (grunt) {
     // concat, minify and revision files. Creates configurations in memory so
     // additional tasks can operate on them
     useminPrepare: {
-      html: ['<%= yeoman.app %>/index.html', '<%= yeoman.app %>/settings.html'],
+      html: ['<%= yeoman.app %>/index.html', '<%= yeoman.app %>/settings.html', '<%= yeoman.app %>/moderating.html'],
       options: {
         dest: '<%= yeoman.dist %>'
       }
@@ -263,7 +249,7 @@ module.exports = function (grunt) {
               '.htaccess',
               'bower_components/**/*',
               'images/{,*/}*.{webp,ico,png,jpg,jpeg,gif,svg}',
-              'fonts/*',
+              'styles/fonts/*',
               'translations/*'
             ]
           },
@@ -279,8 +265,8 @@ module.exports = function (grunt) {
       },
       styles: {
         expand: true,
-        cwd: '<%= yeoman.app %>/styles',
-        dest: '.tmp/styles/',
+        cwd: '<%= yeoman.app %>/.tmp/concat/styles',
+        dest: '<%= yeoman.dist %>/styles/',
         src: '{,*/}*.css'
       }
     },
@@ -330,7 +316,6 @@ module.exports = function (grunt) {
   grunt.registerTask('serve', function () {
     grunt.task.run([
       'copy:styles',
-      'stylus',
       'autoprefixer',
       'connect:livereload',
       'watch'
@@ -340,7 +325,6 @@ module.exports = function (grunt) {
   grunt.registerTask('test', function () {
     grunt.task.run([
       'copy:styles',
-      'stylus',
       'autoprefixer',
       'connect:test',
       'karma:unit'
@@ -348,13 +332,13 @@ module.exports = function (grunt) {
   });
 
   grunt.registerTask('build', [
-//     'clean:dist',
+    'clean:dist',
     'bower:install',
     'useminPrepare',
-    'stylus',
     'autoprefixer',
     'concat',
     'ngmin',
+    'copy:styles',
     'copy:dist',
     'processhtml:dist',
     'cdnify',

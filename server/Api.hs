@@ -23,6 +23,7 @@ import qualified Data.Text.Lazy.IO as TL
 import qualified Data.Text.Lazy.Encoding as TL
 import qualified Data.ByteString.Lazy.Char8 as BLC8
 
+import Data.Acid as Acid
 import Web.Scotty
 import Data.Aeson (ToJSON, toJSON, object, (.=), encode)
 import Database.PostgreSQL.Simple
@@ -77,8 +78,8 @@ getWixWidget = do
     return $ fmap (Board.WixWidget componentId) widget
 
 
-apiApp :: ScottyM ()
-apiApp = do
+apiApp :: Acid.AcidState BoardsState -> ScottyM ()
+apiApp acid = do
 
     middleware $ staticPolicy (noDots >-> addBase "public-dev")
     middleware logStdoutDev
@@ -113,7 +114,9 @@ apiApp = do
         cdb <- liftIO $ connect dbConnectInfo
         d   <- liftIO $ Drawing.submit cdb ss did
         case d of
-            Just _  -> json $ (TL.decodeUtf8 . encode) HttpType.ok200
+            Just drawing  -> do
+                liftIO $ Acid.update acid $ RemoveDrawing (Drawing.boardId drawing) (Drawing.toDrawingInfo drawing)
+                json $ (TL.decodeUtf8 . encode) HttpType.ok200
             Nothing -> json $ (TL.decodeUtf8 . encode) (ServerError "cannot find drawing" HttpType.badRequest400)
 
 

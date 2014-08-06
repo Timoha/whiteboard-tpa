@@ -75,12 +75,17 @@ emptyDrawing = Map.empty
 
 
 updateDrawing :: (Strokes -> Strokes) -> DrawingInfo -> BoardId -> Boards -> Boards
-updateDrawing f (DrawingInfo did _ _ _) bid bs = Map.insert bid board' bs
+updateDrawing f (DrawingInfo did _ _ _) bid bs = Map.alter updateBoard bid bs
     where
-        board' = case Map.lookup bid bs of
-                    Just ds -> Map.insert did (f $ fromMaybe emptyDrawing (Map.lookup did ds)) ds
-                    Nothing -> Map.insert did (f emptyDrawing) emptyBoard
+        updateBoard ds = Just $
+            case ds of
+                Just ds -> Map.insert did (f $ fromMaybe emptyDrawing (Map.lookup did ds)) ds
+                Nothing -> Map.insert did (f emptyDrawing) emptyBoard
 
+
+removeDrawing' :: DrawingInfo -> BoardId -> Boards -> Boards
+removeDrawing' (DrawingInfo did _ _ _) bid bs = Map.alter deleteD bid bs
+    where deleteD ds = Nothing
 
 addNewPoints :: BoardId -> DrawingInfo -> [BrushedReceivedPoint] -> Update BoardsState ()
 addNewPoints bid d ps = do
@@ -104,12 +109,13 @@ getDrawings bid = do
     return $ collectDrawings (Map.findWithDefault emptyBoard bid bs)
 
 
---allKeys :: Int -> Query BoardsState [(Key, Value)]
---allKeys limit
---    = do BoardsState m <- ask
---         return $ take limit (Map.toList m)
+removeDrawing :: BoardId -> DrawingInfo -> Update BoardsState ()
+removeDrawing bid d = do
+    BoardsState bs <- S.get
+    S.put (BoardsState (removeDrawing' d bid bs))
 
-$(makeAcidic ''BoardsState ['addNewPoints, 'addNewStrokes, 'removeOldStroke, 'getDrawings])
+
+$(makeAcidic ''BoardsState ['addNewPoints, 'addNewStrokes, 'removeOldStroke, 'getDrawings, 'removeDrawing])
 
 fixtures :: Boards
 fixtures = Map.empty

@@ -183,22 +183,30 @@ actions = merges [ Touches <~ (withinWindowDims <~ (Touch.touches) ~ Window.dime
 input : Signal Input
 input = Input <~ actions
                ~ dropRepeats brushPort
-               ~ (canvasSizePortToTuple <~ dropRepeats canvasSizePort)
+               ~ (canvasSizePortToTuple <~ canvasSizePort)
                ~ dropRepeats Window.dimensions
                ~ dropRepeats submittedDrawingsPort
 -- OUTPUT
 
 
-getDrawing : Realtime Whiteboard -> Maybe ({ absPos : (Float, Float), zoomOffset : (Float, Float), zoom : Float, dimensions : (Int, Int), windowDims : (Int, Int)
+getDrawing : Realtime Whiteboard -> OtherDrawings -> Maybe ({ absPos : (Float, Float), zoomOffset : (Float, Float), zoom : Float, dimensions : (Int, Int), windowDims : (Int, Int)
                                   , drawing : [{id:Int, t0:Float, points:[{ x:Int, y:Int }], brush:{ size:Float, color:{ red:Int, green:Int, blue:Int, alpha:Float }}}]})
-getDrawing {mode, canvas, absPos, zoomOffset, zoom, windowDims} =
-  case mode of
-    Viewing -> Just {drawing = Dict.values canvas.drawing, absPos = absPos, zoomOffset = zoomOffset, zoom = zoom, dimensions = canvas.dimensions, windowDims = windowDims}
+getDrawing {mode, canvas, absPos, zoomOffset, zoom, windowDims, submitted} others =
+  let
+    getStrokes ds = case ds.strokes of
+      Just ss -> ss
+      Nothing -> []
+    sumbittedStrokes = foldl (\d ss -> (getStrokes d) ++ ss) [] submitted
+    thisStrokes = Dict.values canvas.drawing
+    withOtherStrokes = sortBy .t0 <| foldl (\d ss -> (Dict.values d) ++ ss) thisStrokes (Dict.values others)
+    drawing = sumbittedStrokes ++ withOtherStrokes
+  in case mode of
+    Viewing -> Just {drawing = drawing, absPos = absPos, zoomOffset = zoomOffset, zoom = zoom, dimensions = canvas.dimensions, windowDims = windowDims}
     _ -> Nothing
 
 port canvasOut : Signal (Maybe { absPos : (Float, Float), zoomOffset : (Float, Float), zoom : Float, dimensions : (Int, Int), windowDims : (Int, Int)
                         , drawing : [{id:Int, t0:Float,  points:[{ x:Int, y:Int }], brush:{ size:Float, color:{ red:Int, green:Int, blue:Int, alpha:Float }}}]})
-port canvasOut = getDrawing <~ editorState
+port canvasOut = getDrawing <~ editorState ~ othersState
 
 port erasedDrawingIdsOut : Signal [Int]
 port erasedDrawingIdsOut = dropRepeats (getErased <~ submittedDrawingsPort ~ (.submitted <~ editorState))
@@ -293,7 +301,7 @@ stepEditor {action, brush, canvasDims, windowDims, submittedInput}
           in { editor' | canvas <- { canvas | drawing <- drawing'} , history <- history', submitted <- submitted'}
 
         Viewing ->
-          let moved = withinBounds canvas.dimensions <| stepMove ts <| getZoomable editor'
+          let moved = withinBounds editor'.canvas.dimensions <| stepMove ts <| getZoomable editor'
           in { editor' | absPos <- moved.absPos, lastPosition <- moved.lastPosition }
 
     NoOp    -> editor'
@@ -331,9 +339,9 @@ display : (Int, Int) -> Realtime Whiteboard -> OtherDrawings -> Element
 display (w, h) ({canvas, history, zoom, absPos, submitted } as board) o =
   let
     float (a, b) = (toFloat a, toFloat b)
-    thisStrokes = renderStrokes <| Dict.values canvas.drawing
-    --withOtherStrokes = sortBy .t0 <| foldl (\d ss -> (Dict.values d) ++ ss) strokes (Dict.values o)
-    displayCanvas = group <| (renderSubmittedDrawings submitted) :: thisStrokes :: (map (\d -> renderStrokes (Dict.values d)) (Dict.values o))
+    thisStrokes = Dict.values canvas.drawing
+    withOtherStrokes = sortBy .t0 <| foldl (\d ss -> (Dict.values d) ++ ss) thisStrokes (Dict.values o)
+    displayCanvas = group <| [(renderSubmittedDrawings submitted), (renderStrokes withOtherStrokes)]
     toZero zoom (w, h) = (-w * zoom / 2, h * zoom / 2)
     toAbsPos (dx, dy) (x, y) = (x - dx * zoom, y + dy * zoom )
     pos = toAbsPos absPos <| toZero zoom (float (w, h))
