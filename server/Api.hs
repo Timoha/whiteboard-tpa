@@ -8,6 +8,9 @@ import WixInstance
 import qualified Drawing as Drawing
 import qualified Board as Board
 
+import DrawingProgress
+
+
 import Control.Applicative
 import Control.Monad
 import Control.Monad.IO.Class (liftIO)
@@ -39,9 +42,9 @@ data SettingsPanelJson = SettingsPanelJson Board.Board Bool deriving Show
 
 
 instance ToJSON WidgetJson where
-    toJSON (WidgetJson ss ds) =
+    toJSON (WidgetJson ss submitted) =
         object [ "settings" .= ss
-               , "drawings" .= ds ]
+               , "submitted" .= submitted ]
 
 instance ToJSON SettingsPanelJson where
     toJSON (SettingsPanelJson ss empty) =

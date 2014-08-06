@@ -56,7 +56,7 @@ $(document).ready(function() {
   function setupBoard(data) {
 
     var settings = data.settings;
-    var drawings = data.drawings;
+    var submitted = data.submitted;
 
     var dimensions = settings.dimensions;
     delete dimensions.paperType;
@@ -77,7 +77,7 @@ $(document).ready(function() {
       , userInfoPort: null
       , canvasSizePort: dimensions
       , boardInfoPort: boardInfo
-      , submittedDrawingsPort: drawings
+      , submittedDrawingsPort: submitted
       });
 
 

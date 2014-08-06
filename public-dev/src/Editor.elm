@@ -13,6 +13,7 @@ import Api (..)
 import JavaScript.Experimental as JS
 import Json
 import WebSocket
+import Maybe
 
 
 import Graphics.Input (..)
@@ -90,7 +91,7 @@ port actionPort : Signal String
 port userInfoPort : Signal (Maybe { drawingId : Int, firstName : String, lastName : String})
 port canvasSizePort : Signal { width : Int, height : Int }
 port boardInfoPort : Signal {instance : String, componentId : String, boardId : Int}
-port submittedDrawingsPort : Signal [{drawingId:Int, firstName:String, lastName:String, strokes:Maybe [{t0:Float,  points:[{ x:Int, y:Int }], brush:{ size:Float, color:{ red:Int, green:Int, blue:Int, alpha:Float }}}]}]
+port submittedDrawingsPort : Signal [{drawingId:Int, firstName:String, lastName:String, strokes:Maybe [{id: Int, t0:Float,  points:[{ x:Int, y:Int }], brush:{ size:Float, color:{ red:Int, green:Int, blue:Int, alpha:Float }}}]}]
 
 canvasSizePortToTuple : { width : Int, height : Int } -> (Int, Int)
 canvasSizePortToTuple {width, height} = (width, height)
@@ -134,6 +135,7 @@ serverToAction r =
                   "AddPoints"    -> (AddPoints res.element, res.drawing)
                   "AddStrokes"   -> (AddStrokes res.element, res.drawing)
                   "RemoveStroke" -> (RemoveStroke res.element, res.drawing)
+                  "AddDrawings"  -> (AddDrawings res.element, {firstName = "", lastName = "", drawingId = 0, strokes = Nothing})
                   _              -> (NoOpServer, res.drawing)
     Nothing -> (NoOpServer, {firstName = "", lastName = "", drawingId = 0, strokes = Nothing}) -- throw error instead
 
@@ -168,8 +170,11 @@ serverMessage = dropRepeats (serverToAction <~ incoming)
 --toolActions : Input Action
 --toolActions = Input.input NoOp
 
+sortTouches : [Touch.Touch] -> [Touch.Touch]
+sortTouches ts = reverse <| sortBy .t0 ts -- temp solution for zombie touches
+
 actions : Signal Action
-actions = merges [ Touches <~ (withinWindowDims <~ Touch.touches ~ Window.dimensions)
+actions = merges [ Touches <~ (withinWindowDims <~ (Touch.touches) ~ Window.dimensions)
                  , portToAction <~ actionPort
                  --, toolActions.signal
                  ]
@@ -185,14 +190,14 @@ input = Input <~ actions
 
 
 getDrawing : Realtime Whiteboard -> Maybe ({ absPos : (Float, Float), zoomOffset : (Float, Float), zoom : Float, dimensions : (Int, Int), windowDims : (Int, Int)
-                                  , drawing : [{t0:Float, points:[{ x:Int, y:Int }], brush:{ size:Float, color:{ red:Int, green:Int, blue:Int, alpha:Float }}}]})
+                                  , drawing : [{id:Int, t0:Float, points:[{ x:Int, y:Int }], brush:{ size:Float, color:{ red:Int, green:Int, blue:Int, alpha:Float }}}]})
 getDrawing {mode, canvas, absPos, zoomOffset, zoom, windowDims} =
   case mode of
     Viewing -> Just {drawing = Dict.values canvas.drawing, absPos = absPos, zoomOffset = zoomOffset, zoom = zoom, dimensions = canvas.dimensions, windowDims = windowDims}
     _ -> Nothing
 
 port canvasOut : Signal (Maybe { absPos : (Float, Float), zoomOffset : (Float, Float), zoom : Float, dimensions : (Int, Int), windowDims : (Int, Int)
-                        , drawing : [{t0:Float,  points:[{ x:Int, y:Int }], brush:{ size:Float, color:{ red:Int, green:Int, blue:Int, alpha:Float }}}]})
+                        , drawing : [{id:Int, t0:Float,  points:[{ x:Int, y:Int }], brush:{ size:Float, color:{ red:Int, green:Int, blue:Int, alpha:Float }}}]})
 port canvasOut = getDrawing <~ editorState
 
 port erasedDrawingIdsOut : Signal [Int]
@@ -304,10 +309,15 @@ stepOthers (a, d) c =
     drawing = Dict.getOrElse Dict.empty d.drawingId c
     drawing' = case a of
       AddPoints ps   -> addN (applyBrush ps.points ps.brush) drawing
-      AddStrokes ss  -> foldl (\s -> Dict.insert s.id { s - id }) drawing ss.strokes
+      AddStrokes ss  -> foldl (\s -> Dict.insert s.id s) drawing ss.strokes
       RemoveStroke s -> Dict.remove s.strokeId drawing
       _              -> drawing
-  in Dict.insert d.drawingId drawing' c
+    canvas = case a of
+      AddDrawings ds ->
+        let getStrokes d = foldl (\s -> Dict.insert s.id s) Dict.empty d.strokes
+        in foldl (\d -> Dict.insert d.drawingId (getStrokes d)) c ds.online
+      _ -> c
+  in Dict.insert d.drawingId drawing' canvas
 
 othersState : Signal OtherDrawings
 othersState = foldp stepOthers defaultOther serverMessage

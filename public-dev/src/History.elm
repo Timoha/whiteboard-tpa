@@ -35,7 +35,7 @@ stepUndo drawing submitted history  =
                                , submitted
                                , foldl (\(id, s) h -> Dict.insert id (Drew id) h)
                                        (Dict.remove lastId history) ss
-                               , AddStrokes { strokes = map (\(id, s) -> { s | id = id }) ss } )
+                               , AddStrokes { strokes = map (\(id, s) -> s) ss } )
            Just (ErasedDrawings ds)
                -> ( drawing
                   , submitted ++ ds

@@ -17,7 +17,7 @@ type WithId a = { a | id : Int }
 type Drawing = Dict.Dict Int Stroke
 type Brush = { size : Float, color : { red : Int, green : Int, blue : Int, alpha : Float }}
 type Brushed a = { a | brush : Brush }
-type Stroke = { points : [Point], brush : Brush, t0 : Time }
+type Stroke = { id : Int, points : [Point], brush : Brush, t0 : Time }
 type Point = { x : Int, y : Int }
 type Line = { p1 : Point, p2 : Point }
 
@@ -57,7 +57,7 @@ addN ps d = foldl stepStroke d ps
 stepStroke : Brushed (Timed (WithId Point)) -> Drawing -> Drawing
 stepStroke p d =
   let
-    vs = Dict.getOrElse { brush = p.brush, points = [], t0 = p.t0 } p.id d
+    vs = Dict.getOrElse {id = p.id, brush = p.brush, points = [], t0 = p.t0 } p.id d
   in Dict.insert p.id {vs | points <- (point p.x p.y) :: vs.points} d
 
 
