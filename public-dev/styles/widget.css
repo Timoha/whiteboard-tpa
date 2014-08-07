@@ -55,7 +55,7 @@ ul, ol, li {
 }
 
 
-.main-body{
+.main-body {
   border-width: 0;
   border-style: solid;
   border-color: black;
@@ -137,9 +137,12 @@ ul, ol, li {
     border-right: 5px solid red;
 }
 
+.invalid {
+  color: red !important;
+  background-color: #FFCECE !important;
+}
 
 .user-input {
-  width: 209px;
   border: none;
   margin-bottom: 1px;
   padding: 8px 8px;

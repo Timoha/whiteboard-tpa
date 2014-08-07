@@ -34,7 +34,7 @@
     $brush.css('background-color', newColor);
     currBrush.color.fromRGBColorString(newColor);
 
-    $colorPicker.simplecolorpicker({theme: 'cf'}).on('change', function() {
+    $colorPicker.simplecolorpicker({theme: 'cf'}).on('change', function () {
       newColor = $colorPicker.val();
       $brush.css('background-color', newColor);
       currBrush.color.fromRGBColorString(newColor);
@@ -52,7 +52,7 @@
       rangeClass: 'rangeslider',
       fillClass: 'rangeslider-fill',
       handleClass: 'rangeslider-handle',
-      onSlideEnd: function(position, value) {
+      onSlideEnd: function (position, value) {
         $brush.trigger('brush_change', [currBrush]);
       }
     });
@@ -98,4 +98,4 @@
     return;
   };
 
-}( jQuery ));
+}(jQuery));

@@ -10,6 +10,7 @@ build-type:          Simple
 cabal-version:       >=1.8
 
 executable whiteboard
+  hs-source-dirs:      server
   main-is:             Main.hs
   build-depends:       base == 4.7.*
                      , wai
@@ -39,3 +40,4 @@ executable whiteboard
                      , base64-bytestring
                      , cryptohash
                      , stringsearch
+                     , directory

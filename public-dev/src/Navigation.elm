@@ -1,6 +1,7 @@
 module Navigation where
 
 import Touch
+import Debug
 
 type Zoomable a = { a | windowDims : (Int, Int)
                       , zoom : Float

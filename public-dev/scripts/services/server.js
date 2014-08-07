@@ -45,7 +45,7 @@ angular.module('whiteboard')
         headers: instanceHeader,
         data: JSON.stringify(ids)
       }).success(function (data, status) {
-        var data = JSON.parse(data);
+        data = JSON.parse(data);
         console.log('deleted drawings', data);
       }).error(function (message, status) {
         console.error('cannot delete drawings', message, status);
@@ -75,7 +75,7 @@ angular.module('whiteboard')
     });
 
     return deferred.promise;
-  }
+  };
 
 
   var getSettings = function() {

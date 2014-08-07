@@ -10,15 +10,12 @@ function Brush(size, color) {
 }
 
 
-$(document).ready(function() {
+$(document).ready(function () {
 
   $(".editing").hide();
 
-
-  var boardSettings = {}
-
-  var defaultCanvasColor = new Color(255, 255, 255, 1);
-  var defaultBrushColor = new Color(255, 147, 30, 1)
+  var boardSettings = {};
+  var defaultBrushColor = new Color(255, 147, 30, 1);
   var defaultBrush = new Brush(8, defaultBrushColor);
 
   function setSettings(settings) {
@@ -38,16 +35,7 @@ $(document).ready(function() {
   }
 
 
-  getSettings().done(function (data, status) {
-    var data = JSON.parse(data);
-    console.log('got settings', data);
-    setupBoard(data);
-  }).fail(function (data, status, message) {
-    console.error('cannot get settings', message, status, data);
-  });
-
-
-  Wix.addEventListener(Wix.Events.SETTINGS_UPDATED, function(message) {
+  Wix.addEventListener(Wix.Events.SETTINGS_UPDATED, function (message) {
     console.log('settings from wix', message);
     setSettings(message);
   });
@@ -72,29 +60,28 @@ $(document).ready(function() {
     var editor = Elm.embed(
       Elm.Editor,
       document.getElementById('canvas'),
-      { brushPort: defaultBrush
-      , actionPort: 'View'
-      , userInfoPort: null
-      , canvasSizePort: dimensions
-      , boardInfoPort: boardInfo
-      , submittedDrawingsPort: submitted
-      });
+      {
+        brushPort: defaultBrush,
+        actionPort: 'View',
+        userInfoPort: null,
+        canvasSizePort: dimensions,
+        boardInfoPort: boardInfo,
+        submittedDrawingsPort: submitted
+      }
+    );
 
 
     var minimap = Elm.embed(
       Elm.Minimap,
       document.getElementById('minimap'),
-      {canvasPort: null});
+      {canvasPort: null}
+    );
 
 
     setSettings(settings);
     $('#loading').hide();
     $('.tool-panel').show();
 
-    $('#done-drawing').on('click', function () {
-      editor.ports.actionPort.send("View");
-      editor.ports.canvasOut.subscribe(submitDrawing);
-    });
 
     // make following tools active on click
     $('#color-tool, #eraser-tool, #drag-tool, #start-tool').on('click', function () {
@@ -111,8 +98,6 @@ $(document).ready(function() {
       editor.ports.actionPort.send("Erase");
     });
 
-
-    $('#colors').initColorPanel('#brush', defaultBrush);
 
     $('#brush').on('brush_change', function (event, data) {
       editor.ports.brushPort.send(data);
@@ -166,27 +151,72 @@ $(document).ready(function() {
 
     var drawingInfo = {};
 
+
+    function isEmail(email) {
+      var regex = /^([a-zA-Z0-9_.+-])+\@(([a-zA-Z0-9-])+\.)+([a-zA-Z0-9]{2,4})+$/;
+      return regex.test(email);
+    }
+
+
+    $( "input[name='first-name'], input[name='last-name']" ).keyup(function () {
+      var elem = $(this);
+      if(elem.val()) {
+        elem.removeClass('invalid');
+      } else {
+        elem.addClass('invalid');
+      }
+    });
+
+
+    $( "input[name='email']" ).keyup(function () {
+      var elem = $(this);
+      if(isEmail(elem.val())) {
+        elem.removeClass('invalid');
+      } else {
+        elem.addClass('invalid');
+      }
+    });
+
+
+    // refactor this
     $('#start-drawing').on('click', function () {
-      var user = {
-        firstName: $( "input[name='first-name']" ).val(),
-        lastName: $( "input[name='last-name']" ).val(),
-        email: $( "input[name='email']" ).val(),
+
+      if(!$( "input[name='first-name']" ).val()) {
+        $( "input[name='first-name']" ).addClass('invalid');
       }
 
-      $.ajax({
-        type: 'POST',
-        url:  'http://localhost:9160/api/board/' + boardSettings.boardId + '/drawing',
-        dataType: 'json',
-        data: JSON.stringify(user),
-        success: function( data ) {
-          drawingInfo = JSON.parse(data);
-          editor.ports.userInfoPort.send(drawingInfo);
-          editor.ports.actionPort.send('Draw');
-          $(".viewing").hide();
-          $(".editing").show();
-        }
-      });
+      if(!$( "input[name='last-name']" ).val()) {
+        $( "input[name='last-name']" ).addClass('invalid');
+      }
+
+      if(!isEmail($( "input[name='email']" ).val())) {
+        $( "input[name='email']" ).addClass('invalid');
+      }
+
+      var isValidInfo = !($( "input[name='email'], input[name='first-name'], input[name='last-name']" ).is('.invalid'));
+      if (isValidInfo) {
+        var user = {
+          firstName: $( "input[name='first-name']" ).val(),
+          lastName: $( "input[name='last-name']" ).val(),
+          email: $( "input[name='email']" ).val()
+        };
+        $.ajax({
+          type: 'POST',
+          url:  'http://localhost:9160/api/board/' + boardSettings.boardId + '/drawing',
+          dataType: 'json',
+          data: JSON.stringify(user),
+          success: function( data ) {
+            drawingInfo = JSON.parse(data);
+            editor.ports.userInfoPort.send(drawingInfo);
+            editor.ports.actionPort.send('Draw');
+            $('.viewing').hide();
+            $('.editing').show();
+            $('#colors').initColorPanel('#brush', defaultBrush);
+          }
+        });
+      }
     });
+
 
     function submitDrawing(drawing) {
       console.log("submit", drawing);
@@ -204,6 +234,20 @@ $(document).ready(function() {
       });
     }
 
+    $('#done-drawing').on('click', function () {
+      editor.ports.actionPort.send("View");
+      editor.ports.canvasOut.subscribe(submitDrawing);
+    });
+
   }
+
+
+  getSettings().done(function (data, status) {
+    data = JSON.parse(data);
+    console.log('got settings', data);
+    setupBoard(data);
+  }).fail(function (data, status, message) {
+    console.error('cannot get settings', message, status, data);
+  });
 
 });
