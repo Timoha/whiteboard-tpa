@@ -28,7 +28,7 @@ function getSettings() {
     url: getSettingsURL,
     timeout: 15000,
     headers: instanceHeader,
-    dataType: 'json text'
+    dataType: 'json'
   });
 }
 

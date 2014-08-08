@@ -18,6 +18,7 @@ $(document).ready(function () {
   var defaultBrushColor = new Color(255, 147, 30, 1);
   var defaultBrush = new Brush(8, defaultBrushColor);
 
+
   function setSettings(settings) {
 
     boardSettings = settings;
@@ -43,6 +44,7 @@ $(document).ready(function () {
 
   function setupBoard(data) {
 
+
     var settings = data.settings;
     var submitted = data.submitted;
 
@@ -57,18 +59,26 @@ $(document).ready(function () {
     };
 
 
-    var editor = Elm.embed(
-      Elm.Editor,
-      document.getElementById('canvas'),
-      {
-        brushPort: defaultBrush,
-        actionPort: 'View',
-        userInfoPort: null,
-        canvasSizePort: dimensions,
-        boardInfoPort: boardInfo,
-        submittedDrawingsPort: submitted
-      }
-    );
+    var storedState = localStorage.getItem('elm-whiteboard-drawingInfo');
+    var drawingInfo = storedState ? JSON.parse(storedState) : null;
+    var editor;
+
+    try {
+      editor = Elm.embed(
+        Elm.Editor,
+        document.getElementById('canvas'),
+        {
+          brushPort: defaultBrush,
+          actionPort: 'View',
+          userInfoPort: drawingInfo,
+          canvasSizePort: dimensions,
+          boardInfoPort: boardInfo,
+          submittedDrawingsPort: submitted,
+        }
+      );
+    } catch (e) {
+      console.error('wtf happened?', e);
+    }
 
 
     var minimap = Elm.embed(
@@ -130,12 +140,15 @@ $(document).ready(function () {
       editor.ports.canvasOut.subscribe(updateMinimap);
     });
 
-    // open/close tab for following tools
-    $('#color-tool, #drag-tool, #start-tool').on('mousedown', function () {
+
+    function toggleTab() {
       var element = $(this);
       $('.tab-open').not(element.parent()).removeClass('tab-open');
       element.parent().toggleClass('tab-open');
-    });
+    }
+
+    // open/close tab for following tools
+    $('#color-tool, #drag-tool, #start-tool').on('mousedown', toggleTab);
 
     // close tab if clicked anywhere outside it
     $(document).on('mousedown touchstart', function (e) {
@@ -149,16 +162,13 @@ $(document).ready(function () {
     });
 
 
-    var drawingInfo = {};
-
-
     function isEmail(email) {
       var regex = /^([a-zA-Z0-9_.+-])+\@(([a-zA-Z0-9-])+\.)+([a-zA-Z0-9]{2,4})+$/;
       return regex.test(email);
     }
 
 
-    $( "input[name='first-name'], input[name='last-name']" ).keyup(function () {
+    $( "input[name='first-name'], input[name='last-name']" ).on('keyup keypress blur change', function () {
       var elem = $(this);
       if(elem.val()) {
         elem.removeClass('invalid');
@@ -168,7 +178,7 @@ $(document).ready(function () {
     });
 
 
-    $( "input[name='email']" ).keyup(function () {
+    $( "input[name='email']" ).on('keyup keypress blur change', function () {
       var elem = $(this);
       if(isEmail(elem.val())) {
         elem.removeClass('invalid');
@@ -202,12 +212,15 @@ $(document).ready(function () {
         };
         $.ajax({
           type: 'POST',
-          url:  'http://localhost:9160/api/board/' + boardSettings.boardId + '/drawing',
+          url:  '/api/board/' + boardSettings.boardId + '/new_drawing',
           dataType: 'json',
           data: JSON.stringify(user),
           success: function( data ) {
-            drawingInfo = JSON.parse(data);
-            editor.ports.userInfoPort.send(drawingInfo);
+            var drawingState = data;
+            delete drawingState.strokes;
+            console.log('got drawing info', data);
+            localStorage.setItem('elm-whiteboard-drawingInfo', JSON.stringify(drawingState));
+            editor.ports.userInfoPort.send(data);
             editor.ports.actionPort.send('Draw');
             $('.viewing').hide();
             $('.editing').show();
@@ -218,36 +231,38 @@ $(document).ready(function () {
     });
 
 
-    function submitDrawing(drawing) {
-      console.log("submit", drawing);
-      $.ajax({
-        type: 'POST',
-        url:  'http://localhost:9160/api/drawing/' + drawingInfo.drawingId + '/submit',
-        dataType: 'json',
-        data: JSON.stringify(drawing.drawing),
-        success: function( data ) {
-          console.log('so?', data);
-          $(".editing").hide();
-          $(".viewing").show();
-          editor.ports.canvasOut.unsubscribe(submitDrawing);
-        }
+    if(drawingInfo !== null) {
+      var startTool = $('#start-tool');
+      startTool.removeClass('active');
+      startTool.parent().removeClass('tab-open');
+      startTool.off('mousedown', toggleTab);
+      startTool.next('.tool-tab').remove();
+      startTool.on('click', function () {
+        $.ajax({
+          type: 'POST',
+          url:  '/api/board/' + boardSettings.boardId + '/resume_drawing',
+          dataType: 'json',
+          data: JSON.stringify(drawingInfo),
+          success: function( data ) {
+            console.log('resumed drawing', data);
+            editor.ports.actionPort.send('Draw');
+            $('.viewing').hide();
+            $('.editing').show();
+            $('#colors').initColorPanel('#brush', defaultBrush);
+          }
+        });
       });
     }
-
-    $('#done-drawing').on('click', function () {
-      editor.ports.actionPort.send("View");
-      editor.ports.canvasOut.subscribe(submitDrawing);
-    });
 
   }
 
 
   getSettings().done(function (data, status) {
-    data = JSON.parse(data);
     console.log('got settings', data);
     setupBoard(data);
   }).fail(function (data, status, message) {
     console.error('cannot get settings', message, status, data);
   });
+
 
 });

@@ -219,11 +219,9 @@ instance FromField [Stroke] where
 
 
 sortStrokes :: [Drawing] -> [Stroke]
-sortStrokes ds = sort $ foldl (\ss d -> (getStrokes d) ++ ss) [] ds
+sortStrokes ds = sort $ foldl (\ss d -> getStrokes d ++ ss) [] ds
     where
-        getStrokes d = case strokes d of
-            Just ss -> ss
-            Nothing -> []
+        getStrokes d = fromMaybe [] (strokes d)
 
 
 --------------- Database ------------------
@@ -238,22 +236,29 @@ create c (User firstName lastName email) bid =
 getSubmittedByBoard :: Connection -> BoardId -> IO [Drawing]
 getSubmittedByBoard c bid =
     let q = "select * from drawing where board_id = ? and strokes is not null and submitted is not null"
-        vs = (Only bid)
+        vs = Only bid
     in query c q vs
 
 
 countAllByBoard :: Connection -> BoardId -> IO Int
 countAllByBoard c bid =
     let q = "select * from drawing where board_id = ?"
-        vs = (Only bid)
-    in fmap length ((query c q vs) :: IO [Drawing])
+        vs = Only bid
+    in fmap length (query c q vs :: IO [Drawing])
 
+get :: Connection -> DrawingInfo -> BoardId -> IO (Maybe Drawing)
+get c (DrawingInfo did fstN lstN _) bid =
+  let q = "select * from drawing where board_id = ? and first_name = ? and last_name = ?"
+      vs = (bid, fstN, lstN)
+  in fmap listToMaybe (query c q vs)
 
-submit :: Connection -> [Stroke] -> DrawingId -> IO (Maybe Drawing)
-submit c ss did =
-    let q  = "update drawing set strokes = ?, submitted = NOW() where drawing_id = ? RETURNING *"
-        vs = (ss, did)
-    in fmap listToMaybe (query c q vs)
+submit :: Connection -> DrawingInfo -> IO (Maybe Drawing)
+submit c (DrawingInfo did _ _ strokes) =
+    case strokes of
+      Just ss -> let q  = "update drawing set strokes = ?, submitted = NOW() where drawing_id = ? RETURNING *"
+                     vs = (ss, did)
+                 in fmap listToMaybe (query c q vs)
+      Nothing -> return Nothing
 
 
 deleteByIds :: Connection -> [DrawingId] -> BoardId -> IO [Drawing]

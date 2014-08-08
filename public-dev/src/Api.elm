@@ -24,7 +24,8 @@ type BoardInfo =
 data ServerAction = AddPoints { brush:Brush, points:[Timed (WithId Point)] }
                   | AddStrokes { strokes:[Stroke] }
                   | RemoveStroke { strokeId:Int }
-                  | AddDrawings { online:[{drawingId:Int, firstName:String, lastName:String, strokes:[{id: Int, t0:Float,  points:[{ x:Int, y:Int }], brush:{ size:Float, color:{ red:Int, green:Int, blue:Int, alpha:Float }}}]}]}
+                  | AddDrawings [DrawingInfo]
+                  | NewDrawing
                   | NewClient
                   | NoOpServer
 
@@ -47,7 +48,8 @@ jsonOfServerAction action dinfo binfo =
               AddStrokes ss  -> [("action", Json.String "AddStrokes"), ("element", recordToJson ss)]
               RemoveStroke s -> [("action", Json.String "RemoveStroke"), ("element", recordToJson s)]
               NoOpServer     -> [("action", Json.String "NoOpServer"), ("element", Json.Null)]
-              NewClient      -> [("action", Json.String "NewDrawing"), ("element", Json.Null)] -- refactor this!
+              NewClient      -> [("action", Json.String "NewClient"), ("element", Json.Null)]
+              NewDrawing     -> [("action", Json.String "NewDrawing"), ("element", Json.Null)]
         in toJsonObj <| [("board", recordToJson binfo), ("drawing", recordToJson d)] ++ jav
     Nothing -> toJsonObj <| [("board", recordToJson binfo), ("action", Json.String "NewClient"), ("element", Json.Null), ("drawing", Json.Null)]
 

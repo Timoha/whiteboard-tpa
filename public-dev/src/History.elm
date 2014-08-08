@@ -20,24 +20,22 @@ recordDrew ps h = foldl (\p -> Dict.insert p.id (Drew p.id)) h ps
 
 
 
-stepUndo : Drawing -> [DrawingInfo] -> History -> (Drawing, [DrawingInfo], History, ServerAction)
-stepUndo drawing submitted history  =
+stepUndo : Drawing -> History -> (Drawing, History, ServerAction)
+stepUndo drawing history  =
   let ids = Dict.keys history
   in if isEmpty ids
-     then (drawing, submitted, history, NoOpServer)
+     then (drawing, history, NoOpServer)
      else
        let
          lastId = maximum ids
        in case Dict.get lastId history of
-           Nothing          -> ( Dict.empty, submitted, Dict.empty, NoOpServer )
-           Just (Drew id)   -> ( Dict.remove id drawing, submitted, Dict.remove id history, RemoveStroke { strokeId = id } )
+           Nothing          -> ( Dict.empty, Dict.empty, NoOpServer )
+           Just (Drew id)   -> ( Dict.remove id drawing, Dict.remove id history, RemoveStroke { strokeId = id } )
            Just (Erased ss) -> ( foldl (\(id, s) d -> Dict.insert id s d) drawing ss
-                               , submitted
                                , foldl (\(id, s) h -> Dict.insert id (Drew id) h)
                                        (Dict.remove lastId history) ss
                                , AddStrokes { strokes = map (\(id, s) -> s) ss } )
            Just (ErasedDrawings ds)
                -> ( drawing
-                  , submitted ++ ds
                   , Dict.remove lastId history
                   , NoOpServer )

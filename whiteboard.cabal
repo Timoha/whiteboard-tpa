@@ -28,7 +28,6 @@ executable whiteboard
                      , text
                      , network
                      , bytestring
-                     , monad-logger
                      , heroku
                      , transformers
                      , wai-middleware-static

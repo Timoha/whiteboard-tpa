@@ -11,6 +11,8 @@ import DrawingProgress
 import WixInstance
 import Api (ServerError (..))
 import Board
+import DbConnect
+
 
 
 import Data.Maybe
@@ -37,6 +39,7 @@ import Data.Aeson.Types
 import qualified Network.WebSockets as WS
 import qualified Network.Wai.Handler.WebSockets as WaiWS
 import qualified Network.HTTP.Types as HttpType
+import Database.PostgreSQL.Simple
 
 
 
@@ -84,7 +87,7 @@ instance FromJSON ReceivedPoint where
     parseJSON (Object v) = ReceivedPoint <$> v .: "t0" <*> v .: "id" <*> (Point <$> v .: "x" <*> v .: "y")
     parseJSON _          = mzero
 
-data Message = NewClient BoardId
+data Message = NewClient BoardId (Maybe DrawingInfo)
              | AddPoints DrawingInfo Brush [ReceivedPoint]
              | AddStrokes DrawingInfo [Stroke]
              | RemoveStroke DrawingInfo StrokeId
@@ -165,7 +168,7 @@ broadcastOther me message clients = broadcast message $ HashMap.filterWithKey (\
 handleMessage :: ClientMessage -> Maybe Message
 handleMessage msg =
     case action msg of
-        "NewClient"  -> wixInst >>= (\w -> Just $ NewClient bid) -- check wix instance only for new client, after that it doesn't matter what she sends
+        "NewClient"  -> wixInst >>= (\w -> Just $ NewClient bid d) -- check wix instance only for new client, after that it doesn't matter what she sends
         "AddPoints"  -> d >>= \d' -> flip parseMaybe e $ \obj -> AddPoints d' <$> obj .: "brush" <*> obj .: "points"
         "AddStrokes" -> d >>= \d' -> flip parseMaybe e $ \obj -> AddStrokes d' <$> obj .: "strokes"
         "RemoveStroke" -> d >>= \d' -> flip parseMaybe e $ \obj -> RemoveStroke d' <$> obj .: "strokeId"
@@ -187,19 +190,16 @@ application state acid pending = do
     let clientId = hashUnique clientUnique
     conn <- WS.acceptRequest pending
     msg <- WS.receiveData conn
-    putStrLn $ show $ msg
+    print msg
     boards <- liftIO $ readMVar state
     case decode msg of
         Just m -> case handleMessage m of
-            Just (NewClient bid) -> do
+            Just (NewClient bid d) -> do
                 broadcastBoard bid "new client joined" broadcast boards
-                online <- liftIO $ Acid.query acid (GetDrawings bid)
-                WS.sendTextData conn $ encode (ClientMessage (board m) (drawing m) (object ["online" .= online]) "AddDrawings")
-                liftIO $ modifyMVar_ state $ \s -> do
-                    return $ addClient bid clientId (ClientInfo conn Nothing) s
+                liftIO $ modifyMVar_ state $ \s -> return $ addClient bid clientId (ClientInfo conn d) s
                 talk conn state acid bid clientId
             _           -> return ()
-        Nothing -> do (WS.sendTextData conn . encode) (ServerError "invalid message format" HttpType.badRequest400)
+        Nothing -> (WS.sendTextData conn . encode) (ServerError "invalid message format" HttpType.badRequest400)
 
 
 
@@ -211,17 +211,12 @@ talk conn state acid bid client = handle catchDisconnect $
             Just m@(ClientMessage board drawing _ _)  -> do
                 liftIO $ readMVar state >>= broadcastBoard bid (TL.decodeUtf8 msg) (broadcastOther client)
                 case handleMessage m of
-                    Just (AddPoints d b ps) -> do
-                        liftIO $ Acid.update acid $ AddNewPoints bid d (map (applyBrush b) ps)
-                    Just (AddStrokes d ss) -> do
-                        liftIO $ Acid.update acid $ AddNewStrokes bid d ss
-                    Just s@(RemoveStroke d sid) -> do
-                        liftIO $ Acid.update acid $ RemoveOldStroke bid d sid
-                    Just (NewDrawing d) -> do
-                        liftIO $ modifyMVar_ state $ \s -> do
-                            return $ updateClient bid client (setClientDrawing d) s
+                    Just (AddPoints d b ps) ->liftIO $ Acid.update acid $ AddNewPoints bid d (map (applyBrush b) ps)
+                    Just (AddStrokes d ss) -> liftIO $ Acid.update acid $ AddNewStrokes bid d ss
+                    Just s@(RemoveStroke d sid) -> liftIO $ Acid.update acid $ RemoveOldStroke bid d sid
+                    Just (NewDrawing d) -> liftIO $ modifyMVar_ state $ \s -> return $ updateClient bid client (setClientDrawing d) s
                     _ -> return ()
-            _ -> do (WS.sendTextData conn . encode) (ServerError "invalid message format" HttpType.badRequest400)
+            _ -> (WS.sendTextData conn . encode) (ServerError "invalid message format" HttpType.badRequest400)
     where
         catchDisconnect e =
             case fromException e of
@@ -229,10 +224,16 @@ talk conn state acid bid client = handle catchDisconnect $
                 _ -> liftIO disconnectClient
             where
                 disconnectClient = modifyMVar_ state $ \s -> do
-                    putStrLn $ show e
+                    print e
                     case lookupClient bid client s of
                         Just (ClientInfo _ (Just drawing)) -> do
-                            liftIO $ putStrLn $ show drawing
+                            liftIO $ print drawing
+                            dWithStrokes <- liftIO $ Acid.query acid $ GetDrawing bid drawing
+                            cdb <- liftIO $ connect dbConnectInfo
+                            d <- liftIO $ case dWithStrokes of
+                                Just ss -> Drawing.submit cdb ss
+                                Nothing -> return Nothing
+                            liftIO $ print d
                             liftIO $ Acid.update acid $ RemoveDrawing bid drawing
                         _ -> return ()
                     let s' = removeClient bid client s
