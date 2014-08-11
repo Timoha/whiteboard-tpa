@@ -3,7 +3,7 @@ module History where
 import Dict
 import Touch
 import Canvas (Stroke, Drawing, WithId, Point, Timed)
-import Api (..)
+import RealtimeApi (..)
 
 data Event = Erased [(Int, Stroke)]
            | Drew Int

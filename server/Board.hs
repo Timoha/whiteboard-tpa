@@ -219,15 +219,15 @@ instance FromRow WidgetId where
 
 
 create :: Connection -> BoardSettings -> WixWidget -> IO (Maybe Board)
-create c bs (WixWidget componentId (WixInstance instanceId _)) =
+create c bs (WixWidget cid (WixInstance iid _)) =
     let q  = "insert into board (instance_id, name, paper_size, locked, background_picture, background_color, design, created)"
               `mappend` " values (?, ?, ?, ?, ?, ?, ?, NOW()) RETURNING *"
-        vs = (instanceId, boardName bs, paperType bs, locked bs, backgroundPicture bs, backgroundColor bs, design bs)
+        vs = (iid, boardName bs, paperType bs, locked bs, backgroundPicture bs, backgroundColor bs, design bs)
     in listToMaybe <$> query c q vs
 
 
 update :: Connection -> BoardSettings -> WixWidget -> IO (Maybe Board)
-update c bs (WixWidget componentId (WixInstance instanceId _)) =
+update c bs (WixWidget cid (WixInstance iid _)) =
     let q  = "update board as b set name = ?, paper_size = ?, locked = ?, background_picture = ?, background_color = ?, design = ?"
               `mappend` "from wix_widget as w where b.board_id = w.board_id RETURNING b.*"
         vs = (boardName bs, paperType bs, locked bs, backgroundPicture bs, backgroundColor bs, design bs)
@@ -235,21 +235,21 @@ update c bs (WixWidget componentId (WixInstance instanceId _)) =
 
 
 get :: Connection -> WixWidget -> IO (Maybe Board)
-get c (WixWidget componentId (WixInstance instanceId _)) =
+get c (WixWidget cid (WixInstance iid _)) =
     let q  = "select b.board_id, b.instance_id, name, paper_size, locked, background_picture, background_color, design, created " `mappend`
              "from wix_widget as w, board as b " `mappend`
              "where w.instance_id = ? and w.component_id = ? and b.board_id = w.board_id"
-        vs = (instanceId, componentId)
+        vs = (iid, cid)
     in listToMaybe <$> query c q vs
 
 
 
 getByInstance :: Connection -> WixWidget -> IO [Board]
-getByInstance c (WixWidget componentId (WixInstance instanceId _)) =
+getByInstance c (WixWidget _ (WixInstance iid _)) =
     let q  = "select * "   `mappend`
              "from board " `mappend`
              "where instance_id = ?"
-        vs = Only instanceId
+        vs = Only iid
     in query c q vs
 
 
@@ -267,8 +267,8 @@ getOrCreate c bs w = do
         b -> return b
 
 createWixWidget :: Connection -> Board -> WixWidget -> IO (Maybe WidgetId)
-createWixWidget c b (WixWidget componentId (WixInstance instanceId _)) =
+createWixWidget c b (WixWidget cid (WixInstance iid _)) =
     let q  = "insert into wix_widget (instance_id, component_id, board_id)"
               `mappend` " values (?, ?, ?) RETURNING *"
-        vs = (instanceId, componentId, boardId b)
+        vs = (iid, cid, boardId b)
     in listToMaybe <$> query c q vs

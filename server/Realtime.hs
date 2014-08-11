@@ -11,8 +11,7 @@ import DrawingProgress
 import WixInstance
 import Api (ServerError (..))
 import Board
-import DbConnect
-
+import DbConnect (dbConnectInfo)
 
 
 import Data.Maybe
@@ -42,12 +41,10 @@ import qualified Network.HTTP.Types as HttpType
 import Database.PostgreSQL.Simple
 
 
-
-
 --------------- ClientMessage ------------------
 
 data ClientMessage = ClientMessage
-    { board :: BoardInfoUnparsed
+    { board :: Maybe BoardInfoUnparsed
     , drawing :: Maybe DrawingInfo
     , element :: Value
     , action :: T.Text
@@ -68,7 +65,7 @@ instance ToJSON ClientMessage where
 
 instance FromJSON ClientMessage where
     parseJSON (Object v) = ClientMessage <$>
-                           v .: "board" <*>
+                           v .:? "board" <*>
                            v .: "drawing" <*>
                            v .: "element" <*>
                            v .: "action"
@@ -77,17 +74,11 @@ instance FromJSON ClientMessage where
 
 
 
---instance FromJSON AddStrokes where
---    parseJSON (Object v) = AddStrokes <$>
---                           v .: "strokes"
---    parseJSON _          = mzero
-
-
 instance FromJSON ReceivedPoint where
     parseJSON (Object v) = ReceivedPoint <$> v .: "t0" <*> v .: "id" <*> (Point <$> v .: "x" <*> v .: "y")
     parseJSON _          = mzero
 
-data Message = NewClient BoardId (Maybe DrawingInfo)
+data Message = NewClient (Maybe DrawingInfo) BoardId
              | AddPoints DrawingInfo Brush [ReceivedPoint]
              | AddStrokes DrawingInfo [Stroke]
              | RemoveStroke DrawingInfo StrokeId
@@ -117,18 +108,15 @@ defaultClientState = HashMap.empty
 --numClients = HashMap.foldl' ((+) HashMap.size) 0
 
 
-addClient :: BoardId -> Client -> ClientInfo -> ServerState -> ServerState
-addClient b c info bs = HashMap.insert b clients bs
-    where
-        clients = case HashMap.lookup b bs of
-            Just cs -> HashMap.insert c info cs
-            Nothing -> HashMap.insert c info defaultClientState
+addClient :: Client -> ClientInfo -> BoardId -> ServerState -> ServerState
+addClient c info bid bs = HashMap.insert bid clients bs
+    where clients = HashMap.insert c info $ HashMap.lookupDefault defaultClientState bid bs
 
 
-updateClient :: BoardId -> Client -> (ClientInfo -> ClientInfo) -> ServerState -> ServerState
-updateClient b c f bs = HashMap.insert b clients bs
+updateClient :: (ClientInfo -> ClientInfo) -> Client -> BoardId -> ServerState -> ServerState
+updateClient f c bid bs = HashMap.insert bid clients bs
     where
-        clients = case HashMap.lookup b bs of
+        clients = case HashMap.lookup bid bs of
             Just cs -> HashMap.adjust f c cs
             Nothing -> defaultClientState -- think more about this
 
@@ -138,8 +126,6 @@ lookupClient bid cid bs = HashMap.lookup bid bs >>= HashMap.lookup cid
 
 setClientDrawing :: DrawingInfo -> ClientInfo -> ClientInfo
 setClientDrawing d (ClientInfo conn drawing) = ClientInfo conn (Just d)
-
-
 
 
 
@@ -165,19 +151,24 @@ broadcastOther me message clients = broadcast message $ HashMap.filterWithKey (\
 
 
 
+verifyNewClient :: ClientMessage -> Maybe Message
+verifyNewClient msg = do
+    BoardInfoUnparsed bid inst _ <- board msg
+    parseInstance (BLC8.pack "e5e44072-34f2-43cc-ba7d-82962348d57f") $ (TL.encodeUtf8 . TL.fromStrict) inst
+    return $ NewClient (drawing msg) bid
+
+
 handleMessage :: ClientMessage -> Maybe Message
 handleMessage msg =
     case action msg of
-        "NewClient"  -> wixInst >>= (\w -> Just $ NewClient bid d) -- check wix instance only for new client, after that it doesn't matter what she sends
-        "AddPoints"  -> d >>= \d' -> flip parseMaybe e $ \obj -> AddPoints d' <$> obj .: "brush" <*> obj .: "points"
-        "AddStrokes" -> d >>= \d' -> flip parseMaybe e $ \obj -> AddStrokes d' <$> obj .: "strokes"
+        "NewClient"    -> verifyNewClient msg
+        "AddPoints"    -> d >>= \d' -> flip parseMaybe e $ \obj -> AddPoints d' <$> obj .: "brush" <*> obj .: "points"
+        "AddStrokes"   -> d >>= \d' -> flip parseMaybe e $ \obj -> AddStrokes d' <$> obj .: "strokes"
         "RemoveStroke" -> d >>= \d' -> flip parseMaybe e $ \obj -> RemoveStroke d' <$> obj .: "strokeId"
-        "NoOpServer" -> Just NoOp
-        "NewDrawing" -> d >>= Just . NewDrawing
+        "NoOpServer"   -> Just NoOp
+        "NewDrawing"   -> d >>= Just . NewDrawing
         _ -> Nothing
     where
-        (BoardInfoUnparsed bid inst cid) = board msg
-        wixInst = parseInstance (BLC8.pack "e5e44072-34f2-43cc-ba7d-82962348d57f") (TL.encodeUtf8 (TL.fromStrict inst))
         d = drawing msg
         Object e = element msg
 
@@ -194,9 +185,9 @@ application state acid pending = do
     boards <- liftIO $ readMVar state
     case decode msg of
         Just m -> case handleMessage m of
-            Just (NewClient bid d) -> do
+            Just (NewClient d bid) -> do
                 broadcastBoard bid "new client joined" broadcast boards
-                liftIO $ modifyMVar_ state $ \s -> return $ addClient bid clientId (ClientInfo conn d) s
+                liftIO $ modifyMVar_ state $ \s -> return $ addClient clientId (ClientInfo conn d) bid s
                 talk conn state acid bid clientId
             _           -> return ()
         Nothing -> (WS.sendTextData conn . encode) (ServerError "invalid message format" HttpType.badRequest400)
@@ -208,13 +199,13 @@ talk conn state acid bid client = handle catchDisconnect $
     forever $ do
         msg <- WS.receiveData conn
         case decode msg of
-            Just m@(ClientMessage board drawing _ _)  -> do
+            Just m@ClientMessage{}  -> do
                 liftIO $ readMVar state >>= broadcastBoard bid (TL.decodeUtf8 msg) (broadcastOther client)
                 case handleMessage m of
-                    Just (AddPoints d b ps) ->liftIO $ Acid.update acid $ AddNewPoints bid d (map (applyBrush b) ps)
-                    Just (AddStrokes d ss) -> liftIO $ Acid.update acid $ AddNewStrokes bid d ss
-                    Just s@(RemoveStroke d sid) -> liftIO $ Acid.update acid $ RemoveOldStroke bid d sid
-                    Just (NewDrawing d) -> liftIO $ modifyMVar_ state $ \s -> return $ updateClient bid client (setClientDrawing d) s
+                    Just (AddPoints d b ps)   -> liftIO $ Acid.update acid $ AddNewPoints bid d (map (applyBrush b) ps)
+                    Just (AddStrokes d ss)    -> liftIO $ Acid.update acid $ AddNewStrokes bid d ss
+                    Just (RemoveStroke d sid) -> liftIO $ Acid.update acid $ RemoveOldStroke bid d sid
+                    Just (NewDrawing d)       -> liftIO $ modifyMVar_ state $ \s -> return $ updateClient (setClientDrawing d) client bid s
                     _ -> return ()
             _ -> (WS.sendTextData conn . encode) (ServerError "invalid message format" HttpType.badRequest400)
     where

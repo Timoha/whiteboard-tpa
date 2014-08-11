@@ -61,10 +61,7 @@ $(document).ready(function () {
 
     var storedState = localStorage.getItem('elm-whiteboard-drawingInfo');
     var drawingInfo = storedState ? JSON.parse(storedState) : null;
-    var editor;
-
-    try {
-      editor = Elm.embed(
+    var editor = Elm.embed(
         Elm.Editor,
         document.getElementById('canvas'),
         {
@@ -73,12 +70,10 @@ $(document).ready(function () {
           userInfoPort: drawingInfo,
           canvasSizePort: dimensions,
           boardInfoPort: boardInfo,
-          submittedDrawingsPort: submitted,
+          submittedDrawingsPort: null,
         }
       );
-    } catch (e) {
-      console.error('wtf happened?', e);
-    }
+
 
 
     var minimap = Elm.embed(
@@ -91,7 +86,9 @@ $(document).ready(function () {
     setSettings(settings);
     $('#loading').hide();
     $('.tool-panel').show();
+    $('#drag-tool').addClass('active');
 
+    editor.ports.submittedDrawingsPort.send(submitted);
 
     // make following tools active on click
     $('#color-tool, #eraser-tool, #drag-tool, #start-tool').on('click', function () {
@@ -188,6 +185,15 @@ $(document).ready(function () {
     });
 
 
+    function enableEditingMode() {
+      editor.ports.actionPort.send('Draw');
+      $('.viewing').hide();
+      $('.editing').show();
+      $('#color-tool').parent().addClass('tab-open');
+      $('#color-tool').addClass('active');
+      $('#colors').initColorPanel('#brush', defaultBrush);
+    }
+
     // refactor this
     $('#start-drawing').on('click', function () {
 
@@ -215,40 +221,30 @@ $(document).ready(function () {
           url:  '/api/board/' + boardSettings.boardId + '/new_drawing',
           dataType: 'json',
           data: JSON.stringify(user),
-          success: function( data ) {
+          success: function (data) {
             var drawingState = data;
             delete drawingState.strokes;
             console.log('got drawing info', data);
             localStorage.setItem('elm-whiteboard-drawingInfo', JSON.stringify(drawingState));
             editor.ports.userInfoPort.send(data);
-            editor.ports.actionPort.send('Draw');
-            $('.viewing').hide();
-            $('.editing').show();
-            $('#colors').initColorPanel('#brush', defaultBrush);
+            enableEditingMode();
           }
         });
       }
     });
 
-
     if(drawingInfo !== null) {
       var startTool = $('#start-tool');
-      startTool.removeClass('active');
-      startTool.parent().removeClass('tab-open');
       startTool.off('mousedown', toggleTab);
-      startTool.next('.tool-tab').remove();
       startTool.on('click', function () {
         $.ajax({
           type: 'POST',
           url:  '/api/board/' + boardSettings.boardId + '/resume_drawing',
           dataType: 'json',
           data: JSON.stringify(drawingInfo),
-          success: function( data ) {
+          success: function (data) {
             console.log('resumed drawing', data);
-            editor.ports.actionPort.send('Draw');
-            $('.viewing').hide();
-            $('.editing').show();
-            $('#colors').initColorPanel('#brush', defaultBrush);
+            enableEditingMode();
           }
         });
       });

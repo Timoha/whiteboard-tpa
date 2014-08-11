@@ -3,12 +3,13 @@
 module Api (ServerError (..), apiApp) where
 
 import User
-import DbConnect
 import WixInstance
 import qualified Drawing
 import qualified Board
+import qualified PdfGenerator
 
 import DrawingProgress
+import DbConnect (dbConnectInfo)
 
 
 import Control.Applicative
@@ -23,6 +24,7 @@ import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.IO as TL
 import qualified Data.Text.Lazy.Encoding as TL
 import qualified Data.ByteString.Lazy.Char8 as BLC8
+import qualified Data.ByteString as B
 
 import Data.Acid as Acid
 import Web.Scotty
@@ -30,6 +32,8 @@ import Data.Aeson (ToJSON, toJSON, object, (.=), encode)
 import Database.PostgreSQL.Simple
 import Network.Wai.Middleware.Static
 import Network.Wai.Middleware.RequestLogger
+import Network.Wai.Middleware.Gzip
+
 import qualified Network.HTTP.Types as HttpType
 
 
@@ -78,9 +82,9 @@ getWixWidget = do
 apiApp :: Acid.AcidState BoardsState -> ScottyM ()
 apiApp acid = do
 
-    middleware $ staticPolicy (noDots >-> addBase "public")
+    middleware $ gzip $ def { gzipFiles = GzipCompress }
+    middleware $ staticPolicy (noDots >-> addBase "public-dev")
     middleware logStdoutDev
-
 
 
     get "/" $ do
@@ -120,18 +124,6 @@ apiApp acid = do
           _ -> json $ ServerError "invalid message format" HttpType.badRequest400
 
 
-    --post "/api/drawing/:did/submit" $ do
-    --    did <- param "did"
-    --    ss  <- jsonData
-    --    liftIO $ print ss
-    --    cdb <- liftIO $ connect dbConnectInfo
-    --    d   <- liftIO $ Drawing.submit cdb ss did
-    --    case d of
-    --        Just drawing  -> do
-    --            liftIO $ Acid.update acid $ RemoveDrawing (Drawing.boardId drawing) (Drawing.toDrawingInfo drawing)
-    --            json $ (TL.decodeUtf8 . encode) HttpType.ok200
-    --        Nothing -> json $ (TL.decodeUtf8 . encode) (ServerError "cannot find drawing" HttpType.badRequest400)
-
 
     get "/api/board/:compId/drawings" $ do
         bid <- param "boardId"
@@ -155,12 +147,12 @@ apiApp acid = do
         liftIO $ print drawingIds
         case widget of
             Just w -> do
-                drawings <- liftIO $ Drawing.deleteByIds cdb drawingIds bid
+                drawings <- liftIO $ Drawing.removeStrokesByIds cdb drawingIds bid
                 liftIO $ print drawings
 
                 if length drawingIds == length drawings
                     then json HttpType.ok200
-                    else json (ServerError "cannot delete drawings" HttpType.badRequest400)
+                    else json (ServerError "cannot delete drwaings' strokes" HttpType.badRequest400)
             Nothing -> json $ ServerError "invalid instance" HttpType.badRequest400
 
 
@@ -176,8 +168,8 @@ apiApp acid = do
         case board of
             Just b -> do
                 drawings <- liftIO $ Drawing.getSubmittedByBoard cdb (Board.boardId b)
-                online <- liftIO $ Acid.query acid (GetDrawings (Board.boardId b))
-                json $ WidgetJson b (online ++ map Drawing.toDrawingInfo drawings)
+                online   <- liftIO $ Acid.query acid (GetDrawings (Board.boardId b))
+                json $ WidgetJson b $ unionBy (\(Drawing.DrawingInfo x _ _ _) (Drawing.DrawingInfo y _ _ _) -> x == y) online (fmap Drawing.toDrawingInfo drawings)
             Nothing -> json $ ServerError "cannot get board" HttpType.internalServerError500
 
 
@@ -187,9 +179,6 @@ apiApp acid = do
         board <- liftIO $ case widget of
             Just w -> Board.get cdb w
             Nothing -> return Nothing
-
-        liftIO $ print board
-        liftIO $ print widget
         case board of
             Just b -> do
                 num <- liftIO $ Drawing.countAllByBoard cdb (Board.boardId b)
@@ -208,17 +197,4 @@ apiApp acid = do
             Just _  -> json HttpType.ok200
             Nothing -> json $ ServerError "cannot update drawing" HttpType.internalServerError500
 
-    --get "/api/board/:compId/settings" $ do
-    --    widget <- getWixWidget
-    --    cdb <- liftIO $ connect dbConnectInfo
-    --    let board = widget >>= Board.update cdb
-    --    let resp = case board of
-    --        Nothing -> widget >>= Board.create cdb Board.defaultSettings
-    --        b       -> b
-    --    case resp of
-    --        Just b  -> json $ (TL.decodeUtf8 . encode) b
-    --        Nothing -> json $ (TL.decodeUtf8 . encode) (ServerError "cannot get board" HttpType.internalServerError500)
-
-
-    
 

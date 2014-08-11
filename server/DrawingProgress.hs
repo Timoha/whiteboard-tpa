@@ -16,10 +16,11 @@ import Data.Typeable
 import Data.SafeCopy
 import Control.Monad.Reader (ask)
 import Control.Applicative
+import DbConnect
 
 
 import qualified Control.Monad.State as S
-import qualified Data.Map as Map
+import qualified Data.Map.Strict as Map
 
 
 
@@ -89,7 +90,7 @@ getDrawing' :: DrawingInfo -> BoardId -> Boards -> Maybe DrawingInfo
 getDrawing' (DrawingInfo did _ _ _ ) bid bs = Map.lookup bid bs >>= Map.lookup did >>= \ss -> Just $ DrawingInfo did "" "" (Just $ Map.elems ss)
 
 removeDrawing' :: DrawingInfo -> BoardId -> Boards -> Boards
-removeDrawing' (DrawingInfo did _ _ _) = Map.alter deleteD
+removeDrawing' (DrawingInfo did _ _ _) bid bs = Map.adjust (Map.alter deleteD did) bid bs
     where deleteD ds = Nothing
 
 addNewPoints :: BoardId -> DrawingInfo -> [BrushedReceivedPoint] -> Update BoardsState ()

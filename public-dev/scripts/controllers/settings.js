@@ -1,10 +1,5 @@
 'use strict';
 
-var drawingsIdsToDelete = [];
-
-function setDeleteDrawingsIds(ids) {
-  drawingsIdsToDelete = ids;
-}
 
 angular.module('whiteboard')
   .controller('SettingsCtrl', function ($wix, server, $timeout, $log, $scope) {
@@ -26,45 +21,6 @@ angular.module('whiteboard')
     {value: 'ISO_A0', name: 'A0 - 841 × 1189 mm'},
   ];
 
- // <a href='#' style='color: red; vertical-align: bottom; line-height: 30px; text-decoration: underline; margin-right: 6px;'>Clear Board</a> \
-
-  var modalFooter = '<div style="display: table; width: 100%;"> \
-    <div style="display: table-cell; float:right;"> \
-      <button class="uilib-btn close-popup" id="done-editing">Save Board</button> \
-    </div> \
-  </div>';
-
-
-  var modalContent = '<iframe src="' + server.iframeUrl + '" width="530" height="400" style="border: 1px solid #ddd" ></iframe>';
-
-  var modal;
-  jQuery('#edit-drawings').on('click', function(evt){
-    modal = Wix.UI.create({
-      ctrl: 'Popup',
-      options: {
-        modal: true,
-        fixed: true,
-        title: boardSettings.boardName,
-        footer: modalFooter,
-        content: modalContent,
-        width: 550,
-        onopen: function() { initModeratingBoard(boardSettings.boardId); },
-        onclose: function() { server.deleteDrawings(drawingsIdsToDelete, boardSettings.boardId); }
-      }
-    });
-    evt.stopPropagation();
-    modal.getCtrl().open();
-  });
-
-
-  function initModeratingBoard(boardId) {
-    server.getDrawings(boardId)
-      .then(function (response) {
-        $log.info('got drawings');
-      }, function(response) {
-        $log.warn('rejected');
-      });
-  }
 
 
   var whiteColor = new Color(255, 255, 255, 1);
@@ -194,6 +150,36 @@ angular.module('whiteboard')
   var saveSettingsDebounce = debounce(saveSettings, 2000);
 
   getSettings();
+
+
+  // <a href='#' style='color: red; vertical-align: bottom; line-height: 30px; text-decoration: underline; margin-right: 6px;'>Clear Board</a> \
+
+
+  var moderator;
+  var moderatorWidth = 900;
+  var moderatorHeight = 600;
+
+  function openRequestedPopup() {
+    var left = (screen.width/2)-(moderatorWidth/2);
+    var top = (screen.height/2)-(moderatorHeight/2);
+    var windowFeatures = 'toolbar=no, \
+                          location=no, \
+                          directories=no, \
+                          status=no, \
+                          menubar=no, \
+                          scrollbars=no, \
+                          resizable=no, \
+                          copyhistory=no, \
+                          width='+moderatorWidth+', \
+                          height='+moderatorHeight+', \
+                          top='+top+', \
+                          left='+left;
+    moderator = window.open(server.moderatorUrl, boardSettings.boardName, windowFeatures);
+  }
+
+  jQuery('#edit-drawings').on('click', function(){
+    openRequestedPopup();
+  });
 
 });
 

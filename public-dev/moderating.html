@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>Whiteboard</title>
+    <title>Whiteboard Moderator</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
     <script type="text/javascript" src="//sslstatic.wix.com/services/js-sdk/1.31.0/js/Wix.js"></script>
     <script type="text/javascript" src="http://elm-lang.org/elm-runtime.js"></script>
@@ -16,6 +16,8 @@
     <link rel="stylesheet" href="styles/widget.css">
 
     <!-- endbuild -->
+    <link rel="stylesheet" href="styles/moderating.css">
+
     <style wix-style>
 
       #canvas, #minimap {
@@ -52,38 +54,44 @@
     <!-- Add your site or application content here -->
     <div class="main-body">
         <div id="loading"><span>Loading Editor...<span></div>
-        <ul class="tool-panel">
-            <li>
-                <button id="eraser-tool" class="tool-button icon-eraser active">
-                    <div class="tool-background style-border"></div>
-                </button>
-            </li>
-            <li>
-                <button id="undo-tool" class="tool-button icon-undo">
-                    <div class="tool-background style-border"></div>
-                </button>
-            </li>
-            <li>
-                <button id="drag-tool" class="tool-button icon-hand">
-                    <div class="tool-background style-border"></div>
-                </button>
-                <div class="tool-tab style-border">
-                    <div class="wrapper" style="background-color: white">
-                        <div id="minimap"></div>
+        <header id="board-title"></header>
+        <section id="main">
+            <ul class="tool-panel">
+                <li>
+                    <button id="eraser-tool" class="tool-button icon-eraser">
+                        <div class="tool-background style-border"></div>
+                    </button>
+                </li>
+                <li>
+                    <button id="undo-tool" class="tool-button icon-undo">
+                        <div class="tool-background style-border"></div>
+                    </button>
+                </li>
+                <li>
+                    <button id="drag-tool" class="tool-button icon-hand">
+                        <div class="tool-background style-border"></div>
+                    </button>
+                    <div class="tool-tab style-border">
+                        <div class="wrapper" style="background-color: white">
+                            <div id="minimap"></div>
+                        </div>
+                        <div class="tool-background"></div>
                     </div>
-                    <div class="tool-background"></div>
-                </div>
-            </li>
-            <li class="zoom-buttons cf">
-                <button id="zoomIn-tool" class="tool-button icon-plus">
-                    <div class="tool-background"></div>
-                </button>
-                <button id="zoomOut-tool" class="tool-button icon-minus last">
-                    <div class="tool-background"></div>
-                </button>
-            </li>
-        </ul>
-        <div id="canvas"></div>
+                </li>
+                <li class="zoom-buttons cf">
+                    <button id="zoomIn-tool" class="tool-button icon-plus">
+                        <div class="tool-background"></div>
+                    </button>
+                    <button id="zoomOut-tool" class="tool-button icon-minus last">
+                        <div class="tool-background"></div>
+                    </button>
+                </li>
+            </ul>
+            <div id="canvas"></div>
+        </section>
+        <footer id="mod-controls">
+            <button id="save-progress" style="float:right; border: 2px solid green; color: green; padding: 5px; background-color: white">Save Progress</button>
+        </footer>
     </div>
 
 
@@ -96,7 +104,7 @@
 <script src="bower_components/jquery-simplecolorpicker/jquery.simplecolorpicker.js"></script>
 <!-- endbuild -->
 <!-- build:js scripts/elm-modules.js -->
-<script src="scripts/Editor.js"></script>
+<script src="scripts/Moderator.js"></script>
 <script src="scripts/Minimap.js"></script>
 <!-- endbuild -->
 <!-- build:js scripts/utils.js -->

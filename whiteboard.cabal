@@ -22,6 +22,7 @@ executable whiteboard
                      , acid-state
                      , safecopy
                      , aeson
+                     , HPDF
                      , mtl
                      , http-types
                      , resourcet

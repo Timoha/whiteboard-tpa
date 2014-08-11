@@ -1,4 +1,4 @@
-module Realtime where
+module RealtimeApi where
 
 import Json
 import Dict
@@ -28,6 +28,32 @@ data ServerAction = AddPoints { brush:Brush, points:[Timed (WithId Point)] }
                   | NewDrawing
                   | NewClient
                   | NoOpServer
+
+
+isNoOpServer : ServerAction -> Bool
+isNoOpServer m = case m of
+  NoOpServer -> True
+  _          -> False
+
+
+drawingInfoToServerAction : Maybe DrawingInfo -> ServerAction
+drawingInfoToServerAction user =
+  case user of
+    Just _  -> NewDrawing
+    Nothing -> NewClient
+
+
+serverToAction : String -> (ServerAction, DrawingInfo)
+serverToAction r =
+  case Json.fromString r of
+    Just v  -> let
+                 res = (JS.toRecord . JS.fromJson) v
+               in case res.action of
+                  "AddPoints"    -> (AddPoints res.element, res.drawing)
+                  "AddStrokes"   -> (AddStrokes res.element, res.drawing)
+                  "RemoveStroke" -> (RemoveStroke res.element, res.drawing)
+                  _              -> (NoOpServer, res.drawing)
+    Nothing -> (NoOpServer, {firstName = "", lastName = "", drawingId = 0, strokes = Nothing}) -- throw error instead
 
 
 

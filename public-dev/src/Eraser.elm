@@ -4,7 +4,7 @@ import Dict
 import Touch
 import History (History, Drew, Erased, Event, ErasedDrawings)
 import Canvas (..)
-import Api (..)
+import RealtimeApi (..)
 import JavaScript.Experimental as JS
 import Debug
 

@@ -1,28 +1,27 @@
 # TODO:
 
-Thursday:
-- improve perfomance
-- remove acid state for heroku?
-- add tooltips
-- add animation on drawing start (anything)
-###### Ready to show to Wix SF
-- display who currently is drawing
-- Figure out why sometimes wix settings are not loaded
-
-Friday:
-- Generate PDF from strokes
+- finish moderating
 - Manage Board, open editing in js popup
 - board resetting
-- local strage
-- Refactor to be able to submit drawings automatically
+- Generate PDF from strokes
+- add checkmark back just for the heck of it.
+- refactor Editor to have Nothing as initial value for drawing and other
+- improve perfomance
+    + remove acid state for heroku (memory managment)?
+    + front end?
+- add animation on drawing start (anything)
+- display who currently is drawing
+- Figure out why sometimes wix settings are not loaded
 - check for OWNER permissions for settings pannel requests
 - sequrity
     + verify instance of board on drawings delete
 - post contact info to wix
+- deal with zombie touches
 
 #### Future:
-- fix email validation
+- add tooltips
 - min zoom to view the whole board
+- click on minimap to change location
 - disconnection handling - think of something
 - Remove drawing signal for handling disconnection?
 - refactor server signals
@@ -31,7 +30,6 @@ Friday:
 - Pull other boards of this instance and be able to set them to current
 - Point is also a stroke, might have a prettier way to write logic
 - improve performance
-- refactor moderation (create a separate module instead of adding it to Editor?)
 - what to do when window dimensions greater than canvas dimensions? for now, give zoomed in.
 - drop enum values from paper_type
 - Do not allow same board names

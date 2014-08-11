@@ -2,8 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 
-module Drawing
-where
+module Drawing where
 
 
 import User
@@ -74,10 +73,10 @@ instance FromJSON DrawingInfo where
 
 
 instance ToJSON DrawingInfo where
-    toJSON (DrawingInfo drawingId firstName lastName ss) =
-        object [ "drawingId" .= drawingId
-               , "firstName" .= firstName
-               , "lastName" .= lastName
+    toJSON (DrawingInfo did fstN lstN ss) =
+        object [ "drawingId" .= did
+               , "firstName" .= fstN
+               , "lastName" .= lstN
                , "strokes" .= ss ]
 
 
@@ -264,5 +263,12 @@ submit c (DrawingInfo did _ _ strokes) =
 deleteByIds :: Connection -> [DrawingId] -> BoardId -> IO [Drawing]
 deleteByIds c dids bid =
     let q  = "delete from drawing where board_id = ? and drawing_id in ? RETURNING *"
+        vs = (bid, In dids)
+    in query c q vs
+
+
+removeStrokesByIds :: Connection -> [DrawingId] -> BoardId -> IO [Drawing]
+removeStrokesByIds c dids bid =
+    let q  = "update drawing set strokes = null where board_id = ? and drawing_id in ? RETURNING *"
         vs = (bid, In dids)
     in query c q vs
