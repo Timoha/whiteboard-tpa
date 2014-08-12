@@ -12,7 +12,6 @@ function Brush(size, color) {
 
 $(document).ready(function () {
 
-  $(".editing").hide();
 
   var boardSettings = {};
   var defaultBrushColor = new Color(255, 147, 30, 1);
@@ -61,12 +60,36 @@ $(document).ready(function () {
 
     var storedState = localStorage.getItem('elm-whiteboard-drawingInfo');
     var drawingInfo = storedState ? JSON.parse(storedState) : null;
+
+
+    function enableEditingMode() {
+      editor.ports.actionPort.send('Draw');
+      $('.viewing').hide();
+      $('.editing').show();
+      $('#color-tool').parent().addClass('tab-open');
+      $('.active').removeClass('active');
+      $('#color-tool').addClass('active');
+      $('#colors').initColorPanel('#brush', defaultBrush);
+    }
+
+    function enableViewingMode() {
+      editor.ports.actionPort.send('View');
+      $('.editing').hide();
+      $('.viewing').show();
+      $('.active').removeClass('active');
+      $('#drag-tool').addClass('active');
+      storedState = localStorage.getItem('elm-whiteboard-drawingInfo');
+      drawingInfo = storedState ? JSON.parse(storedState) : null;
+    }
+
+
+
     var editor = Elm.embed(
         Elm.Editor,
         document.getElementById('canvas'),
         {
           brushPort: defaultBrush,
-          actionPort: 'View',
+          actionPort: 'NoOp',
           userInfoPort: drawingInfo,
           canvasSizePort: dimensions,
           boardInfoPort: boardInfo,
@@ -86,14 +109,60 @@ $(document).ready(function () {
     setSettings(settings);
     $('#loading').hide();
     $('.tool-panel').show();
-    $('#drag-tool').addClass('active');
-
     editor.ports.submittedDrawingsPort.send(submitted);
+    enableViewingMode();
+
 
     // make following tools active on click
     $('#color-tool, #eraser-tool, #drag-tool, #start-tool').on('click', function () {
       $('.active').toggleClass('active');
       $(this).toggleClass('active');
+    });
+
+
+    function toggleTab() {
+      var element = $(this);
+      $('.tab-open').not(element.parent()).removeClass('tab-open');
+      element.parent().toggleClass('tab-open');
+    }
+
+    // open/close tab for following tools
+    $('#color-tool, #drag-tool, #start-tool').on('mousedown', toggleTab);
+
+    if(drawingInfo !== null) {
+      $('#start-tool').off('mousedown', toggleTab);
+    }
+
+
+    // close tab if clicked anywhere outside it
+    $(document).on('mousedown touchstart', function (e) {
+      var activeTool = $('.tab-open');
+      if (!activeTool.is(e.target)
+          && activeTool.has(e.target).length === 0) {
+        editor.ports.canvasOut.unsubscribe(updateMinimap);
+        activeTool.removeClass('tab-open');
+      }
+    });
+
+
+    $('#start-tool').on('click', function () {
+      var startTool = $(this);
+      if(drawingInfo !== null) {
+        $.ajax({
+          type: 'POST',
+          url:  '/api/board/' + boardSettings.boardId + '/resume_drawing',
+          dataType: 'json',
+          data: JSON.stringify(drawingInfo),
+        }).done(function (data, status) {
+          console.log('resumed drawing', data);
+          enableEditingMode();
+        }).fail(function (data, status, message) {
+          console.error('cannot resume drawing', message, status, data);
+          localStorage.removeItem('elm-whiteboard-drawingInfo');
+          startTool.parent().addClass('tab-open');
+          startTool.on('mousedown', toggleTab);
+        });
+      }
     });
 
 
@@ -138,26 +207,6 @@ $(document).ready(function () {
     });
 
 
-    function toggleTab() {
-      var element = $(this);
-      $('.tab-open').not(element.parent()).removeClass('tab-open');
-      element.parent().toggleClass('tab-open');
-    }
-
-    // open/close tab for following tools
-    $('#color-tool, #drag-tool, #start-tool').on('mousedown', toggleTab);
-
-    // close tab if clicked anywhere outside it
-    $(document).on('mousedown touchstart', function (e) {
-      var activeTool = $('.tab-open');
-      if (!activeTool.is(e.target)
-          && activeTool.has(e.target).length === 0) {
-        editor.ports.canvasOut.unsubscribe(updateMinimap);
-        activeTool.removeClass('tab-open');
-
-      }
-    });
-
 
     function isEmail(email) {
       var regex = /^([a-zA-Z0-9_.+-])+\@(([a-zA-Z0-9-])+\.)+([a-zA-Z0-9]{2,4})+$/;
@@ -184,15 +233,6 @@ $(document).ready(function () {
       }
     });
 
-
-    function enableEditingMode() {
-      editor.ports.actionPort.send('Draw');
-      $('.viewing').hide();
-      $('.editing').show();
-      $('#color-tool').parent().addClass('tab-open');
-      $('#color-tool').addClass('active');
-      $('#colors').initColorPanel('#brush', defaultBrush);
-    }
 
     // refactor this
     $('#start-drawing').on('click', function () {
@@ -225,6 +265,7 @@ $(document).ready(function () {
             var drawingState = data;
             delete drawingState.strokes;
             console.log('got drawing info', data);
+            $('#start-tool').off('mousedown', toggleTab);
             localStorage.setItem('elm-whiteboard-drawingInfo', JSON.stringify(drawingState));
             editor.ports.userInfoPort.send(data);
             enableEditingMode();
@@ -232,23 +273,6 @@ $(document).ready(function () {
         });
       }
     });
-
-    if(drawingInfo !== null) {
-      var startTool = $('#start-tool');
-      startTool.off('mousedown', toggleTab);
-      startTool.on('click', function () {
-        $.ajax({
-          type: 'POST',
-          url:  '/api/board/' + boardSettings.boardId + '/resume_drawing',
-          dataType: 'json',
-          data: JSON.stringify(drawingInfo),
-          success: function (data) {
-            console.log('resumed drawing', data);
-            enableEditingMode();
-          }
-        });
-      });
-    }
 
 
     function submitDrawing(drawing) {
@@ -260,9 +284,7 @@ $(document).ready(function () {
         data: JSON.stringify(drawing)
       }).done(function (data, status) {
         console.log('submitted drawing', data);
-        $(".editing").hide();
-        $(".viewing").show();
-        $('#drag-tool').addClass('active');
+        enableViewingMode();
         editor.ports.drawingOut.unsubscribe(submitDrawing);
       }).fail(function (data, status, message) {
         console.error('cannot submit drawing', message, status, data);

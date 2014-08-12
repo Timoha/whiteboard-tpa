@@ -1,15 +1,13 @@
 # TODO:
 
-- board resetting
-- refactor Editor to have Nothing as initial value for drawing and other
-- deal with invalid drawings
-- error handling on server side
 - improve perfomance
     + front end?
     + remove acid state for heroku (memory managment)?
-- deal with zombie touches
-- add animation on drawing start (anything)
+- board resetting
+- error handling on server side
 - display who currently is drawing
+- add animation on drawing start (anything)
+- deal with zombie touches
 - Figure out why sometimes wix settings are not loaded
 - check for OWNER permissions for settings pannel requests
 - remove boards if noone is drawing - both clients and acid
@@ -18,6 +16,7 @@
 - post contact info to wix
 
 #### Future:
+- if background transparent and white, make pdf background light gray. or make white light gray
 - add tooltips
 - min zoom to view the whole board
 - click on minimap to change location

@@ -49,6 +49,7 @@ type Input =
   , initDrawing : Drawing
   }
 
+
 type OtherInput =
   { serverMessage : (ServerAction, DrawingInfo)
   , otherDrawings : OtherDrawings
@@ -56,7 +57,7 @@ type OtherInput =
 
 type Whiteboard =  Zoomable (Undoable Editor)
 
-type Editor = { mode : Mode, canvas : Canvas }
+type Editor = { mode : Mode, canvas : Maybe Canvas }
 
 type Realtime a = {a | lastMessage : ServerAction}
 
@@ -71,7 +72,7 @@ defaultCanvas =
 
 defaultEditor : Realtime Whiteboard
 defaultEditor =
-  { canvas = defaultCanvas
+  { canvas = Nothing
   , mode = Viewing
   , history = Dict.empty
   , zoom = 1
@@ -85,8 +86,8 @@ defaultEditor =
   }
 
 
-defaultOther : OtherDrawings
-defaultOther = Dict.empty
+defaultOther : Maybe OtherDrawings
+defaultOther = Nothing
 
 -- INPUT
 
@@ -100,13 +101,6 @@ port submittedDrawingsPort : Signal (Maybe [{drawingId:Int, firstName:String, la
 canvasSizePortToTuple : { width : Int, height : Int } -> (Int, Int)
 canvasSizePortToTuple {width, height} = (width, height)
 
-
-renderSubmittedDrawings : [DrawingInfo] -> Form
-renderSubmittedDrawings ds =
-  let
-    getStrokes d = maybe [] id d.strokes
-    strokes = foldl (\d ss -> (getStrokes d) ++ ss) [] ds
-  in renderStrokes <| sortBy .t0 strokes
 
 portToAction : String -> Action
 portToAction s =
@@ -220,9 +214,11 @@ serverInput = OtherInput <~ dropRepeats (serverToAction <~ incoming)
 getDrawing : Realtime Whiteboard -> OtherDrawings -> Maybe ({ absPos : (Float, Float), zoomOffset : (Float, Float), zoom : Float, dimensions : (Int, Int), windowDims : (Int, Int)
                                   , drawing : [{id:Int, t0:Float, points:[{ x:Int, y:Int }], brush:{ size:Float, color:{ red:Int, green:Int, blue:Int, alpha:Float }}}]})
 getDrawing {mode, canvas, absPos, zoomOffset, zoom, windowDims} other =
-  let withOtherStrokes = sortBy .t0 <| foldl (\d ss -> (Dict.values d) ++ ss) (Dict.values canvas.drawing) (Dict.values other)
+  let
+    canvas' = getCanvas canvas
+    withOtherStrokes = sortBy .t0 <| foldl (\d ss -> (Dict.values d) ++ ss) (Dict.values canvas'.drawing) (Dict.values other)
   in case mode of
-    Viewing -> Just {drawing = withOtherStrokes, absPos = absPos, zoomOffset = zoomOffset, zoom = zoom, dimensions = canvas.dimensions, windowDims = windowDims}
+    Viewing -> Just {drawing = withOtherStrokes, absPos = absPos, zoomOffset = zoomOffset, zoom = zoom, dimensions = canvas'.dimensions, windowDims = windowDims}
     _ -> Nothing
 
 port canvasOut : Signal (Maybe { absPos : (Float, Float), zoomOffset : (Float, Float), zoom : Float, dimensions : (Int, Int), windowDims : (Int, Int)
@@ -231,7 +227,7 @@ port canvasOut = getDrawing <~ editorState ~ othersState
 
 
 port drawingOut : Signal (Maybe { drawingId : Int, firstName : String, lastName : String, strokes : Maybe [{id:Int, t0:Float, points:[{ x:Int, y:Int }], brush:{ size:Float, color:{ red:Int, green:Int, blue:Int, alpha:Float }}}]})
-port drawingOut = userInfoPortToDrawingInfo <~ userInfoPort ~ ((Just . Dict.values . .drawing . .canvas) <~ editorState )
+port drawingOut = userInfoPortToDrawingInfo <~ userInfoPort ~ ((Just . Dict.values . .drawing . getCanvas . .canvas) <~ editorState )
 -- UPDATE
 
 getZoomable : Realtime Whiteboard -> Zoomable Editor
@@ -260,6 +256,8 @@ eraserBrush : Brush
 eraserBrush = { size = 15, color = toRgb (rgba 0 0 0 0.1) }
 
 
+getCanvas : Maybe Canvas -> Canvas
+getCanvas c = maybe defaultCanvas id c
 
 
 stepEditor : Input -> Realtime Whiteboard -> Realtime Whiteboard
@@ -267,20 +265,26 @@ stepEditor {action, brush, canvasDims, windowDims, initDrawing}
            ({mode, canvas, history, zoom, absPos, zoomOffset} as editor) =
   let
     editor' = { editor | windowDims <- windowDims
-                       , minZoom <- max 1 <| minScale (floatT windowDims) (floatT canvas.dimensions)
-                       , canvas <- { canvas | dimensions <- canvasDims, drawing <- if isEmpty <| Dict.keys canvas.drawing then initDrawing else canvas.drawing }
+                       , minZoom <- max 1 <| minScale (floatT windowDims) (floatT canvasDims)
+                       , canvas <- if isNothing canvas then Just { dimensions = canvasDims, drawing = initDrawing } else canvas
                        , lastMessage <- NoOpServer }
   in case action of
     Undo ->
-      let (drawing', history', message) = stepUndo canvas.drawing history
-      in { editor' | canvas <- { canvas | drawing <- drawing' }, history <- history', lastMessage <- message}
+      let
+        canvas' = getCanvas canvas
+        (drawing', history', message) = stepUndo canvas'.drawing history
+      in { editor' | canvas <- Just { canvas' | drawing <- drawing' }, history <- history', lastMessage <- message}
 
     ZoomIn ->
-      let zoomed = withinBounds editor'.canvas.dimensions <| stepZoom 2 <| getZoomable editor'
+      let
+        canvas' = getCanvas canvas
+        zoomed = withinBounds canvas'.dimensions <| stepZoom 2 <| getZoomable editor'
       in { editor' | zoom <- zoomed.zoom, zoomOffset <- zoomed.zoomOffset, absPos <- zoomed.absPos }
 
     ZoomOut ->
-      let zoomed = withinBounds editor'.canvas.dimensions <| stepZoom (1/2) <| getZoomable editor'
+      let
+        canvas' = getCanvas canvas
+        zoomed = withinBounds canvas'.dimensions <| stepZoom (1/2) <| getZoomable editor'
       in { editor' | zoom <- zoomed.zoom, zoomOffset <- zoomed.zoomOffset, absPos <- zoomed.absPos }
 
     View ->
@@ -293,19 +297,21 @@ stepEditor {action, brush, canvasDims, windowDims, initDrawing}
       { editor' | mode <- Erasing }
 
     Touches ts ->
-      let ps = map (touchToPoint . (scaleTouch absPos zoomOffset zoom)) ts
+      let
+        canvas' = getCanvas canvas
+        ps = map (touchToPoint . (scaleTouch absPos zoomOffset zoom)) ts
       in case mode of
         Drawing ->
-          { editor' | canvas <- { canvas | drawing <- addN (applyBrush ps brush) canvas.drawing }
+          { editor' | canvas <- Just { canvas' | drawing <- addN (applyBrush ps brush) canvas'.drawing }
                     , history <- recordDrew ps history
                     , lastMessage <- AddPoints { brush = brush, points = ps } }
 
         Erasing ->
-          let (drawing', history', message) = stepEraser (applyBrush ps eraserBrush) canvas.drawing history
-          in { editor' | canvas <- { canvas | drawing <- drawing'} , history <- history', lastMessage <- message}
+          let (drawing', history', message) = stepEraser (applyBrush ps eraserBrush) canvas'.drawing history
+          in { editor' | canvas <- Just { canvas' | drawing <- drawing'} , history <- history', lastMessage <- message}
 
         Viewing ->
-          let moved = withinBounds editor'.canvas.dimensions <| stepMove ts <| getZoomable editor'
+          let moved = withinBounds canvas'.dimensions <| stepMove ts <| getZoomable editor'
           in { editor' | absPos <- moved.absPos, lastPosition <- moved.lastPosition }
 
     _    -> editor'
@@ -315,22 +321,25 @@ editorState : Signal (Realtime Whiteboard)
 editorState = foldp stepEditor defaultEditor input
 
 
-stepOther : OtherInput -> OtherDrawings -> OtherDrawings
+getOther : Maybe OtherDrawings -> OtherDrawings
+getOther o = maybe Dict.empty id o
+
+stepOther : OtherInput -> Maybe OtherDrawings -> Maybe OtherDrawings
 stepOther {serverMessage, otherDrawings} c =
   let
     (a, d) = serverMessage
-    canvas = if isEmpty (Dict.keys c) then otherDrawings else c
-    drawing = Dict.getOrElse Dict.empty d.drawingId c
+    canvas = if isNothing c then Just otherDrawings else c
+    drawing = Dict.getOrElse Dict.empty d.drawingId <| getOther c
     drawing' = case a of
       AddPoints ps   -> addN (applyBrush ps.points ps.brush) drawing
       AddStrokes ss  -> foldl (\s -> Dict.insert s.id s) drawing ss.strokes
       RemoveStroke s -> Dict.remove s.strokeId drawing
       _              -> drawing
-  in Dict.insert d.drawingId drawing' canvas
+  in Just <| Dict.insert d.drawingId drawing' <| getOther canvas
 
 
 othersState : Signal OtherDrawings
-othersState =  dropRepeats (foldp stepOther defaultOther serverInput)
+othersState =  dropRepeats <| getOther <~ (foldp stepOther defaultOther serverInput)
 
 
 -- VIEW
@@ -342,7 +351,8 @@ toAbsPos zoom (dx, dy) (w, h) = ( -zoom * (w / 2 + dx), zoom * (h / 2 + dy) )
 display : (Int, Int) -> Realtime Whiteboard -> OtherDrawings -> Element
 display (w, h) ({canvas, history, zoom, absPos} as board) other =
   let
-    thisStrokes = Dict.values canvas.drawing
+    canvas' = getCanvas canvas
+    thisStrokes = Dict.values canvas'.drawing
     withOtherStrokes = sortBy .t0 <| foldl (\d ss -> (Dict.values d) ++ ss) thisStrokes (Dict.values other)
     displayCanvas = renderStrokes withOtherStrokes
     pos = toAbsPos zoom absPos <| floatT (w, h)

@@ -83,7 +83,7 @@ apiApp :: Acid.AcidState BoardsState -> ScottyM ()
 apiApp acid = do
 
     middleware $ gzip $ def { gzipFiles = GzipCompress }
-    middleware $ staticPolicy (noDots >-> addBase "public")
+    middleware $ staticPolicy (noDots >-> addBase "public-dev")
     middleware logStdoutDev
 
 
