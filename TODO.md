@@ -1,17 +1,25 @@
 # TODO:
 
-- Figure out why sometimes wix settings are not loaded
-- heroku deployment
+- improve perfomance
+    + front end?
+    + remove acid state for heroku (memory managment)?
 - board resetting
-^^^^^^^ Wednesday ^^^^^^^^
-- min zoom to view the whole board
-- Generate PDF from strokes
+- error handling on server side
 - display who currently is drawing
+- add animation on drawing start (anything)
+- deal with zombie touches
+- Figure out why sometimes wix settings are not loaded
 - check for OWNER permissions for settings pannel requests
+- remove boards if noone is drawing - both clients and acid
+- sequrity
+    + verify instance of board on drawings delete
 - post contact info to wix
-- add tooltips
 
 #### Future:
+- if background transparent and white, make pdf background light gray. or make white light gray
+- add tooltips
+- min zoom to view the whole board
+- click on minimap to change location
 - disconnection handling - think of something
 - Remove drawing signal for handling disconnection?
 - refactor server signals
@@ -19,10 +27,7 @@
 - creating new boards
 - Pull other boards of this instance and be able to set them to current
 - Point is also a stroke, might have a prettier way to write logic
-- verify instance of board on drawings delete
 - improve performance
-- refactor moderation (create a separate module instead of adding it to Editor?)
-- board's design field to json
 - what to do when window dimensions greater than canvas dimensions? for now, give zoomed in.
 - drop enum values from paper_type
 - Do not allow same board names

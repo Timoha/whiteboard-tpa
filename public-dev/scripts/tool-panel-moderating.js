@@ -1,42 +1,24 @@
 'use strict';
 
 
-function Brush(size, color) {
-  this.size = size;
-  this.color = color;
-
-  this.setSize = function (size) {
-    this.size = size;
-  };
-}
-
 $(document).ready(function() {
 
 
-
-  var boardSettings = {}
-
-  var defaultCanvasColor = new Color(255, 255, 255, 1);
-  var defaultBrushColor = new Color(255, 147, 30, 1)
-  var defaultBrush = new Brush(8, defaultBrushColor);
-
-
   getSettings().done(function (data, status) {
-    var data = JSON.parse(data);
     console.log('got settings', data);
     setupBoard(data);
   }).fail(function (data, status, message) {
     console.error('cannot get settings', message, status, data);
   });
 
-
-
-
+  var currBoardId = null;
 
   function setupBoard(data) {
 
     var settings = data.settings;
     var drawings = data.submitted;
+
+    currBoardId = settings.boardId;
 
     $('#board-title').text(settings.boardName);
 
@@ -44,25 +26,14 @@ $(document).ready(function() {
     delete dimensions.paperType;
 
 
-    var boardInfo = {
-      instance: instance,
-      componentId: compId,
-      boardId: settings.boardId
-    };
-
-
     var editor = Elm.embed(
-      Elm.Editor,
+      Elm.Moderator,
       document.getElementById('canvas'),
-      { brushPort: defaultBrush
-      , actionPort: 'Moderate'
-      , userInfoPort: null
+      { actionPort: 'View'
       , canvasSizePort: dimensions
-      , boardInfoPort: boardInfo
       , submittedDrawingsPort: drawings
       });
 
-    editor.ports.actionPort.send("Moderate");
     var minimap = Elm.embed(
       Elm.Minimap,
       document.getElementById('minimap'),
@@ -71,6 +42,8 @@ $(document).ready(function() {
 
     $('#loading').hide();
     $('.tool-panel').show();
+
+    $('#drag-tool').addClass('active');
 
 
     // make following tools active on click
@@ -108,9 +81,6 @@ $(document).ready(function() {
     }
 
 
-    editor.ports.erasedDrawingIdsOut.subscribe(parent.setDeleteDrawingsIds);
-
-
 
     $('#drag-tool').on('mousedown', function () {
       editor.ports.canvasOut.subscribe(updateMinimap);
@@ -133,6 +103,31 @@ $(document).ready(function() {
 
       }
     });
+
+    var drawingsIdsToDelete = [];
+
+    function setDeleteDrawingsIds(ids) {
+      drawingsIdsToDelete = ids;
+    }
+    editor.ports.erasedDrawingIdsOut.subscribe(setDeleteDrawingsIds);
+
+
+    $('#save-progress').on('click', function () {
+      deleteDrawings(drawingsIdsToDelete, currBoardId).done(function (data, status) {
+        console.log('removed drawings', data);
+        window.close();
+      }).fail(function (data, status, message) {
+        console.error('cannot remove drawings', message, status, data);
+      });
+    });
+
+
+    $('#download-board').on('click', function () {
+        $.fileDownload('/api/board/'+currBoardId+'/download');
+    });
+
+
+    editor.ports.actionPort.send('View');
   }
 
 });

@@ -22,13 +22,13 @@ executable whiteboard
                      , acid-state
                      , safecopy
                      , aeson
+                     , HPDF
                      , mtl
                      , http-types
                      , resourcet
                      , text
                      , network
                      , bytestring
-                     , monad-logger
                      , heroku
                      , transformers
                      , wai-middleware-static

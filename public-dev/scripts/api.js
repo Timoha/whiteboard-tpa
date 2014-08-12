@@ -18,6 +18,7 @@ var getInstance = function() {
 var compId = Wix.Utils.getOrigCompId() || Wix.Utils.getCompId();
 var instance = getInstance();
 
+var deleteDrawingsByIdsUrl = '/api/board/' + compId + '/drawings/deleteByIds?boardId=';
 var getSettingsURL = '/api/board/' + compId;
 var instanceHeader = {'X-Wix-Instance' : instance};
 
@@ -28,8 +29,27 @@ function getSettings() {
     url: getSettingsURL,
     timeout: 15000,
     headers: instanceHeader,
-    dataType: 'json text'
+    dataType: 'json'
   });
+}
+
+
+
+function deleteDrawings(ids, boardId) {
+  if(Wix.Utils.getPermissions() !== 'OWNER') {
+    console.error('invalid permissions');
+    return null;
+  }
+  console.log('deleteting drawings', ids);
+
+  return $.ajax({
+      type: 'PUT',
+      url: deleteDrawingsByIdsUrl + boardId,
+      timeout: 15000,
+      headers: instanceHeader,
+      dataType: 'json',
+      data: JSON.stringify(ids)
+    });
 }
 
 

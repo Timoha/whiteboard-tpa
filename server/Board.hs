@@ -27,15 +27,15 @@ import qualified Data.Text.Encoding as T
 
 --------------- Paper ------------------
 
-prop_iso_a :: Double
-prop_iso_a = sqrt 2
+propIsoA :: Double
+propIsoA = sqrt 2
 
-prop_ansi :: Double
-prop_ansi = 17 / 11
+propAnsi :: Double
+propAnsi = 17 / 11
 
 -- 1px = 0.3mm
-pixel_to_mm :: Double
-pixel_to_mm = 0.3
+pixelToMm :: Double
+pixelToMm = 0.3
 
 data Paper
     = ANSI_A
@@ -91,10 +91,10 @@ paperDims = map toDims
     , (ISO_A0, 841) ]
     where
         toDims (t, w) =
-            let width  = if ("ANSI" `isPrefixOf` (show t))
-                            then (w::Double) * prop_ansi / pixel_to_mm
-                            else (w::Double) * prop_iso_a / pixel_to_mm
-                height = w / pixel_to_mm
+            let width  = if "ANSI" `isPrefixOf` show t
+                            then (w::Double) * propAnsi / pixelToMm
+                            else (w::Double) * propIsoA / pixelToMm
+                height = w / pixelToMm
             in Dimensions (round width) (round height) t
 
 
@@ -107,7 +107,7 @@ data Dimensions = Dimensions
 
 
 getDimensions :: Paper -> [Dimensions] -> Maybe Dimensions
-getDimensions pt xs = find (\x -> (paper x) == pt) xs
+getDimensions pt = find (\x -> paper x == pt)
 
 
 
@@ -219,37 +219,45 @@ instance FromRow WidgetId where
 
 
 create :: Connection -> BoardSettings -> WixWidget -> IO (Maybe Board)
-create c bs (WixWidget componentId (WixInstance instanceId _)) =
+create c bs (WixWidget cid (WixInstance iid _)) =
     let q  = "insert into board (instance_id, name, paper_size, locked, background_picture, background_color, design, created)"
               `mappend` " values (?, ?, ?, ?, ?, ?, ?, NOW()) RETURNING *"
-        vs = (instanceId, boardName bs, paperType bs, locked bs, backgroundPicture bs, backgroundColor bs, design bs)
-    in listToMaybe <$> (query c q vs)
+        vs = (iid, boardName bs, paperType bs, locked bs, backgroundPicture bs, backgroundColor bs, design bs)
+    in listToMaybe <$> query c q vs
 
 
 update :: Connection -> BoardSettings -> WixWidget -> IO (Maybe Board)
-update c bs (WixWidget componentId (WixInstance instanceId _)) =
+update c bs (WixWidget cid (WixInstance iid _)) =
     let q  = "update board as b set name = ?, paper_size = ?, locked = ?, background_picture = ?, background_color = ?, design = ?"
               `mappend` "from wix_widget as w where b.board_id = w.board_id RETURNING b.*"
         vs = (boardName bs, paperType bs, locked bs, backgroundPicture bs, backgroundColor bs, design bs)
-    in listToMaybe <$> (query c q vs)
+    in listToMaybe <$> query c q vs
 
 
 get :: Connection -> WixWidget -> IO (Maybe Board)
-get c (WixWidget componentId (WixInstance instanceId _)) =
+get c (WixWidget cid (WixInstance iid _)) =
     let q  = "select b.board_id, b.instance_id, name, paper_size, locked, background_picture, background_color, design, created " `mappend`
              "from wix_widget as w, board as b " `mappend`
              "where w.instance_id = ? and w.component_id = ? and b.board_id = w.board_id"
-        vs = (instanceId, componentId)
-    in listToMaybe <$> (query c q vs)
+        vs = (iid, cid)
+    in listToMaybe <$> query c q vs
+
+getById :: Connection -> BoardId -> IO (Maybe Board)
+getById c bid =
+    let q  = "select board_id, instance_id, name, paper_size, locked, background_picture, background_color, design, created " `mappend`
+             "from board " `mappend`
+             "where board_id = ?"
+        vs = Only bid
+    in listToMaybe <$> query c q vs
 
 
 
 getByInstance :: Connection -> WixWidget -> IO [Board]
-getByInstance c (WixWidget componentId (WixInstance instanceId _)) =
+getByInstance c (WixWidget _ (WixInstance iid _)) =
     let q  = "select * "   `mappend`
              "from board " `mappend`
              "where instance_id = ?"
-        vs = (Only instanceId)
+        vs = Only iid
     in query c q vs
 
 
@@ -267,8 +275,8 @@ getOrCreate c bs w = do
         b -> return b
 
 createWixWidget :: Connection -> Board -> WixWidget -> IO (Maybe WidgetId)
-createWixWidget c b (WixWidget componentId (WixInstance instanceId _)) =
+createWixWidget c b (WixWidget cid (WixInstance iid _)) =
     let q  = "insert into wix_widget (instance_id, component_id, board_id)"
               `mappend` " values (?, ?, ?) RETURNING *"
-        vs = (instanceId, componentId, boardId b)
-    in listToMaybe <$> (query c q vs)
+        vs = (iid, cid, boardId b)
+    in listToMaybe <$> query c q vs

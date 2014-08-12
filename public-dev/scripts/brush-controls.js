@@ -47,7 +47,6 @@
   $.initSliders = function ($brush) {
     $('[data-rangeslider]').rangeslider({
 
-            // Deactivate the feature detection
       polyfill: false,
       rangeClass: 'rangeslider',
       fillClass: 'rangeslider-fill',
@@ -94,8 +93,6 @@
     $.initColorPicker($colorPicker, $brush);
 
     $.initSliders($brush);
-
-    return;
   };
 
 }(jQuery));

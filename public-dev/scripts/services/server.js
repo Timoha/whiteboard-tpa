@@ -25,32 +25,9 @@ angular.module('whiteboard')
   var getSettingsURL = '/api/board/' + compId + '/settings';
   var saveSettingsURL = '/api/board/' + compId + '/settings';
   var getSubmittedUrl = '/api/board/' + compId + '/drawings?boardId=';
-  var deleteDrawingsByIdsUrl = '/api/board/' + compId + '/drawings/deleteByIds?boardId=';
   var instanceHeader = {'X-Wix-Instance' : instance};
-  var iframeUrl = 'moderating.html?instance=' + instance + '&compId=' + compId;
+  var moderatorUrl = 'moderating.html?instance=' + instance + '&compId=' + compId;
 
-
-
-  function deleteDrawings(ids, boardId) {
-    if($wix.Utils.getPermissions() !== 'OWNER') {
-      console.error('invalid permissions');
-      return null;
-    }
-    console.log('deleteting drawings', ids);
-
-    $http({
-        method: 'PUT',
-        url: deleteDrawingsByIdsUrl + boardId,
-        timeout: 15000,
-        headers: instanceHeader,
-        data: JSON.stringify(ids)
-      }).success(function (data, status) {
-        data = JSON.parse(data);
-        console.log('deleted drawings', data);
-      }).error(function (message, status) {
-        console.error('cannot delete drawings', message, status);
-      });
-  }
 
 
   var getDrawings = function(boardId) {
@@ -62,9 +39,8 @@ angular.module('whiteboard')
       timeout: 15000
     }).success(function (data, status) {
       if (status === 200) {
-        var response = JSON.parse(JSON.parse(data));
-        deferred.resolve(response);
-        console.log('Got drawings ', response);
+        deferred.resolve(data);
+        console.log('Got drawings ', data);
       } else {
         console.log('The server is returning an incorrect status.');
         deferred.reject({});
@@ -87,9 +63,8 @@ angular.module('whiteboard')
       timeout: 15000
     }).success(function (data, status) {
       if (status === 200) {
-        var response = JSON.parse(JSON.parse(data));
-        deferred.resolve(response);
-        console.log('Got Settings ', response);
+        deferred.resolve(data);
+        console.log('Got Settings ', data);
       } else {
         console.log('The server is returning an incorrect status.');
         deferred.reject({});
@@ -130,10 +105,9 @@ angular.module('whiteboard')
 
 
   return {
-    deleteDrawings: deleteDrawings,
     getDrawings: getDrawings,
     getSettings: getSettings,
     saveSettings: saveSettings,
-    iframeUrl: iframeUrl
+    moderatorUrl: moderatorUrl
   };
 });
