@@ -130,24 +130,27 @@ withinWindowDims ts (w, h) =
 
 brodcast : Signal ServerAction
 brodcast =  merges [ dropRepeats . dropIf isNoOpServer NewClient  <| .lastMessage  <~ editorState
-                   , drawingInfoToServerAction <~ (userInfoPortToDrawingInfo <~ dropRepeats userInfoPort)
+                   , drawingInfoToServerAction <~ (userInfoPortToDrawingInfo <~ dropRepeats userInfoPort ~ noStrokes)
                    ]
 
 
-userInfoPortToDrawingInfo : Maybe { drawingId : Int, firstName : String, lastName : String} -> Maybe DrawingInfo
-userInfoPortToDrawingInfo user =
+noStrokes : Signal (Maybe [Stroke])
+noStrokes = constant Nothing
+
+userInfoPortToDrawingInfo : Maybe { drawingId : Int, firstName : String, lastName : String} -> Maybe [Stroke] -> Maybe DrawingInfo
+userInfoPortToDrawingInfo user strokes =
   case user of
-    Just u -> Just {u | strokes = Nothing}
+    Just u -> Just {u | strokes = strokes}
     Nothing -> Nothing
 
 
 
 outgoing : Signal String
-outgoing = dropRepeats (constructMessage <~ brodcast ~ (dropRepeats <| userInfoPortToDrawingInfo <~ userInfoPort) ~ boardInfoPort)
+outgoing = dropRepeats (constructMessage <~ brodcast ~ (dropRepeats <| userInfoPortToDrawingInfo <~ userInfoPort ~ noStrokes) ~ boardInfoPort)
 
 
 incoming : Signal String
-incoming = WebSocket.connect "ws://localhost:3000/" outgoing
+incoming = WebSocket.connect "ws://polar-refuge-5500.herokuapp.com/" outgoing
 
 
 toAddDrawingsMessage : [DrawingInfo] -> (ServerAction, DrawingInfo)
@@ -184,7 +187,7 @@ getInitDrawings dinfo drawings =
 
 
 initDrawings : Signal (Drawing, OtherDrawings)
-initDrawings = dropRepeats (getInitDrawings <~ (userInfoPortToDrawingInfo <~ (dropRepeats userInfoPort)) ~ submittedDrawingsPort)
+initDrawings = dropRepeats (getInitDrawings <~ (userInfoPortToDrawingInfo <~ (dropRepeats userInfoPort) ~ noStrokes) ~ submittedDrawingsPort)
 --toolActions : Input Action
 --toolActions = Input.input NoOp
 
@@ -227,6 +230,8 @@ port canvasOut : Signal (Maybe { absPos : (Float, Float), zoomOffset : (Float, F
 port canvasOut = getDrawing <~ editorState ~ othersState
 
 
+port drawingOut : Signal (Maybe { drawingId : Int, firstName : String, lastName : String, strokes : Maybe [{id:Int, t0:Float, points:[{ x:Int, y:Int }], brush:{ size:Float, color:{ red:Int, green:Int, blue:Int, alpha:Float }}}]})
+port drawingOut = userInfoPortToDrawingInfo <~ userInfoPort ~ ((Just . Dict.values . .drawing . .canvas) <~ editorState )
 -- UPDATE
 
 getZoomable : Realtime Whiteboard -> Zoomable Editor

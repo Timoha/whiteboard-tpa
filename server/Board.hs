@@ -242,6 +242,14 @@ get c (WixWidget cid (WixInstance iid _)) =
         vs = (iid, cid)
     in listToMaybe <$> query c q vs
 
+getById :: Connection -> BoardId -> IO (Maybe Board)
+getById c bid =
+    let q  = "select board_id, instance_id, name, paper_size, locked, background_picture, background_color, design, created " `mappend`
+             "from board " `mappend`
+             "where board_id = ?"
+        vs = Only bid
+    in listToMaybe <$> query c q vs
+
 
 
 getByInstance :: Connection -> WixWidget -> IO [Board]

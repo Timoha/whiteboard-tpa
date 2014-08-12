@@ -12,7 +12,6 @@ import History (..)
 import Utils (..)
 import RealtimeApi (DrawingInfo)
 
-
 import Graphics.Input (..)
 import Graphics.Input as Input
 

@@ -250,6 +250,31 @@ $(document).ready(function () {
       });
     }
 
+
+    function submitDrawing(drawing) {
+      console.log("submit", drawing);
+      $.ajax({
+        type: 'PUT',
+        url:  '/api/board/' + boardSettings.boardId  + '/submit_drawing',
+        dataType: 'json',
+        data: JSON.stringify(drawing)
+      }).done(function (data, status) {
+        console.log('submitted drawing', data);
+        $(".editing").hide();
+        $(".viewing").show();
+        $('#drag-tool').addClass('active');
+        editor.ports.drawingOut.unsubscribe(submitDrawing);
+      }).fail(function (data, status, message) {
+        console.error('cannot submit drawing', message, status, data);
+        editor.ports.drawingOut.unsubscribe(submitDrawing);
+      });
+    }
+
+    $('#done-drawing').on('click', function () {
+      editor.ports.actionPort.send('View');
+      editor.ports.drawingOut.subscribe(submitDrawing);
+    });
+
   }
 
 

@@ -14,9 +14,8 @@
     <link rel="stylesheet" href="bower_components/normalize-css/normalize.css">
     <link rel="stylesheet" href="styles/font-styles.css">
     <link rel="stylesheet" href="styles/widget.css">
-
-    <!-- endbuild -->
     <link rel="stylesheet" href="styles/moderating.css">
+    <!-- endbuild -->
 
     <style wix-style>
 
@@ -90,6 +89,7 @@
             <div id="canvas"></div>
         </section>
         <footer id="mod-controls">
+            <button id="download-board" style="float:left; border: 2px solid black; color: black; padding: 5px; background-color: white">Download Board</button>
             <button id="save-progress" style="float:right; border: 2px solid green; color: green; padding: 5px; background-color: white">Save Progress</button>
         </footer>
     </div>
@@ -102,8 +102,9 @@
 <script src="bower_components/jquery/dist/jquery.js"></script>
 <script src="bower_components/rangeslider.js/dist/rangeslider.js"></script>
 <script src="bower_components/jquery-simplecolorpicker/jquery.simplecolorpicker.js"></script>
+<script src="bower_components/jquery.fileDownload/src/Scripts/jquery.fileDownload.js"></script>
 <!-- endbuild -->
-<!-- build:js scripts/elm-modules.js -->
+<!-- build:js scripts/elm-modules-moderating.js -->
 <script src="scripts/Moderator.js"></script>
 <script src="scripts/Minimap.js"></script>
 <!-- endbuild -->

@@ -83,7 +83,7 @@ apiApp :: Acid.AcidState BoardsState -> ScottyM ()
 apiApp acid = do
 
     middleware $ gzip $ def { gzipFiles = GzipCompress }
-    middleware $ staticPolicy (noDots >-> addBase "public-dev")
+    middleware $ staticPolicy (noDots >-> addBase "public")
     middleware logStdoutDev
 
 
@@ -124,6 +124,18 @@ apiApp acid = do
           _ -> json $ ServerError "invalid message format" HttpType.badRequest400
 
 
+
+    put "/api/board/:bid/submit_drawing" $ do
+            bid <- param "bid"
+            ss  <- jsonData
+            liftIO $ putStrLn $ show ss
+            cdb <- liftIO $ connect dbConnectInfo
+            d   <- liftIO $ Drawing.submit cdb ss bid
+            case d of
+                Just drawing  -> do
+                    liftIO $ Acid.update acid $ RemoveDrawing (Drawing.boardId drawing) (Drawing.toDrawingInfo drawing)
+                    json $ (TL.decodeUtf8 . encode) HttpType.ok200
+                Nothing -> json $ (TL.decodeUtf8 . encode) (ServerError "cannot find drawing" HttpType.badRequest400)
 
     get "/api/board/:compId/drawings" $ do
         bid <- param "boardId"
@@ -198,3 +210,17 @@ apiApp acid = do
             Nothing -> json $ ServerError "cannot update drawing" HttpType.internalServerError500
 
 
+
+    get "/api/board/:bid/download" $ do
+        bid   <- param "bid"
+        cdb   <- liftIO $ connect dbConnectInfo
+        board <- liftIO $ Board.getById cdb (read bid :: Int)
+        case board of
+            Just b -> do
+                drawings <- liftIO $ Drawing.getSubmittedByBoard cdb (Board.boardId b)
+                boardPdf <- liftIO $ PdfGenerator.getPdf (Board.settings b) drawings
+                setHeader "Content-Type" "application/pdf"
+                setHeader "Content-Disposition" "attachment; filename=\"Whiteboard.pdf\""
+                setHeader "Set-Cookie" "fileDownload=true; path=/"
+                raw boardPdf
+            Nothing -> json $ ServerError "cannot download board" HttpType.internalServerError500

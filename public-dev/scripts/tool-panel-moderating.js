@@ -122,6 +122,11 @@ $(document).ready(function() {
     });
 
 
+    $('#download-board').on('click', function () {
+        $.fileDownload('/api/board/'+currBoardId+'/download');
+    });
+
+
     editor.ports.actionPort.send('View');
   }
 

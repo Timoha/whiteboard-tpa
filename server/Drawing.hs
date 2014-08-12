@@ -251,11 +251,13 @@ get c (DrawingInfo did fstN lstN _) bid =
       vs = (bid, fstN, lstN)
   in fmap listToMaybe (query c q vs)
 
-submit :: Connection -> DrawingInfo -> IO (Maybe Drawing)
-submit c (DrawingInfo did _ _ strokes) =
+
+
+submit :: Connection -> DrawingInfo -> BoardId -> IO (Maybe Drawing)
+submit c (DrawingInfo did _ _ strokes) bid =
     case strokes of
-      Just ss -> let q  = "update drawing set strokes = ?, submitted = NOW() where drawing_id = ? RETURNING *"
-                     vs = (ss, did)
+      Just ss -> let q  = "update drawing set strokes = ?, submitted = NOW() where drawing_id = ? AND board_id = ? RETURNING *"
+                     vs = (ss, did, bid)
                  in fmap listToMaybe (query c q vs)
       Nothing -> return Nothing
 

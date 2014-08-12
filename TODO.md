@@ -1,22 +1,21 @@
 # TODO:
 
-- finish moderating
-- Manage Board, open editing in js popup
 - board resetting
-- Generate PDF from strokes
-- add checkmark back just for the heck of it.
 - refactor Editor to have Nothing as initial value for drawing and other
+- deal with invalid drawings
+- error handling on server side
 - improve perfomance
-    + remove acid state for heroku (memory managment)?
     + front end?
+    + remove acid state for heroku (memory managment)?
+- deal with zombie touches
 - add animation on drawing start (anything)
 - display who currently is drawing
 - Figure out why sometimes wix settings are not loaded
 - check for OWNER permissions for settings pannel requests
+- remove boards if noone is drawing - both clients and acid
 - sequrity
     + verify instance of board on drawings delete
 - post contact info to wix
-- deal with zombie touches
 
 #### Future:
 - add tooltips

@@ -222,7 +222,7 @@ talk conn state acid bid client = handle catchDisconnect $
                             dWithStrokes <- liftIO $ Acid.query acid $ GetDrawing bid drawing
                             cdb <- liftIO $ connect dbConnectInfo
                             d <- liftIO $ case dWithStrokes of
-                                Just ss -> Drawing.submit cdb ss
+                                Just ss -> Drawing.submit cdb ss bid
                                 Nothing -> return Nothing
                             liftIO $ print d
                             liftIO $ Acid.update acid $ RemoveDrawing bid drawing

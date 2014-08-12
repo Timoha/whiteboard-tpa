@@ -69,7 +69,7 @@ jsonOfServerAction action dinfo binfo =
   in case dinfo of
     Just d ->
         let
-          jav = case Debug.log "server action" <| action of
+          jav = case action of
               AddPoints ps   -> [("action", Json.String "AddPoints"), ("element", recordToJson ps)]
               AddStrokes ss  -> [("action", Json.String "AddStrokes"), ("element", recordToJson ss)]
               RemoveStroke s -> [("action", Json.String "RemoveStroke"), ("element", recordToJson s)]
