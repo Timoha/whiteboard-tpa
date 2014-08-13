@@ -9,8 +9,9 @@ Some clarifications for the description as of the current version of the applica
 - No settings picture as canvas background
 - Board PDF can be downloaded after clicking 'Manage Drawings' in settings panel.
 
-## Try Out Demo on live Wix site.
+## [Try Out Demo](http://andreye.wix.com/test-whiteboard) on live Wix site.
 If it's not loading right away, it's because Heroku turned the server to Idle. It does so after about 1 hour of no requests. Just give it 30 sec and try again.
+Best working on Safari.
 Works great on iPad!
 
 # Technologies
@@ -52,6 +53,7 @@ In terms of using multicore processors, my app is currently single core, but bec
 
 # Current limitations
 - Front end can get very slow right now (except Safari handles canvas rendering pretty well) as more drawings are added. However, I'm making good progress at optimizing it.
+- Settings pannel doesn't work in safary due to wix-ui-lib not apply css.
 - Back end doesn't have any security, open doors for everyone.
 - No optimizations implemented for back end yet.
 - Poor error handling:
