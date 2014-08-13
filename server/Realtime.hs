@@ -30,7 +30,7 @@ import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.IO as TL
 import qualified Data.Text.Lazy.Encoding as TL
 import qualified Data.ByteString.Lazy.Char8 as BLC8
-import qualified Data.HashMap.Strict as HashMap
+import qualified Data.Map.Strict as Map
 
 import Data.Acid as Acid
 import Data.Aeson
@@ -91,16 +91,16 @@ data Message = NewClient (Maybe DrawingInfo) BoardId
 
 type Client = Int
 data ClientInfo = ClientInfo WS.Connection (Maybe Drawing.DrawingInfo)
-type ClientState = HashMap.HashMap Client ClientInfo
-type ServerState = HashMap.HashMap BoardId ClientState
+type ClientState = Map.Map Client ClientInfo
+type ServerState = Map.Map BoardId ClientState
 
 
 
 defaultServerState :: ServerState
-defaultServerState = HashMap.empty
+defaultServerState = Map.empty
 
 defaultClientState :: ClientState
-defaultClientState = HashMap.empty
+defaultClientState = Map.empty
 
 
 
@@ -109,45 +109,45 @@ defaultClientState = HashMap.empty
 
 
 addClient :: Client -> ClientInfo -> BoardId -> ServerState -> ServerState
-addClient c info bid bs = HashMap.insert bid clients bs
-    where clients = HashMap.insert c info $ HashMap.lookupDefault defaultClientState bid bs
+addClient c info bid bs = Map.alter addC bid bs
+    where addC board = case board of
+                           Just b  -> Just $ Map.insert c info b
+                           Nothing -> Just $ Map.insert c info defaultClientState
 
 
 updateClient :: (ClientInfo -> ClientInfo) -> Client -> BoardId -> ServerState -> ServerState
-updateClient f c bid bs = HashMap.insert bid clients bs
-    where
-        clients = case HashMap.lookup bid bs of
-            Just cs -> HashMap.adjust f c cs
-            Nothing -> defaultClientState -- think more about this
+updateClient f c = Map.adjust $ Map.adjust f c
 
 
 lookupClient :: BoardId -> Client -> ServerState -> Maybe ClientInfo
-lookupClient bid cid bs = HashMap.lookup bid bs >>= HashMap.lookup cid
+lookupClient bid cid bs = Map.lookup bid bs >>= Map.lookup cid
 
 setClientDrawing :: DrawingInfo -> ClientInfo -> ClientInfo
-setClientDrawing d (ClientInfo conn drawing) = ClientInfo conn (Just d)
+setClientDrawing d (ClientInfo conn _) = ClientInfo conn (Just d)
 
 
 
 removeClient :: BoardId -> Client -> ServerState -> ServerState
-removeClient b c = HashMap.adjust (HashMap.delete c) b
+removeClient bid c = Map.update rm bid
+    where rm b = let removed = Map.delete c b
+                 in if Map.null removed then Nothing else Just removed
 
 
 broadcast :: TL.Text -> ClientState -> IO ()
 broadcast message clients = do
     TL.putStrLn message
-    forM_ (HashMap.elems clients) $ \(ClientInfo c _) -> forkIO $ WS.sendTextData c message
+    forM_ (Map.elems clients) $ \(ClientInfo c _) -> forkIO $ WS.sendTextData c message
 
 
 broadcastBoard :: BoardId -> TL.Text -> (TL.Text -> ClientState -> IO ()) -> ServerState -> IO ()
 broadcastBoard b m f bs =
-    case HashMap.lookup b bs of
+    case Map.lookup b bs of
         Just cs -> f m cs
         Nothing -> putStrLn "Couldn't find board"
 
 
 broadcastOther :: Client -> TL.Text -> ClientState -> IO ()
-broadcastOther me message clients = broadcast message $ HashMap.filterWithKey (\k _ -> k /= me) clients
+broadcastOther me message clients = broadcast message $ Map.filterWithKey (\k _ -> k /= me) clients
 
 
 
@@ -186,7 +186,6 @@ application state acid pending = do
     case decode msg of
         Just m -> case handleMessage m of
             Just (NewClient d bid) -> do
-                broadcastBoard bid "new client joined" broadcast boards
                 liftIO $ modifyMVar_ state $ \s -> return $ addClient clientId (ClientInfo conn d) bid s
                 talk conn state acid bid clientId
             _           -> return ()

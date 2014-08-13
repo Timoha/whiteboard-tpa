@@ -81,8 +81,8 @@ emptyDrawing = Map.empty
 updateDrawing :: (Strokes -> Strokes) -> DrawingInfo -> BoardId -> Boards -> Boards
 updateDrawing f (DrawingInfo did _ _ _) = Map.alter updateBoard
     where
-        updateBoard ds = Just $
-            case ds of
+        updateBoard drawings = Just $
+            case drawings of
                 Just ds -> Map.insert did (f $ fromMaybe emptyDrawing (Map.lookup did ds)) ds
                 Nothing -> Map.insert did (f emptyDrawing) emptyBoard
 
@@ -90,8 +90,9 @@ getDrawing' :: DrawingInfo -> BoardId -> Boards -> Maybe DrawingInfo
 getDrawing' (DrawingInfo did _ _ _ ) bid bs = Map.lookup bid bs >>= Map.lookup did >>= \ss -> Just $ DrawingInfo did "" "" (Just $ Map.elems ss)
 
 removeDrawing' :: DrawingInfo -> BoardId -> Boards -> Boards
-removeDrawing' (DrawingInfo did _ _ _) bid bs = Map.adjust (Map.alter deleteD did) bid bs
-    where deleteD ds = Nothing
+removeDrawing' (DrawingInfo did _ _ _) bid bs = Map.update rm bid bs
+    where rm b = let removed = Map.delete did b
+                 in if Map.null removed then Nothing else Just removed
 
 addNewPoints :: BoardId -> DrawingInfo -> [BrushedReceivedPoint] -> Update BoardsState ()
 addNewPoints bid d ps = do

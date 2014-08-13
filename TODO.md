@@ -1,10 +1,9 @@
 # TODO:
 
-- remove boards if noone is drawing - both clients and acid
+- add animation on drawing start/finish (anything)
 - error handling on server side
 - improve perfomance
     + moderator - apply same technique as in editor
-- add animation on drawing start (anything)
 - deal with zombie touches
 - sequrity
     + verify instance of board on drawings delete

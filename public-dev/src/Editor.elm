@@ -142,8 +142,9 @@ outgoing : Signal String
 outgoing = dropRepeats (constructMessage <~ brodcast ~ (dropRepeats <| userInfoPortToDrawingInfo <~ userInfoPort ~ noStrokes) ~ boardInfoPort)
 
 
+-- ws://polar-refuge-5500.herokuapp.com/
 incoming : Signal String
-incoming = WebSocket.connect "ws://polar-refuge-5500.herokuapp.com/" outgoing
+incoming = WebSocket.connect "ws://localhost:3000/" outgoing
 
 
 toAddDrawingsMessage : [DrawingInfo] -> (ServerAction, DrawingInfo)
