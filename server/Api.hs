@@ -118,7 +118,7 @@ apiApp acid = do
               d   <- liftIO $ Drawing.get cdb info bid
               case d of
                   Just drawing -> do
-                    s'  <- liftIO $ Acid.update acid $ AddNewStrokes bid info $ fromMaybe [] (Drawing.strokes drawing)
+                    liftIO $ Acid.update acid $ AddNewStrokes bid info $ fromMaybe [] (Drawing.strokes drawing)
                     json HttpType.ok200
                   Nothing -> json $ ServerError "invalid drawing info" HttpType.internalServerError500
           _ -> json $ ServerError "invalid message format" HttpType.badRequest400

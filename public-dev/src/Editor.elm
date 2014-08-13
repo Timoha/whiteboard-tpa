@@ -16,10 +16,8 @@ import Json
 import WebSocket
 import Maybe
 
-
 import Graphics.Input (..)
 import Graphics.Input as Input
-
 
 
 
@@ -46,7 +44,7 @@ type Input =
   , brush      : Brush
   , canvasDims : (Int, Int)
   , windowDims : (Int, Int)
-  , initDrawing : Drawing
+  , drawings : (Drawing, OtherDrawings)
   }
 
 
@@ -59,7 +57,7 @@ type Whiteboard =  Zoomable (Undoable Editor)
 
 type Editor = { mode : Mode, canvas : Maybe Canvas }
 
-type Realtime a = {a | lastMessage : ServerAction}
+type Realtime a = {a | lastMessage : ServerAction, rerenderOld : Bool }
 
 type OtherDrawings = Dict.Dict Int Drawing
 
@@ -83,10 +81,11 @@ defaultEditor =
   , windowDims = (0, 0)
   , lastPosition = Nothing
   , lastMessage = NewClient
+  , rerenderOld = True
   }
 
 
-defaultOther : Maybe OtherDrawings
+defaultOther : Maybe (OtherDrawings, OtherDrawings)
 defaultOther = Nothing
 
 -- INPUT
@@ -200,7 +199,7 @@ input = Input <~ actions
                ~ dropRepeats brushPort
                ~ dropRepeats (canvasSizePortToTuple <~ canvasSizePort)
                ~ dropRepeats Window.dimensions
-               ~ dropRepeats (fst <~ initDrawings)
+               ~ dropRepeats initDrawings
 
 
 
@@ -211,14 +210,12 @@ serverInput = OtherInput <~ dropRepeats (serverToAction <~ incoming)
 -- OUTPUT
 
 
-getDrawing : Realtime Whiteboard -> OtherDrawings -> Maybe ({ absPos : (Float, Float), zoomOffset : (Float, Float), zoom : Float, dimensions : (Int, Int), windowDims : (Int, Int)
+getDrawing : Realtime Whiteboard -> (OtherDrawings, OtherDrawings) -> Maybe ({ absPos : (Float, Float), zoomOffset : (Float, Float), zoom : Float, dimensions : (Int, Int), windowDims : (Int, Int)
                                   , drawing : [{id:Int, t0:Float, points:[{ x:Int, y:Int }], brush:{ size:Float, color:{ red:Int, green:Int, blue:Int, alpha:Float }}}]})
-getDrawing {mode, canvas, absPos, zoomOffset, zoom, windowDims} other =
-  let
-    canvas' = getCanvas canvas
-    withOtherStrokes = sortBy .t0 <| foldl (\d ss -> (Dict.values d) ++ ss) (Dict.values canvas'.drawing) (Dict.values other)
+getDrawing {mode, canvas, absPos, zoomOffset, zoom, windowDims} (otherSubmitted, otherOnline) =
+  let canvas' = getCanvas canvas
   in case mode of
-    Viewing -> Just {drawing = withOtherStrokes, absPos = absPos, zoomOffset = zoomOffset, zoom = zoom, dimensions = canvas'.dimensions, windowDims = windowDims}
+    Viewing -> Just {drawing = foldl (\d -> (++) (Dict.values d)) (Dict.values canvas'.drawing) (Dict.values otherSubmitted ++ Dict.values otherOnline), absPos = absPos, zoomOffset = zoomOffset, zoom = zoom, dimensions = canvas'.dimensions, windowDims = windowDims}
     _ -> Nothing
 
 port canvasOut : Signal (Maybe { absPos : (Float, Float), zoomOffset : (Float, Float), zoom : Float, dimensions : (Int, Int), windowDims : (Int, Int)
@@ -261,19 +258,28 @@ getCanvas c = maybe defaultCanvas id c
 
 
 stepEditor : Input -> Realtime Whiteboard -> Realtime Whiteboard
-stepEditor {action, brush, canvasDims, windowDims, initDrawing}
+stepEditor {action, brush, canvasDims, windowDims, drawings}
            ({mode, canvas, history, zoom, absPos, zoomOffset} as editor) =
   let
+    (initDrawing, otherDrawings) = drawings
     editor' = { editor | windowDims <- windowDims
                        , minZoom <- max 1 <| minScale (floatT windowDims) (floatT canvasDims)
                        , canvas <- if isNothing canvas then Just { dimensions = canvasDims, drawing = initDrawing } else canvas
-                       , lastMessage <- NoOpServer }
+                       , lastMessage <- NoOpServer
+                       , rerenderOld <- isNothing canvas }
   in case action of
     Undo ->
       let
         canvas' = getCanvas canvas
+        historyIds = Dict.keys history
+        lastEventId = if isEmpty historyIds then 0 else maximum historyIds
+        lastEvent = Dict.getOrElse NoEvent lastEventId history
+        rerender' = case lastEvent of
+          Erased ss -> any (\(sid, _) -> Dict.member sid initDrawing) ss
+          Drew sid  -> Dict.member sid initDrawing
+          _               -> False
         (drawing', history', message) = stepUndo canvas'.drawing history
-      in { editor' | canvas <- Just { canvas' | drawing <- drawing' }, history <- history', lastMessage <- message}
+      in { editor' | canvas <- Just { canvas' | drawing <- drawing' }, history <- history', lastMessage <- message, rerenderOld <- rerender' }
 
     ZoomIn ->
       let
@@ -307,8 +313,12 @@ stepEditor {action, brush, canvasDims, windowDims, initDrawing}
                     , lastMessage <- AddPoints { brush = brush, points = ps } }
 
         Erasing ->
-          let (drawing', history', message) = stepEraser (applyBrush ps eraserBrush) canvas'.drawing history
-          in { editor' | canvas <- Just { canvas' | drawing <- drawing'} , history <- history', lastMessage <- message}
+          let
+            (drawing', history', lastEvent, message) = stepEraser (applyBrush ps eraserBrush) canvas'.drawing history
+            rerender' = case lastEvent of
+              Erased ss -> any (\(sid, _) -> Dict.member sid initDrawing) ss -- think more!
+              _         -> False
+          in { editor' | canvas <- Just { canvas' | drawing <- drawing'} , history <- history', lastMessage <- message, rerenderOld <- rerender'}
 
         Viewing ->
           let moved = withinBounds canvas'.dimensions <| stepMove ts <| getZoomable editor'
@@ -321,45 +331,116 @@ editorState : Signal (Realtime Whiteboard)
 editorState = foldp stepEditor defaultEditor input
 
 
-getOther : Maybe OtherDrawings -> OtherDrawings
-getOther o = maybe Dict.empty id o
+getOther : Maybe (OtherDrawings, OtherDrawings) -> (OtherDrawings, OtherDrawings)
+getOther o = maybe (Dict.empty, Dict.empty) id o
 
-stepOther : OtherInput -> Maybe OtherDrawings -> Maybe OtherDrawings
-stepOther {serverMessage, otherDrawings} c =
+stepOther : OtherInput -> Maybe (OtherDrawings, OtherDrawings) -> Maybe (OtherDrawings, OtherDrawings)
+stepOther {serverMessage, otherDrawings} other =
   let
     (a, d) = serverMessage
-    canvas = if isNothing c then Just otherDrawings else c
-    drawing = Dict.getOrElse Dict.empty d.drawingId <| getOther c
-    drawing' = case a of
-      AddPoints ps   -> addN (applyBrush ps.points ps.brush) drawing
-      AddStrokes ss  -> foldl (\s -> Dict.insert s.id s) drawing ss.strokes
-      RemoveStroke s -> Dict.remove s.strokeId drawing
-      _              -> drawing
-  in Just <| Dict.insert d.drawingId drawing' <| getOther canvas
+    (Just (submitted, online)) = if isNothing other then Just (otherDrawings, Dict.empty) else other
+    submittedDrawing = Dict.getOrElse Dict.empty d.drawingId submitted
+    onlineDrawing = Dict.getOrElse Dict.empty d.drawingId online
+    (submittedDrawing', onlineDrawing') = case a of
+      AddPoints ps   -> (submittedDrawing, addN (applyBrush ps.points ps.brush) onlineDrawing)
+      AddStrokes ss  -> if Dict.member d.drawingId otherDrawings
+                        then (foldl (\s -> Dict.insert s.id s) submittedDrawing ss.strokes, onlineDrawing)
+                        else (submittedDrawing, foldl (\s -> Dict.insert s.id s) onlineDrawing ss.strokes)
+      RemoveStroke s -> (Dict.remove s.strokeId submittedDrawing, Dict.remove s.strokeId onlineDrawing)
+      _              -> (submittedDrawing, onlineDrawing)
+  in Just <| (Dict.insert d.drawingId submittedDrawing' submitted, Dict.insert d.drawingId onlineDrawing' online)
 
 
-othersState : Signal OtherDrawings
-othersState =  dropRepeats <| getOther <~ (foldp stepOther defaultOther serverInput)
+-- rewrite only for init for add stroke
+isRerenderOtherOld : (ServerAction, DrawingInfo) -> OtherDrawings ->  Bool
+isRerenderOtherOld (a, d) submitted = case a of
+  RemoveStroke _ -> Dict.member d.drawingId submitted
+  AddStrokes _   -> Dict.member d.drawingId submitted
+  _              -> False
+
+othersState : Signal (OtherDrawings, OtherDrawings)
+othersState =  getOther <~ (foldp stepOther defaultOther serverInput)
+
+-- RENDERING
+
+type RenderInput =
+  { thisInit : Drawing
+  , otherSubmitted : OtherDrawings
+  , thisCurr : Drawing
+  , otherOnline : OtherDrawings
+  , rerenderOld : Bool
+  }
+
+
+type Render =
+  { oldRender : Form
+  , newRender : Form
+  }
+
+emptyDrawing = filled (rgb 255 255 255) <| circle 0
+
+
+defaultRender : Render
+defaultRender =
+  { oldRender = emptyDrawing
+  , newRender = emptyDrawing
+  }
+
+
+isRerender : Signal Bool
+isRerender = merge (.rerenderOld <~ editorState) (isRerenderOtherOld <~ dropRepeats (serverToAction <~ incoming) ~ (snd <~ initDrawings))
+
+
+renderInput : Signal RenderInput
+renderInput = RenderInput <~ (fst <~ dropRepeats initDrawings)
+                           ~ (fst <~ dropRepeats othersState)
+                           ~ (.drawing . getCanvas . .canvas <~ editorState)
+                           ~ (snd <~ dropRepeats othersState)
+                           ~ isRerender
+
+
+stepRender : RenderInput -> Maybe Render -> Maybe Render
+stepRender ({thisInit, thisCurr, otherSubmitted, otherOnline, rerenderOld} as renderInput) renderState =
+  let
+    renderState' = maybe defaultRender id renderState
+    getThisOld init =  if isNothing renderState then init else Dict.intersect init thisCurr
+    thisCurr' =  Dict.diff thisCurr thisInit
+    oldRender' = if rerenderOld then renderBoard (getThisOld thisInit) otherSubmitted else renderState'.oldRender
+    newRender' = renderBoard thisCurr' otherOnline
+  in Just {renderState' | oldRender <- oldRender', newRender <- newRender'}
+
+
+
+renderState : Signal Render
+renderState =  (\x -> maybe defaultRender id x) <~ (foldp stepRender Nothing renderInput)
+
+renderBoard : Drawing -> OtherDrawings -> Form
+renderBoard this other =
+  let
+    thisStrokes = Dict.values this
+    withOtherStrokes = sortBy .t0 <| foldl (\d ss -> (Dict.values d) ++ ss) thisStrokes (Dict.values other)
+  in renderStrokes withOtherStrokes
+
 
 
 -- VIEW
 
 
+
 toAbsPos zoom (dx, dy) (w, h) = ( -zoom * (w / 2 + dx), zoom * (h / 2 + dy) )
 
 
-display : (Int, Int) -> Realtime Whiteboard -> OtherDrawings -> Element
-display (w, h) ({canvas, history, zoom, absPos} as board) other =
+display : (Int, Int) -> Realtime Whiteboard -> Render -> Element
+display (w, h) ({zoom, absPos} as board) ({oldRender, newRender} as renderState) =
   let
-    canvas' = getCanvas canvas
-    thisStrokes = Dict.values canvas'.drawing
-    withOtherStrokes = sortBy .t0 <| foldl (\d ss -> (Dict.values d) ++ ss) thisStrokes (Dict.values other)
-    displayCanvas = renderStrokes withOtherStrokes
+    --displayCanvas = render (getCanvas canvas).drawing other
     pos = toAbsPos zoom absPos <| floatT (w, h)
-  in collage w h [ scale zoom <| move pos displayCanvas ]
-
+    position = (scale zoom) . (move pos)
+    oldCollage = collage w h [ position oldRender ]
+    newCollage = collage w h [ position newRender ]
+  in layers [ oldCollage, newCollage ]
 
 
 main = display <~ Window.dimensions
                 ~ editorState
-                ~ othersState
+                ~ renderState

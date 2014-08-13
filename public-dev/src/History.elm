@@ -8,6 +8,7 @@ import RealtimeApi (..)
 data Event = Erased [(Int, Stroke)]
            | Drew Int
            | ErasedDrawings [DrawingInfo]
+           | NoEvent
 
 type History = Dict.Dict Int Event
 

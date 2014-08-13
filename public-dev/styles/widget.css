@@ -40,7 +40,12 @@ ul, ol, li {
 
 
 #canvas {
+  background-color: white;
   height: 100%;
+}
+
+#minimap {
+  background-color: white;
 }
 
 

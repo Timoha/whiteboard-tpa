@@ -1,22 +1,20 @@
 # TODO:
 
-- improve perfomance
-    + front end?
-    + remove acid state for heroku (memory managment)?
-- board resetting
+- remove boards if noone is drawing - both clients and acid
 - error handling on server side
-- display who currently is drawing
+- improve perfomance
+    + moderator - apply same technique as in editor
 - add animation on drawing start (anything)
 - deal with zombie touches
-- Figure out why sometimes wix settings are not loaded
-- check for OWNER permissions for settings pannel requests
-- remove boards if noone is drawing - both clients and acid
 - sequrity
     + verify instance of board on drawings delete
-- post contact info to wix
+    + check for OWNER permissions for settings pannel requests
 
 #### Future:
-- if background transparent and white, make pdf background light gray. or make white light gray
+- display who currently is drawing
+- post contact info to wix
+- board resetting
+- if background is transparent and white, make pdf background light gray. or make white light gray
 - add tooltips
 - min zoom to view the whole board
 - click on minimap to change location
@@ -27,10 +25,8 @@
 - creating new boards
 - Pull other boards of this instance and be able to set them to current
 - Point is also a stroke, might have a prettier way to write logic
-- improve performance
 - what to do when window dimensions greater than canvas dimensions? for now, give zoomed in.
-- drop enum values from paper_type
 - Do not allow same board names
-- What to do with same users, and new drawing on same board by the same user? Save to local storage?
-- full screen mode
+- What to do with same users?
 - rewrite tool panel with elm
+- full screen mode

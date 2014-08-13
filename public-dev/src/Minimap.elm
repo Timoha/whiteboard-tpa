@@ -34,7 +34,7 @@ display thisWindowDims c =
         leftTop = flipVert <| scaleDim zoom' <| addT absPos zoomOffset
         zeroPos = addT (-(w - bw) / 2, (h - bh) / 2) leftTop
         border = move zeroPos <| outlined borderLine (rect bw bh)
-        canvas = scale zoom' <| move (-w / 2, h / 2) <| renderStrokes drawing
+        canvas = scale zoom' <| move (-w / 2, h / 2) <| renderStrokes <| sortBy .t0 <|drawing
       in collage (round w) (round h) [canvas, border]
 
 

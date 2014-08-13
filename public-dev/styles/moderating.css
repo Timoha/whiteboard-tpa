@@ -24,3 +24,11 @@
 #board-title, #mod-controls {
     background-color: #eee;
 }
+
+.mod-button {
+    border-width: 2px;
+    border-style: solid;
+    padding: 5px;
+    background-color: white;
+    font-weight: bold;
+}
