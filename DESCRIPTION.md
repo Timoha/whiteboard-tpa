@@ -13,6 +13,7 @@ Some clarifications for the description as of the current version of the applica
 If it's not loading right away, it's because Heroku turned the server to Idle. It does so after about 1 hour of no requests. Just give it 30 sec and try again.
 Best working on Safari.
 Works great on iPad!
+Here is my app key `137f005d-8335-e571-4c3e-4a8055ae3859` if you want to add to your website.
 
 # Technologies
 - [Elm-lang](http://elm-lang.org) for canvas logic and jQuery for tool panel logic in widget front end
@@ -35,11 +36,11 @@ Works great on iPad!
 - By clicking 'Manage drawing' user can remove inappropriate drawings in opened javascript popup (only the whole drawing at once, not parts of it). Also, user can download PDF of the board.
 
 ## Server Side
-- In-progress drawings are stored in in-memory database [Acid State](https://hackage.haskell.org/package/acid-state) which sort of a dictionary. Acid state [(Atomicity, Consistency, Isolation, Durability)](http://en.wikipedia.org/wiki/ACID) allows persistence by incrementally serializing all functions with their arguments that are used to query/update acid state. So, if the server would crush for some reason, it will recover all in-progress drawings automatically. *This requires to have a file stored on the server with serialized data which for my experience is pretty small.*
+- In-progress drawings are stored in in-memory database [Acid State](https://hackage.haskell.org/package/acid-state) which sort of a dictionary. Acid state [(Atomicity, Consistency, Isolation, Durability)](http://en.wikipedia.org/wiki/ACID) allows persistence by incrementally serializing all functions with their arguments that are used to query/update acid state. So, if the server would crush for some reason, it will recover all in-progress drawings automatically. __This requires to have a file stored on the server with serialized data which I expect to be pretty small (I'd say less then 100mb after couple of month of running).__ It can be removed any time.
 - Basically acid state holds the same copy of drawings as the front end does and updates it as visitor draws. Memory consumption should not be an issue once all optimizations are done on server side (by my estimates 1GB of run could hold around 5K in progress drawings of large size). If that becomes an issue, it's easy to get rid of acid-state and just use regular Haskell objects with stm which would get rid of persistence (durability), but still allow ACI and probably smaller memory footprint.
 - Drawings are submitted from acid state to Postgres when the user disconnects, or when the user clicks 'Checkmark' in canvas tool panel.
 - Submitted drawings are stored in Postgres into `drawing` table as JSON arrays.
-- _Database structure_ can be found [here](https://github.com/andreywix/whiteboard-tpa/blob/master/db-scheme.sql)
+- __Database structure__ can be found [here](https://github.com/andreywix/whiteboard-tpa/blob/master/db-scheme.sql)
 - Performance-wise, Haskell, once optimized appropriately, gives near C speed of execution. However, optimizing server side is still on my todo list.
 - PDF is rendered from submitted strokes, and code logic is very similar to rendering front end canvas. It was kinda neat to implement that :)
 - All API routes can be seen [here](https://github.com/andreywix/whiteboard-tpa/blob/master/server/Api.hs) and are pretty self-explanatory.
