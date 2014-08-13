@@ -55,9 +55,9 @@ In terms of using multicore processors, my app is currently single core, but bec
 
 # Current limitations
 - Front end can get very slow right now (except Safari handles canvas rendering pretty well) as more drawings are added. However, I'm making good progress at optimizing it.
-- Settings pannel doesn't work in safary due to wix-ui-lib not apply css.
+- Settings pannel doesn't work in Safari due to wix-ui-lib not applying css.
 - Back end doesn't have any security, open doors for everyone.
-- No optimizations implemented for back end yet.
+- No optimizations implemented for backend yet.
 - Poor error handling:
    + If web socket connection break, you won't know unless you open a console. Heroku also kills the connection sometimes.
    + No error handling if something goes wrong on server.
