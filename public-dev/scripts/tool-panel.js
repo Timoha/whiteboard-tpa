@@ -148,6 +148,8 @@ $(document).ready(function () {
     $('#start-tool').on('click', function () {
       var startTool = $(this);
       if(drawingInfo !== null) {
+        startTool.removeClass('icon-brush');
+        startTool.children('.pulse-signal').show();
         $.ajax({
           type: 'POST',
           url:  '/api/board/' + boardSettings.boardId + '/resume_drawing',
@@ -155,6 +157,8 @@ $(document).ready(function () {
           data: JSON.stringify(drawingInfo),
         }).done(function (data, status) {
           console.log('resumed drawing', data);
+          startTool.children('.pulse-signal').hide();
+          startTool.addClass('icon-brush');
           enableEditingMode();
         }).fail(function (data, status, message) {
           console.error('cannot resume drawing', message, status, data);
@@ -251,6 +255,9 @@ $(document).ready(function () {
 
       var isValidInfo = !($( "input[name='email'], input[name='first-name'], input[name='last-name']" ).is('.invalid'));
       if (isValidInfo) {
+        var startTool = $('#start-tool');
+        startTool.removeClass('icon-brush');
+        startTool.children('.pulse-signal').show();
         var user = {
           firstName: $( "input[name='first-name']" ).val(),
           lastName: $( "input[name='last-name']" ).val(),
@@ -262,6 +269,8 @@ $(document).ready(function () {
           dataType: 'json',
           data: JSON.stringify(user),
           success: function (data) {
+            startTool.children('.pulse-signal').hide();
+            startTool.addClass('icon-brush');
             var drawingState = data;
             delete drawingState.strokes;
             console.log('got drawing info', data);
@@ -277,12 +286,16 @@ $(document).ready(function () {
 
     function submitDrawing(drawing) {
       console.log("submit", drawing);
+      $('#done-drawing').removeClass('icon-check');
+      $('#done-drawing').children('.pulse-signal').show();
       $.ajax({
         type: 'PUT',
         url:  '/api/board/' + boardSettings.boardId  + '/submit_drawing',
         dataType: 'json',
         data: JSON.stringify(drawing)
       }).done(function (data, status) {
+        $('#done-drawing').children('.pulse-signal').hide();
+        $('#done-drawing').addClass('icon-check');
         console.log('submitted drawing', data);
         enableViewingMode();
         editor.ports.drawingOut.unsubscribe(submitDrawing);

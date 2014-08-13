@@ -202,3 +202,32 @@ ul, ol, li {
   border-right: 5px solid red;
   z-index: 0;
 }
+
+.pulse-signal {
+    border:4px solid #ccc;
+    border-radius:30px;
+    height:30px;
+    left:31px;
+    margin:-15px 0 0 -15px;
+    opacity:0;
+    position:absolute;
+    top:23px;
+    width:30px;
+    -webkit-animation: pulsate 1s ease-out;
+    -webkit-animation-iteration-count:infinite;
+    display: none;
+}
+
+@-webkit-keyframes pulsate {
+    0% {
+      -webkit-transform:scale(.1);
+      opacity: 0.0;
+    }
+    50% {
+      opacity:1;
+    }
+    100% {
+      -webkit-transform:scale(.8);
+      opacity:0;
+    }
+}
