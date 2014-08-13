@@ -10,10 +10,11 @@ Some clarifications for the description as of the current version of the applica
 - Board PDF can be downloaded after clicking 'Manage Drawings' in settings panel.
 
 ## [Try Out Demo](http://andreye.wix.com/test-whiteboard) on live Wix site.
+#### App key `137f005d-8335-e571-4c3e-4a8055ae3859` if you want to add to your website.
 If it's not loading right away, it's because Heroku turned the server to Idle. It does so after about 1 hour of no requests. Just give it 30 sec and try again.
 Best working on Safari.
 Works great on iPad!
-Here is my app key `137f005d-8335-e571-4c3e-4a8055ae3859` if you want to add to your website.
+
 
 # Technologies
 - [Elm-lang](http://elm-lang.org) for canvas logic and jQuery for tool panel logic in widget front end
