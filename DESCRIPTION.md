@@ -49,7 +49,7 @@ Works great on iPad!
 # Deployment
 Deployment of Haskell app should be pretty easy. I've done it on Heroku with no issues using [this third party buildpack](https://github.com/begriffs/heroku-buildpack-ghc). You need in case you want to build the project on EC2. The first build can take 15-20 minutes because it has to build all dependencies. After that it takes 10-15 seconds depending on changes.
 
-Otherwise, I imagine you could just build the app on your local machine and upload the executable to the server into main parent directory and just launch it. I imagine it shouldn't be too different from deploying Java or any other compiled language app.
+Otherwise, I believe you could just build the app on your local machine and upload the executable to the server into main parent directory and just launch it. I imagine it shouldn't be too different from deploying Java or <any other compiled language> app.
 
 In terms of using multicore processors, my app is currently single core, but because Haskell code is immutable, it very easy to make it multithreaded with all the safety to them just by using different functions.
 
