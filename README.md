@@ -1,5 +1,6 @@
 # Whiteboard
 WiX.com App which allows visitors to leave drawings on the website.
+### [Try Live Demo] (http://andreye.wix.com/wix-sf-whiteboard)
 
 ### Viewing Mode:
 
@@ -19,12 +20,12 @@ WiX.com App which allows visitors to leave drawings on the website.
 
 ![start drawing](https://github.com/andreywix/whiteboard-tpa/raw/master/wireframes/start-drawing-panel.png)
 
-### Drawing Mode - [Try Live Demo](http://andreywix.github.io/whiteboard-tpa/public-dev/):
+### Drawing Mode - [Try Live Demo of Editor](http://andreywix.github.io/whiteboard-tpa/public-dev/):
 - Click onto "Checkmark" when done with the drawing
 - Can access Viewing Mode functionality by pressing "Hand"
 - People's names will be shown only in "Hand" mode (maybe)
 
-#### Default "Drawing Mode" state (first thing that visitors see) - [Try Live Demo](http://andreywix.github.io/whiteboard-tpa/public-dev/)
+#### Default "Drawing Mode" state (first thing that visitors see)
 ![default](https://github.com/andreywix/whiteboard-tpa/raw/master/wireframes/selected.png)
 
 #### When clicked on "Brush Dot" color panel opens
@@ -38,7 +39,7 @@ WiX.com App which allows visitors to leave drawings on the website.
 ![map panel](https://github.com/andreywix/whiteboard-tpa/raw/master/wireframes/map-panel.png)
 
 
-### Settings Panel - [Try live demo](http://andreywix.github.io/whiteboard-tpa/public-dev/settings.html):
+### Settings Panel - [Try live demo of Settings Panel](http://andreywix.github.io/whiteboard-tpa/public-dev/settings.html):
 
 #### General settings
 - User can set a number of visitor's reports a particular drawing can get before it gets removed
