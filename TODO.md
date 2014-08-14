@@ -10,6 +10,7 @@
     + check for OWNER permissions for settings pannel requests
 
 #### Future:
+- ping pong for preserving server connection
 - display who currently is drawing
 - post contact info to wix
 - board resetting
