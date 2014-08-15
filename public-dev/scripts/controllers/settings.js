@@ -103,13 +103,14 @@ angular.module('whiteboard')
 
 
     boardSettings.borderWidth = settings.design.borderWidth;
-
+    console.log('init1');
     $timeout(function() {
       $scope.paperStandard = paperStandard;
       $scope.paperTypes.ANSI = ANSI;
       $scope.paperTypes.ISO = ISO;
       $scope.$apply();
-      $wix.UI.initialize(boardSettings);
+      console.log('init2');
+      setTimeout(function() {$wix.UI.initialize(boardSettings);}, 5000);
     });
   };
 
@@ -149,7 +150,13 @@ angular.module('whiteboard')
 
   var saveSettingsDebounce = debounce(saveSettings, 2000);
 
-  getSettings();
+  console.log('init0');
+
+  
+     getSettings();
+        
+      
+ 
 
 
   // <a href='#' style='color: red; vertical-align: bottom; line-height: 30px; text-decoration: underline; margin-right: 6px;'>Clear Board</a> \

@@ -35,7 +35,6 @@ executable whiteboard
                      , wai-extra
                      , time
                      , split
-                     , unordered-containers
                      , containers
                      , base64-bytestring
                      , cryptohash

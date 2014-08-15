@@ -7,10 +7,12 @@ import WixInstance
 import qualified Drawing
 import qualified Board
 import qualified PdfGenerator
+import Realtime (numClientsBoard, ServerState)
+import Control.Concurrent (MVar, newMVar, modifyMVar_, readMVar, forkIO)
 
 import DrawingProgress
 import DbConnect (dbConnectInfo)
-
+import ServerError
 
 import Control.Applicative
 import Control.Monad
@@ -37,9 +39,7 @@ import Network.Wai.Middleware.Gzip
 import qualified Network.HTTP.Types as HttpType
 
 
-data ServerError = ServerError { error :: T.Text
-                               , status :: HttpType.Status
-                               } deriving Show
+
 
 
 data WidgetJson = WidgetJson Board.Board [Drawing.DrawingInfo] deriving Show
@@ -58,16 +58,7 @@ instance ToJSON SettingsPanelJson where
                , "empty" .= empty ]
 
 
-instance ToJSON ServerError where
-    toJSON (ServerError error status) =
-        object [ "error" .= error
-               , "status" .= status ]
 
-
-instance ToJSON HttpType.Status where
-    toJSON (HttpType.Status statusCode statusMessage) =
-        object [ "code" .= statusCode
-               , "message" .= T.decodeUtf8 statusMessage ]
 
 
 getWixWidget :: ActionM (Maybe Board.WixWidget)
@@ -79,11 +70,13 @@ getWixWidget = do
     return $ fmap (Board.WixWidget componentId) widget
 
 
-apiApp :: Acid.AcidState BoardsState -> ScottyM ()
-apiApp acid = do
+maxPaintersPerBoard = 10
+
+apiApp :: Acid.AcidState BoardsState -> MVar ServerState -> ScottyM ()
+apiApp acid clientState = do
 
     middleware $ gzip $ def { gzipFiles = GzipCompress }
-    middleware $ staticPolicy (noDots >-> addBase "public-dev")
+    middleware $ staticPolicy (noDots >-> addBase "public")
     middleware logStdoutDev
 
 
@@ -96,30 +89,39 @@ apiApp acid = do
 
     post "/api/board/:bid/new_drawing" $ do
         bid <- param "bid"
-        b <- jsonData
-        liftIO $ print b
-        case b of
+        userInfo <- jsonData
+        case userInfo of
           Just usr@(User{}) -> do
               cdb <- liftIO $ connect dbConnectInfo
               d   <- liftIO $ Drawing.create cdb usr bid
               case d of
-                  Just drawing -> json $ Drawing.toDrawingInfo drawing
+                  Just drawing -> do
+                    numPs <- liftIO $ Acid.query acid (GetNPaintersBoard bid)
+                    liftIO $ print numPs
+                    if numPs > maxPaintersPerBoard
+                        then do { status tooManyPainters; json $ Drawing.toDrawingInfo drawing }
+                        else json $ Drawing.toDrawingInfo drawing
                   Nothing -> json $ ServerError "cannot create drawing" HttpType.internalServerError500
           _ -> json $ ServerError "invalid message format" HttpType.badRequest400
 
 
     post "/api/board/:bid/resume_drawing" $ do
         bid <- param "bid"
-        b <- jsonData
-        liftIO $ print b
-        case b of
+        drawingInfo <- jsonData
+        case drawingInfo of
           Just info@(Drawing.DrawingInfo{}) -> do
               cdb <- liftIO $ connect dbConnectInfo
               d   <- liftIO $ Drawing.get cdb info bid
               case d of
                   Just drawing -> do
-                    liftIO $ Acid.update acid $ AddNewStrokes bid info $ fromMaybe [] (Drawing.strokes drawing)
-                    json HttpType.ok200
+                    numPs <- liftIO $ Acid.query acid (GetNPaintersBoard bid)
+                    liftIO $ print numPs
+                    if numPs > maxPaintersPerBoard
+                        then do { status tooManyPainters; json tooManyPainters }
+                        else do
+                            let strokes = fromMaybe [] (Drawing.strokes drawing)
+                            liftIO $ Acid.update acid $ AddNewStrokes bid info strokes
+                            json HttpType.ok200
                   Nothing -> json $ ServerError "invalid drawing info" HttpType.internalServerError500
           _ -> json $ ServerError "invalid message format" HttpType.badRequest400
 
@@ -128,21 +130,19 @@ apiApp acid = do
     put "/api/board/:bid/submit_drawing" $ do
             bid <- param "bid"
             ss  <- jsonData
-            liftIO $ putStrLn $ show ss
             cdb <- liftIO $ connect dbConnectInfo
             d   <- liftIO $ Drawing.submit cdb ss bid
             case d of
                 Just drawing  -> do
                     liftIO $ Acid.update acid $ RemoveDrawing (Drawing.boardId drawing) (Drawing.toDrawingInfo drawing)
-                    json $ (TL.decodeUtf8 . encode) HttpType.ok200
-                Nothing -> json $ (TL.decodeUtf8 . encode) (ServerError "cannot find drawing" HttpType.badRequest400)
+                    json HttpType.ok200
+                Nothing -> json $ ServerError "cannot find drawing" HttpType.badRequest400
 
     get "/api/board/:compId/drawings" $ do
         bid <- param "boardId"
         widget <- getWixWidget
         cdb   <- liftIO $ connect dbConnectInfo
 
-        liftIO $ print widget
         case widget of
             Just w -> do
                 drawings <- liftIO $ Drawing.getSubmittedByBoard cdb bid
@@ -156,12 +156,9 @@ apiApp acid = do
         drawingIds  <- jsonData
         cdb   <- liftIO $ connect dbConnectInfo
 
-        liftIO $ print drawingIds
         case widget of
             Just w -> do
                 drawings <- liftIO $ Drawing.removeStrokesByIds cdb drawingIds bid
-                liftIO $ print drawings
-
                 if length drawingIds == length drawings
                     then json HttpType.ok200
                     else json (ServerError "cannot delete drwaings' strokes" HttpType.badRequest400)
@@ -175,8 +172,6 @@ apiApp acid = do
             Just w -> Board.getOrCreate cdb Board.defaultSettings w
             Nothing -> return Nothing
 
-        liftIO $ print board
-        liftIO $ print widget
         case board of
             Just b -> do
                 drawings <- liftIO $ Drawing.getSubmittedByBoard cdb (Board.boardId b)

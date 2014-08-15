@@ -21,7 +21,7 @@ main = do
     port  <- liftM read $ getEnv "PORT"
     state <- newMVar defaultServerState
     acid  <- openLocalState (BoardsState fixtures)
-    api   <- scottyApp $ apiApp acid
+    api   <- scottyApp $ apiApp acid state
     Warp.runSettings ((Warp.setTimeout 3600 . Warp.setPort port) Warp.defaultSettings)
        $ WaiWS.websocketsOr WS.defaultConnectionOptions (application state acid) api
 

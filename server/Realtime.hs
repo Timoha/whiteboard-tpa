@@ -4,12 +4,12 @@
 --import GHC.Generics
 
 
-module Realtime (application, defaultServerState) where
+module Realtime (application, defaultServerState, numClientsBoard, ServerState) where
 
 import Drawing
 import DrawingProgress
 import WixInstance
-import Api (ServerError (..))
+import ServerError
 import Board
 import DbConnect (dbConnectInfo)
 
@@ -104,8 +104,10 @@ defaultClientState = Map.empty
 
 
 
---numClients :: ServerState -> Int
---numClients = HashMap.foldl' ((+) HashMap.size) 0
+numClientsBoard :: BoardId -> ServerState -> Int
+numClientsBoard bid bs = case Map.lookup bid bs of
+    Just cs -> Map.size cs
+    Nothing -> 0
 
 
 addClient :: Client -> ClientInfo -> BoardId -> ServerState -> ServerState
@@ -122,8 +124,8 @@ updateClient f c = Map.adjust $ Map.adjust f c
 lookupClient :: BoardId -> Client -> ServerState -> Maybe ClientInfo
 lookupClient bid cid bs = Map.lookup bid bs >>= Map.lookup cid
 
-setClientDrawing :: DrawingInfo -> ClientInfo -> ClientInfo
-setClientDrawing d (ClientInfo conn _) = ClientInfo conn (Just d)
+setClientDrawing :: Maybe DrawingInfo -> ClientInfo -> ClientInfo
+setClientDrawing d (ClientInfo conn _) = ClientInfo conn d
 
 
 
@@ -135,7 +137,6 @@ removeClient bid c = Map.update rm bid
 
 broadcast :: TL.Text -> ClientState -> IO ()
 broadcast message clients = do
-    TL.putStrLn message
     forM_ (Map.elems clients) $ \(ClientInfo c _) -> forkIO $ WS.sendTextData c message
 
 
@@ -181,8 +182,6 @@ application state acid pending = do
     let clientId = hashUnique clientUnique
     conn <- WS.acceptRequest pending
     msg <- WS.receiveData conn
-    print msg
-    boards <- liftIO $ readMVar state
     case decode msg of
         Just m -> case handleMessage m of
             Just (NewClient d bid) -> do
@@ -204,7 +203,7 @@ talk conn state acid bid client = handle catchDisconnect $
                     Just (AddPoints d b ps)   -> liftIO $ Acid.update acid $ AddNewPoints bid d (map (applyBrush b) ps)
                     Just (AddStrokes d ss)    -> liftIO $ Acid.update acid $ AddNewStrokes bid d ss
                     Just (RemoveStroke d sid) -> liftIO $ Acid.update acid $ RemoveOldStroke bid d sid
-                    Just (NewDrawing d)       -> liftIO $ modifyMVar_ state $ \s -> return $ updateClient (setClientDrawing d) client bid s
+                    Just (NewDrawing d)       -> liftIO $ modifyMVar_ state $ \s -> return $ updateClient (setClientDrawing (Just d)) client bid s
                     _ -> return ()
             _ -> (WS.sendTextData conn . encode) (ServerError "invalid message format" HttpType.badRequest400)
     where
@@ -227,5 +226,4 @@ talk conn state acid bid client = handle catchDisconnect $
                             liftIO $ Acid.update acid $ RemoveDrawing bid drawing
                         _ -> return ()
                     let s' = removeClient bid client s
-                    broadcastBoard bid "disconnected" broadcast s'
                     return s'

@@ -1,16 +1,15 @@
 # TODO:
 
-- add animation on drawing start/finish (anything)
 - error handling on server side
+- deal with zombie touches
 - improve perfomance
     + moderator - apply same technique as in editor
-- deal with zombie touches
-- sequrity
+- security
     + verify instance of board on drawings delete
     + check for OWNER permissions for settings pannel requests
+- ping-pong for preserving websockets connection
 
 #### Future:
-- display who currently is drawing
 - post contact info to wix
 - board resetting
 - if background is transparent and white, make pdf background light gray. or make white light gray

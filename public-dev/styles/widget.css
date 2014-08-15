@@ -169,6 +169,7 @@ ul, ol, li {
   border: 1px solid white;
   outline: none;
   color: white;
+  font-weight: bold;
   text-shadow: 0 0 1px black;
 }
 
@@ -207,7 +208,7 @@ ul, ol, li {
     border:4px solid #ccc;
     border-radius:30px;
     height:30px;
-    left:31px;
+    left:30px;
     margin:-15px 0 0 -15px;
     opacity:0;
     position:absolute;

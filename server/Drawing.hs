@@ -247,8 +247,8 @@ countAllByBoard c bid =
 
 get :: Connection -> DrawingInfo -> BoardId -> IO (Maybe Drawing)
 get c (DrawingInfo did fstN lstN _) bid =
-  let q = "select * from drawing where board_id = ? and first_name = ? and last_name = ?"
-      vs = (bid, fstN, lstN)
+  let q = "select * from drawing where board_id = ? and drawing_id = ? and first_name = ? and last_name = ?"
+      vs = (bid, did, fstN, lstN)
   in fmap listToMaybe (query c q vs)
 
 

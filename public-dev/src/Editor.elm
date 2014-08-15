@@ -16,6 +16,7 @@ import Json
 import WebSocket
 import Maybe
 
+import Text as T
 import Graphics.Input (..)
 import Graphics.Input as Input
 
@@ -144,7 +145,7 @@ outgoing = dropRepeats (constructMessage <~ brodcast ~ (dropRepeats <| userInfoP
 
 -- ws://polar-refuge-5500.herokuapp.com/
 incoming : Signal String
-incoming = WebSocket.connect "ws://localhost:3000/" outgoing
+incoming = WebSocket.connect "ws://polar-refuge-5500.herokuapp.com/" outgoing
 
 
 toAddDrawingsMessage : [DrawingInfo] -> (ServerAction, DrawingInfo)
@@ -315,7 +316,10 @@ stepEditor {action, brush, canvasDims, windowDims, drawings}
 
         Erasing ->
           let
-            (drawing', history', lastEvent, message) = stepEraser (applyBrush ps eraserBrush) canvas'.drawing history
+            (drawing', history', message) = stepEraser (applyBrush ps eraserBrush) canvas'.drawing history
+            historyIds = Dict.keys history'
+            lastEventId = if isEmpty historyIds then 0 else maximum historyIds
+            lastEvent = Dict.getOrElse NoEvent lastEventId history
             rerender' = case lastEvent of
               Erased ss -> any (\(sid, _) -> Dict.member sid initDrawing) ss -- think more!
               _         -> False
@@ -349,7 +353,14 @@ stepOther {serverMessage, otherDrawings} other =
                         else (submittedDrawing, foldl (\s -> Dict.insert s.id s) onlineDrawing ss.strokes)
       RemoveStroke s -> (Dict.remove s.strokeId submittedDrawing, Dict.remove s.strokeId onlineDrawing)
       _              -> (submittedDrawing, onlineDrawing)
-  in Just <| (Dict.insert d.drawingId submittedDrawing' submitted, Dict.insert d.drawingId onlineDrawing' online)
+
+    submitted' = Dict.insert d.drawingId submittedDrawing' submitted
+    online' = Dict.insert d.drawingId onlineDrawing' online
+    --updated = if getNumStrokes online' > 50
+    --             then (unionDrawings online' submitted', Dict.empty)
+    --             else
+  in Just (submitted', online')
+
 
 
 -- rewrite only for init for add stroke
@@ -359,8 +370,48 @@ isRerenderOtherOld (a, d) submitted = case a of
   AddStrokes _   -> Dict.member d.drawingId submitted
   _              -> False
 
+
 othersState : Signal (OtherDrawings, OtherDrawings)
 othersState =  getOther <~ (foldp stepOther defaultOther serverInput)
+
+
+
+type Names = Dict.Dict Int (DrawingInfo, [Point])
+
+defaultNames : Names
+defaultNames = Dict.empty
+
+
+
+namesState : Signal Names
+namesState = foldp stepNames defaultNames serverInput
+
+
+
+stepNames : OtherInput -> Names -> Names
+stepNames {serverMessage} ns =
+  let
+    (a, d) = serverMessage
+    getPoint p = {x = p.x, y = p.y}
+  in case a of
+      AddPoints ps   -> Dict.insert d.drawingId (d, map getPoint ps.points) ns
+      _              -> Dict.remove d.drawingId ns
+
+
+dictSize : Dict.Dict comparable a -> Int
+dictSize d = Dict.foldl (\_ _ cnt -> 1 + cnt) 0 d
+
+getNumStrokes : OtherDrawings -> Int
+getNumStrokes ds = Dict.foldl (\_ d cnt -> dictSize d + cnt) 0 ds
+
+unionDrawings : OtherDrawings -> OtherDrawings -> OtherDrawings
+unionDrawings ds1 ds2 =
+  let unionOrNew (did, d) ds = case Dict.get did ds of
+                              Just existing -> Dict.insert did (Dict.union existing d) ds
+                              Nothing       -> Dict.insert did d ds
+  in foldl unionOrNew ds2 <| Dict.toList ds1
+
+
 
 -- RENDERING
 
@@ -370,12 +421,15 @@ type RenderInput =
   , thisCurr : Drawing
   , otherOnline : OtherDrawings
   , rerenderOld : Bool
+  , rerenderNew : Bool
+  , names : Names
   }
 
 
 type Render =
   { oldRender : Form
   , newRender : Form
+  , names : Form
   }
 
 emptyDrawing = filled (rgb 255 255 255) <| circle 0
@@ -385,30 +439,39 @@ defaultRender : Render
 defaultRender =
   { oldRender = emptyDrawing
   , newRender = emptyDrawing
+  , names = emptyDrawing
   }
 
 
-isRerender : Signal Bool
-isRerender = merge (.rerenderOld <~ editorState) (isRerenderOtherOld <~ dropRepeats (serverToAction <~ incoming) ~ (snd <~ initDrawings))
+isRerenderOld : Signal Bool
+isRerenderOld = merge (.rerenderOld <~ editorState) (isRerenderOtherOld <~ dropRepeats (serverToAction <~ incoming) ~ (snd <~ initDrawings))
+
+
+isRerenderNew : Signal Bool
+isRerenderNew = dropRepeats (isNothing . .lastPosition <~ editorState)
 
 
 renderInput : Signal RenderInput
-renderInput = RenderInput <~ (fst <~ dropRepeats initDrawings)
-                           ~ (fst <~ dropRepeats othersState)
-                           ~ (.drawing . getCanvas . .canvas <~ editorState)
-                           ~ (snd <~ dropRepeats othersState)
-                           ~ isRerender
+renderInput =
+  let delta = lift (\t -> t/20) (fps 40)
+  in dropRepeats <| sampleOn delta (RenderInput <~ (fst <~ initDrawings)
+                                                 ~ (fst <~ othersState)
+                                                 ~ (.drawing . getCanvas . .canvas <~ editorState)
+                                                 ~ (snd <~ othersState)
+                                                 ~ isRerenderOld
+                                                 ~ isRerenderNew
+                                                 ~ namesState )
 
 
 stepRender : RenderInput -> Maybe Render -> Maybe Render
-stepRender ({thisInit, thisCurr, otherSubmitted, otherOnline, rerenderOld} as renderInput) renderState =
+stepRender ({thisInit, thisCurr, otherSubmitted, otherOnline, rerenderOld, rerenderNew, names} as renderInput) renderState =
   let
+    renderedNames = names |> Dict.values |> map renderName |> group
     renderState' = maybe defaultRender id renderState
     getThisOld init =  if isNothing renderState then init else Dict.intersect init thisCurr
-    thisCurr' =  Dict.diff thisCurr thisInit
-    oldRender' = if rerenderOld then renderBoard (getThisOld thisInit) otherSubmitted else renderState'.oldRender
-    newRender' = renderBoard thisCurr' otherOnline
-  in Just {renderState' | oldRender <- oldRender', newRender <- newRender'}
+    oldRender' = if rerenderOld || isNothing renderState then renderBoard (getThisOld thisInit) otherSubmitted else renderState'.oldRender
+    newRender' = if rerenderNew then renderBoard (Dict.diff thisCurr thisInit) otherOnline else renderState'.newRender
+  in Just {renderState' | oldRender <- oldRender', newRender <- newRender', names <- renderedNames}
 
 
 
@@ -423,6 +486,14 @@ renderBoard this other =
   in renderStrokes withOtherStrokes
 
 
+renderName : (DrawingInfo, [Point]) -> Form
+renderName ({firstName, lastName}, ps) =
+  let
+    fullname = T.color white (toText <| firstName ++ " " ++ lastName)
+    elem = centered fullname
+    (w, h) = sizeOf elem
+    nameRender = alpha 0.8 <| toForm <| color black <| container (w + 10) (h + 4) middle elem
+  in group <| map (\{x, y} -> move (toFloat x, toFloat -y) nameRender) ps
 
 -- VIEW
 
@@ -431,15 +502,17 @@ renderBoard this other =
 toAbsPos zoom (dx, dy) (w, h) = ( -zoom * (w / 2 + dx), zoom * (h / 2 + dy) )
 
 
+
 display : (Int, Int) -> Realtime Whiteboard -> Render -> Element
-display (w, h) ({zoom, absPos} as board) ({oldRender, newRender} as renderState) =
+display (w, h) ({zoom, absPos} as board) ({oldRender, newRender, names} as renderState) =
   let
     --displayCanvas = render (getCanvas canvas).drawing other
     pos = toAbsPos zoom absPos <| floatT (w, h)
     position = (scale zoom) . (move pos)
     oldCollage = collage w h [ position oldRender ]
     newCollage = collage w h [ position newRender ]
-  in layers [ oldCollage, newCollage ]
+    namesCollage = collage w h [ position names ]
+  in layers [ oldCollage, newCollage, namesCollage ]
 
 
 main = display <~ Window.dimensions

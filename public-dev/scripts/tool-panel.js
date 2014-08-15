@@ -147,24 +147,37 @@ $(document).ready(function () {
 
     $('#start-tool').on('click', function () {
       var startTool = $(this);
-      if(drawingInfo !== null) {
+      var storedState = localStorage.getItem('elm-whiteboard-drawingInfo');
+      var info = storedState ? JSON.parse(storedState) : null;
+      if(info !== null) {
         startTool.removeClass('icon-brush');
         startTool.children('.pulse-signal').show();
         $.ajax({
           type: 'POST',
           url:  '/api/board/' + boardSettings.boardId + '/resume_drawing',
           dataType: 'json',
-          data: JSON.stringify(drawingInfo),
+          data: JSON.stringify(info),
         }).done(function (data, status) {
           console.log('resumed drawing', data);
           startTool.children('.pulse-signal').hide();
           startTool.addClass('icon-brush');
           enableEditingMode();
         }).fail(function (data, status, message) {
-          console.error('cannot resume drawing', message, status, data);
-          localStorage.removeItem('elm-whiteboard-drawingInfo');
-          startTool.parent().addClass('tab-open');
-          startTool.on('mousedown', toggleTab);
+          startTool.children('.pulse-signal').hide();
+          startTool.addClass('icon-brush');
+          startTool.removeClass('active');
+          if (data.status === 507) {
+            alert('Wow! Too many painters! Is there Renaissance all over again or something? Try again later.');
+            var drawingState = data.responseJSON;
+            delete drawingState.strokes;
+            drawingInfo = drawingState;
+            console.log('got drawing info', data);
+          } else {
+            alert('Something bad happened, refresh the page');
+            localStorage.removeItem('elm-whiteboard-drawingInfo');
+            startTool.on('mousedown', toggleTab);
+            startTool.parent().addClass('tab-open');
+          }
         });
       }
     });
@@ -267,19 +280,33 @@ $(document).ready(function () {
           type: 'POST',
           url:  '/api/board/' + boardSettings.boardId + '/new_drawing',
           dataType: 'json',
-          data: JSON.stringify(user),
-          success: function (data) {
+          data: JSON.stringify(user)}).done(function (data, status) {
             startTool.children('.pulse-signal').hide();
             startTool.addClass('icon-brush');
             var drawingState = data;
             delete drawingState.strokes;
             console.log('got drawing info', data);
-            $('#start-tool').off('mousedown', toggleTab);
+            startTool.off('mousedown', toggleTab);
             localStorage.setItem('elm-whiteboard-drawingInfo', JSON.stringify(drawingState));
             editor.ports.userInfoPort.send(data);
             enableEditingMode();
-          }
-        });
+          }).fail(function (data, status, message) {
+            startTool.children('.pulse-signal').hide();
+            startTool.addClass('icon-brush');
+            startTool.parent().removeClass('tab-open');
+            startTool.off('mousedown', toggleTab);
+            startTool.removeClass('active');
+            if (data.status === 507) {
+              alert('Wow! Too many painters! Is there Renaissance all over again or something? Try again later.');
+              var drawingState = data.responseJSON;
+              delete drawingState.strokes;
+              console.log('got drawing info', data);
+              localStorage.setItem('elm-whiteboard-drawingInfo', JSON.stringify(drawingState));
+            } else {
+              alert('Something bad happened, refresh the page');
+            }
+          });
+        ;
       }
     });
 

@@ -83,10 +83,10 @@ removeEraser drawing history =
 
 
 
-stepEraser : [Brushed (Timed (WithId Point))] -> Drawing -> History -> (Drawing, History, Event, ServerAction)
+stepEraser : [Brushed (Timed (WithId Point))] -> Drawing -> History -> (Drawing, History, ServerAction)
 stepEraser ps drawing history =
   if isEmpty ps
-  then let (drawing', history') = removeEraser drawing history in (drawing', history', NoEvent, NoOpServer)
+  then let (drawing', history') = removeEraser drawing history in (drawing', history', NoOpServer)
   else
     let
       p = head ps
@@ -102,11 +102,9 @@ stepEraser ps drawing history =
                      _                -> []
                  in ( foldl (\(eid, _) -> Dict.remove eid) drawing' erased
                     , Dict.insert p.id (Erased <| erased ++ es) history
-                    , if isEmpty erased then NoEvent else Erased erased
                     , if isEmpty crossed then NoOpServer else RemoveStroke { strokeId = (fst . head) crossed })
       Nothing -> ( drawing'
                  , Dict.insert p.id (Erased []) history
-                 , NoEvent
                  , NoOpServer)
 
 

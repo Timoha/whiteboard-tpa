@@ -109,6 +109,12 @@ removeOldStroke bid d sid = do
     BoardsState bs <- S.get
     S.put (BoardsState (updateDrawing (removeStroke sid) d bid bs))
 
+getNPaintersBoard :: BoardId -> Query BoardsState (Int)
+getNPaintersBoard bid = do
+    BoardsState bs <- ask
+    return $ case Map.lookup bid bs of
+                Just ps -> Map.size ps
+                Nothing -> 0
 
 getDrawings :: BoardId -> Query BoardsState [DrawingInfo]
 getDrawings bid = do
@@ -127,7 +133,7 @@ removeDrawing bid d = do
     S.put (BoardsState (removeDrawing' d bid bs))
 
 
-$(makeAcidic ''BoardsState ['addNewPoints, 'addNewStrokes, 'removeOldStroke, 'getDrawings, 'removeDrawing, 'getDrawing])
+$(makeAcidic ''BoardsState ['addNewPoints, 'addNewStrokes, 'removeOldStroke, 'getDrawings, 'removeDrawing, 'getDrawing, 'getNPaintersBoard])
 
 fixtures :: Boards
 fixtures = Map.empty
