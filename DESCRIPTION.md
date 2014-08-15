@@ -9,7 +9,7 @@ Some clarifications for the description as of the current version of the applica
 - No settings picture as canvas background
 - Board PDF can be downloaded after clicking 'Manage Drawings' in settings panel.
 
-## [Try Out Demo](http://andreye.wix.com/test-whiteboard) on live Wix site.
+## [Try Out Demo](http://andreye.wix.com/wix-sf-whiteboard) on live Wix site.
 #### App key `137f005d-8335-e571-4c3e-4a8055ae3859` if you want to add to your website.
 If it's not loading right away, it's because Heroku turned the server to Idle. It does so after about 1 hour of no requests. Just give it 30 sec and try again.
 Best working on Safari.
@@ -27,7 +27,7 @@ Works great on iPad!
 
 # Architecture
 ## Widget
-- Using [Elm-lang](http://elm-lang.org) for drawing/erasing/undoing/zooming/moving around/realtime/rendering/moderating. The code can be found [here](https://github.com/andreywix/whiteboard-tpa/tree/master/public-dev/src). Everything was written from scratch. Might be slow right now, but having great progress with optimizing it.
+- Using [Elm-lang](http://elm-lang.org) for drawing/erasing/undoing/zooming/moving around/realtime/rendering/moderating. The code can be found [here](https://github.com/andreywix/whiteboard-tpa/tree/master/public-dev/src). Everything was written from scratch.
 - Using jQuery for making http requests, selecting controls of tool panel, interacting with canvas through Elm js port, as well as managing local storage for user data. The code can be found [here](https://github.com/andreywix/whiteboard-tpa/tree/master/public-dev/scripts)
 - Once user visits the board, all submitted and currently in progress drawings are pulled from server.
 - All events such as Drawing, Removing and Undoing are streamed to all visitors of the board
@@ -35,6 +35,7 @@ Works great on iPad!
 
 ## Settings Panel
 - By clicking 'Manage drawing' user can remove inappropriate drawings in opened javascript popup (only the whole drawing at once, not parts of it). Also, user can download PDF of the board.
+- Settings are saved on change with debounce of 2 seconds. Someone should implement an even ON_PUBLISH for Wix SDK, that way widget settings could be updated in sync with websites update.
 
 ## Server Side
 - In-progress drawings are stored in in-memory database [Acid State](https://hackage.haskell.org/package/acid-state) which sort of a dictionary. Acid state [(Atomicity, Consistency, Isolation, Durability)](http://en.wikipedia.org/wiki/ACID) allows persistence by incrementally serializing all functions with their arguments that are used to query/update acid state. So, if the server would crush for some reason, it will recover all in-progress drawings automatically. __This requires to have a file stored on the server with serialized data which I expect to be pretty small (I'd say less then 100mb after couple of month of running).__ It can be removed any time.
@@ -54,7 +55,6 @@ Otherwise, I believe you could just build the app on your local machine and uplo
 In terms of using multicore processors, my app is currently single core, but because Haskell code is immutable, it very easy to make it multithreaded with all the safety to them just by using different functions.
 
 # Current limitations
-- Front end can get very slow right now (except Safari handles canvas rendering pretty well) as more drawings are added. However, I'm making good progress at optimizing it.
 - Settings pannel doesn't work in Safari due to wix-ui-lib not applying css.
 - Back end doesn't have any security, open doors for everyone.
 - No optimizations implemented for backend yet.

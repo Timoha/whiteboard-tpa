@@ -10,6 +10,11 @@
 - ping-pong for preserving websockets connection
 
 #### Future:
+<<<<<<< HEAD
+=======
+- ping pong for preserving server connection
+- display who currently is drawing
+>>>>>>> d558c87db6ccdef009a52c82d4b4d657c96b3a8f
 - post contact info to wix
 - board resetting
 - if background is transparent and white, make pdf background light gray. or make white light gray
