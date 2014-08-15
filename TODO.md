@@ -1,20 +1,18 @@
 # TODO:
 
 - error handling on server side
-- deal with zombie touches
-- improve perfomance
-    + moderator - apply same technique as in editor
 - security
     + verify instance of board on drawings delete
     + check for OWNER permissions for settings pannel requests
 - ping-pong for preserving websockets connection
+- deal with zombie touches
+- show minimap always in bottom left corner
+- improve perfomance
+    + moderator - apply same technique as in editor
 
 #### Future:
-<<<<<<< HEAD
-=======
-- ping pong for preserving server connection
-- display who currently is drawing
->>>>>>> d558c87db6ccdef009a52c82d4b4d657c96b3a8f
+
+- trim painters input text on signup
 - post contact info to wix
 - board resetting
 - if background is transparent and white, make pdf background light gray. or make white light gray

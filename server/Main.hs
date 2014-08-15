@@ -1,4 +1,4 @@
-import Web.Scotty (scottyApp)
+import Web.Scotty.Trans (scottyAppT)
 
 import Realtime (application, defaultServerState)
 import Api (apiApp)
@@ -21,7 +21,7 @@ main = do
     port  <- liftM read $ getEnv "PORT"
     state <- newMVar defaultServerState
     acid  <- openLocalState (BoardsState fixtures)
-    api   <- scottyApp $ apiApp acid state
+    api   <- scottyAppT id id $ apiApp acid state
     Warp.runSettings ((Warp.setTimeout 3600 . Warp.setPort port) Warp.defaultSettings)
        $ WaiWS.websocketsOr WS.defaultConnectionOptions (application state acid) api
 

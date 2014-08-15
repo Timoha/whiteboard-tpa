@@ -10,12 +10,14 @@ import qualified PdfGenerator
 import Realtime (numClientsBoard, ServerState)
 import Control.Concurrent (MVar, newMVar, modifyMVar_, readMVar, forkIO)
 
+
 import DrawingProgress
 import DbConnect (dbConnectInfo)
 import ServerError
 
 import Control.Applicative
 import Control.Monad
+import Control.Monad.Error
 import Control.Monad.IO.Class (liftIO)
 
 import Data.List
@@ -27,9 +29,10 @@ import qualified Data.Text.Lazy.IO as TL
 import qualified Data.Text.Lazy.Encoding as TL
 import qualified Data.ByteString.Lazy.Char8 as BLC8
 import qualified Data.ByteString as B
+import qualified Data.ByteString.Lazy as BL
 
 import Data.Acid as Acid
-import Web.Scotty
+import Web.Scotty.Trans
 import Data.Aeson (ToJSON, toJSON, object, (.=), encode)
 import Database.PostgreSQL.Simple
 import Network.Wai.Middleware.Static
@@ -59,9 +62,7 @@ instance ToJSON SettingsPanelJson where
 
 
 
-
-
-getWixWidget :: ActionM (Maybe Board.WixWidget)
+getWixWidget :: Monad m => ActionT ServerError m (Maybe Board.WixWidget)
 getWixWidget = do
     componentId <- param "compId"
     wixInstance <- header "X-Wix-Instance"
@@ -70,21 +71,22 @@ getWixWidget = do
     return $ fmap (Board.WixWidget componentId) widget
 
 
-maxPaintersPerBoard = 10
+maxPaintersPerBoard = 20
 
-apiApp :: Acid.AcidState BoardsState -> MVar ServerState -> ScottyM ()
+apiApp :: (Monad m, MonadIO m) => Acid.AcidState BoardsState -> MVar ServerState -> ScottyT ServerError m ()
 apiApp acid clientState = do
 
     middleware $ gzip $ def { gzipFiles = GzipCompress }
-    middleware $ staticPolicy (noDots >-> addBase "public")
+    middleware $ staticPolicy (noDots >-> addBase "public-dev")
     middleware logStdoutDev
 
+    defaultHandler handleEx
 
     get "/" $ do
         widget <- getWixWidget
         case widget of
             Just w -> text $ TL.pack $ show w
-            Nothing -> json $ ServerError "invalid wix instance" HttpType.badRequest400
+            Nothing -> raise $ ServerError "invalid wix instance" HttpType.badRequest400
 
 
     post "/api/board/:bid/new_drawing" $ do
@@ -101,8 +103,8 @@ apiApp acid clientState = do
                     if numPs > maxPaintersPerBoard
                         then do { status tooManyPainters; json $ Drawing.toDrawingInfo drawing }
                         else json $ Drawing.toDrawingInfo drawing
-                  Nothing -> json $ ServerError "cannot create drawing" HttpType.internalServerError500
-          _ -> json $ ServerError "invalid message format" HttpType.badRequest400
+                  Nothing -> raise $ ServerError "cannot create drawing" HttpType.internalServerError500
+          _ -> raise $ ServerError "invalid message format" HttpType.badRequest400
 
 
     post "/api/board/:bid/resume_drawing" $ do
@@ -122,8 +124,8 @@ apiApp acid clientState = do
                             let strokes = fromMaybe [] (Drawing.strokes drawing)
                             liftIO $ Acid.update acid $ AddNewStrokes bid info strokes
                             json HttpType.ok200
-                  Nothing -> json $ ServerError "invalid drawing info" HttpType.internalServerError500
-          _ -> json $ ServerError "invalid message format" HttpType.badRequest400
+                  Nothing -> raise $ ServerError "invalid drawing info" HttpType.internalServerError500
+          _ -> raise $ ServerError "invalid message format" HttpType.badRequest400
 
 
 
@@ -136,7 +138,7 @@ apiApp acid clientState = do
                 Just drawing  -> do
                     liftIO $ Acid.update acid $ RemoveDrawing (Drawing.boardId drawing) (Drawing.toDrawingInfo drawing)
                     json HttpType.ok200
-                Nothing -> json $ ServerError "cannot find drawing" HttpType.badRequest400
+                Nothing -> raise $ ServerError "cannot find drawing" HttpType.badRequest400
 
     get "/api/board/:compId/drawings" $ do
         bid <- param "boardId"
@@ -147,7 +149,7 @@ apiApp acid clientState = do
             Just w -> do
                 drawings <- liftIO $ Drawing.getSubmittedByBoard cdb bid
                 json $ map Drawing.toDrawingInfo drawings
-            Nothing -> json $ ServerError "invalid instance" HttpType.badRequest400
+            Nothing -> raise $ ServerError "invalid instance" HttpType.badRequest400
 
 
     put "/api/board/:compId/drawings/deleteByIds" $ do
@@ -162,7 +164,7 @@ apiApp acid clientState = do
                 if length drawingIds == length drawings
                     then json HttpType.ok200
                     else json (ServerError "cannot delete drwaings' strokes" HttpType.badRequest400)
-            Nothing -> json $ ServerError "invalid instance" HttpType.badRequest400
+            Nothing -> raise $ ServerError "invalid instance" HttpType.badRequest400
 
 
     get "/api/board/:compId" $ do
@@ -177,7 +179,7 @@ apiApp acid clientState = do
                 drawings <- liftIO $ Drawing.getSubmittedByBoard cdb (Board.boardId b)
                 online   <- liftIO $ Acid.query acid (GetDrawings (Board.boardId b))
                 json $ WidgetJson b $ unionBy (\(Drawing.DrawingInfo x _ _ _) (Drawing.DrawingInfo y _ _ _) -> x == y) online (fmap Drawing.toDrawingInfo drawings)
-            Nothing -> json $ ServerError "cannot get board" HttpType.internalServerError500
+            Nothing -> raise $ ServerError "cannot get board" HttpType.internalServerError500
 
 
     get "/api/board/:compId/settings" $ do
@@ -190,7 +192,7 @@ apiApp acid clientState = do
             Just b -> do
                 num <- liftIO $ Drawing.countAllByBoard cdb (Board.boardId b)
                 json $ SettingsPanelJson b (num == 0)
-            Nothing -> json $ ServerError "cannot get board" HttpType.internalServerError500
+            Nothing -> raise $ ServerError "cannot get board" HttpType.internalServerError500
 
 
     put "/api/board/:compId/settings" $ do
@@ -202,7 +204,7 @@ apiApp acid clientState = do
             Nothing -> return Nothing
         case board of
             Just _  -> json HttpType.ok200
-            Nothing -> json $ ServerError "cannot update drawing" HttpType.internalServerError500
+            Nothing -> raise $ ServerError "cannot update drawing" HttpType.internalServerError500
 
 
 
@@ -218,4 +220,7 @@ apiApp acid clientState = do
                 setHeader "Content-Disposition" "attachment; filename=\"Whiteboard.pdf\""
                 setHeader "Set-Cookie" "fileDownload=true; path=/"
                 raw boardPdf
-            Nothing -> json $ ServerError "cannot download board" HttpType.internalServerError500
+            Nothing -> raise $ ServerError "cannot download board" HttpType.internalServerError500
+
+
+    notFound $ raise $ ServerError "resource not found" HttpType.notFound404
